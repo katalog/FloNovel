@@ -197,4 +197,14 @@
     <string name="settings_shortcut_settings">설정</string>
     <string name="settings_shortcut_press_key">키 입력 대기 중...</string>
     <string name="settings_shortcut_reset">기본값으로 초기화</string>
+
+    <!-- Radio BGM -->
+    <string name="radio_dialog_title">배경음악 스트림</string>
+    <string name="radio_dialog_subtitle">인터넷 라디오 스트림 재생 및 타이머 설정</string>
+    <string name="radio_stream_selection">스트림 선택</string>
+    <string name="radio_duration_label">재생 시간 설정 (분)</string>
+    <string name="radio_start_playback">재생 시작</string>
+    <string name="radio_stop_playback">재생 중지</string>
+    <string name="radio_minutes_unit">%d분</string>
+    <string name="radio_error_toast">라디오 재생 실패: %s</string>
 </resources>

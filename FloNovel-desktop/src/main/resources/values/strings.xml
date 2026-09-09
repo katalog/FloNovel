@@ -197,4 +197,14 @@
     <string name="settings_shortcut_settings">Settings</string>
     <string name="settings_shortcut_press_key">Press any key...</string>
     <string name="settings_shortcut_reset">Reset to Defaults</string>
+
+    <!-- Radio BGM -->
+    <string name="radio_dialog_title">Background Audio Stream</string>
+    <string name="radio_dialog_subtitle">Internet radio streaming and timer</string>
+    <string name="radio_stream_selection">Select Stream</string>
+    <string name="radio_duration_label">Playback Duration (minutes)</string>
+    <string name="radio_start_playback">Play</string>
+    <string name="radio_stop_playback">Stop</string>
+    <string name="radio_minutes_unit">%d min</string>
+    <string name="radio_error_toast">Radio playback failed: %s</string>
 </resources>

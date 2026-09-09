@@ -48,6 +48,8 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation("com.github.albfernandez:juniversalchardet:2.5.0")
     implementation("org.json:json:20240303")
+    implementation("javazoom:jlayer:1.0.1")
+    implementation("com.tianscar.javasound:javasound-aac:0.9.8")
     testImplementation(kotlin("test"))
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

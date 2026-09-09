@@ -67,6 +67,7 @@ import com.moonkata.flonovel.desktop.reader.ChapterJumpNavigator
 import com.moonkata.flonovel.desktop.reader.PaneMode
 import com.moonkata.flonovel.desktop.reader.ReaderNavigator
 import com.moonkata.flonovel.desktop.reader.ViewportSpec
+import com.moonkata.flonovel.desktop.audio.RadioPlayer
 import com.moonkata.flonovel.desktop.text.Chapter
 import com.moonkata.flonovel.desktop.text.ChapterDetector
 import java.util.Locale
@@ -367,6 +368,8 @@ fun ReaderView(
     }
     var showToc by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
+    var showRadioDialog by remember { mutableStateOf(false) }
+    val radioPlaybackState by RadioPlayer.state
     var lastChapterJumpOffset by remember { mutableStateOf<Int?>(null) }
     var toastMessage by remember { mutableStateOf<String?>(null) }
 
@@ -515,6 +518,7 @@ fun ReaderView(
         showSettings,
         showToc,
         showSearch,
+        showRadioDialog,
         remoteSyncNotice,
         viewSettings,
         keymap,
@@ -524,11 +528,12 @@ fun ReaderView(
         navigator,
     ) {
         val dispatcher: (KeyEvent) -> Boolean = { keyEvent ->
-            if (showSettings || showToc || showSearch) {
+            if (showSettings || showToc || showSearch || showRadioDialog) {
                 if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape) {
                     if (showSearch) showSearch = false
                     else if (showToc) showToc = false
                     else if (showSettings) showSettings = false
+                    else if (showRadioDialog) showRadioDialog = false
                     true
                 } else {
                     // Dialog is open: do NOT intercept shortcuts, pass through to dialog / text input
@@ -767,12 +772,27 @@ fun ReaderView(
                 .align(Alignment.BottomEnd)
                 .padding(end = 20.dp, bottom = 12.dp),
         ) {
-            Text(
-                text = progressText,
-                color = colors.progressText,
-                fontSize = 12.sp,
-                fontFamily = FontFamily.Default,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (radioPlaybackState.isPlaying) {
+                    val streamTitle = radioPlaybackState.streamName ?: ""
+                    val timeRemaining = radioPlaybackState.formatRemainingTime()
+                    Text(
+                        text = "[$streamTitle] $timeRemaining",
+                        color = colors.progressText,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Default,
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+                Text(
+                    text = progressText,
+                    color = colors.progressText,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Default,
+                )
+            }
         }
 
         // Header buttons in top-right corner with auto-hide, hover detection, and F11 toggle
@@ -780,7 +800,7 @@ fun ReaderView(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .width(260.dp)
+                .width(300.dp)
                 .height(60.dp)
                 .onPointerEvent(PointerEventType.Enter) {
                     isHoveringTopRight = true
@@ -817,6 +837,24 @@ fun ReaderView(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
+                    Box(
+                        modifier = Modifier
+                            .clickable {
+                                if (radioPlaybackState.isPlaying) {
+                                    RadioPlayer.stop()
+                                } else {
+                                    showRadioDialog = true
+                                }
+                            }
+                            .padding(4.dp),
+                    ) {
+                        Text(
+                            text = if (radioPlaybackState.isPlaying) "⏹" else "🎵",
+                            color = colors.progressText,
+                            fontSize = 17.sp,
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
                             .clickable { showSearch = true }
@@ -957,6 +995,16 @@ fun ReaderView(
                             fontError = Strings.get("reader_font_download_error", font.displayName, e.message ?: (e::class.simpleName ?: ""))
                         }
                     }
+                },
+            )
+        }
+
+        // Radio BGM Stream Dialog Overlay
+        if (showRadioDialog) {
+            RadioDialog(
+                onDismiss = { showRadioDialog = false },
+                onToast = { msg ->
+                    toastMessage = Strings.get("radio_error_toast", msg)
                 },
             )
         }
