@@ -31,3 +31,4 @@ keystore.properties
 # handoff notes, scratch output. Everything else at the root is public by default,
 # so a new doc is tracked without touching this file.
 /.work/
+*.bat
