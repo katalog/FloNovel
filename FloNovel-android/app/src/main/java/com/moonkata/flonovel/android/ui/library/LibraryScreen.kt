@@ -134,11 +134,18 @@ fun LibraryScreen(
             }
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = pickFolder,
-                icon = { Icon(Icons.Default.FolderOpen, contentDescription = null) },
-                text = { Text(if (uiState.rootUri == null) stringResource(R.string.library_add_folder) else stringResource(R.string.library_change_folder)) },
-            )
+            // Only while there is no usable home folder — never picked, or the SAF grant was lost
+            // (both leave rootUri null). Once one is set, changing it lives in the settings sheet
+            // instead: as a permanent FAB it was the loudest control on a screen where it is almost
+            // never the thing the user wants, and its constant presence read as "the home folder
+            // isn't set up yet" (real-usage feedback).
+            if (uiState.rootUri == null) {
+                ExtendedFloatingActionButton(
+                    onClick = pickFolder,
+                    icon = { Icon(Icons.Default.FolderOpen, contentDescription = null) },
+                    text = { Text(stringResource(R.string.library_add_folder)) },
+                )
+            }
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
@@ -182,7 +189,18 @@ fun LibraryScreen(
         // here too (font/margins/theme/VSCode sync etc. are app-wide settings unrelated to any
         // particular book, so they should be changeable without opening one first — added from
         // real-usage feedback).
-        QuickSettingsSheet(viewModel = viewModel, settings = uiState.settings, onDismiss = { showSettings = false })
+        QuickSettingsSheet(
+            viewModel = viewModel,
+            settings = uiState.settings,
+            onDismiss = { showSettings = false },
+            homeFolderName = uiState.path.firstOrNull()?.name,
+            // Close the sheet before handing off to the system picker, so returning from it lands
+            // on the refreshed library rather than on a stale sheet covering it.
+            onChangeHomeFolder = {
+                showSettings = false
+                pickFolder()
+            },
+        )
     }
 }
 

@@ -3,6 +3,7 @@ package com.moonkata.flonovel.android.ui.library
 import android.app.Application
 import android.net.Uri
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -107,6 +108,63 @@ class LibraryScreenSettingsAccessTest {
             runBlocking {
                 settingsRepository.updateFontSizeSp(originalSettings.fontSizeSp)
             }
+            testDb.close()
+        }
+    }
+
+    /**
+     * Changing the home folder used to be an extended FAB that stayed on the library screen for as
+     * long as the app was installed, labelled "Change folder" once a folder had been picked. It is
+     * a rare action wearing the screen's loudest control, and seeing it on every visit to the folder
+     * view read as "the home folder still isn't set" (real-usage feedback). With a folder set the
+     * FAB is gone entirely and the action lives in the settings sheet, so this pins both halves:
+     * absent from the library surface, present inside the sheet.
+     */
+    @Test
+    fun withHomeFolderSet_changeFolderLeavesLibrarySurface_andAppearsInSettingsSheet() {
+        val testDb = Room.inMemoryDatabaseBuilder(application, AppDatabase::class.java).build()
+        val bookRepository = BookRepository(application, testDb.bookDao())
+
+        val fakeRoot = Uri.parse("content://fake/home-folder-in-settings-root")
+        val folderBrowser = FakeFolderBrowser(
+            mapOf(
+                fakeRoot to listOf(
+                    FolderEntry.TextFile(
+                        name = "dummy.txt",
+                        source = BookSource.PlainTxt(Uri.parse("content://fake/home-folder-in-settings-root/dummy.txt")),
+                        sizeBytes = 0,
+                        lastModified = 0,
+                    ),
+                ),
+            ),
+        )
+
+        val viewModel = LibraryViewModel(application, bookRepository, settingsRepository, folderBrowser)
+        val changeFolderLabel = application.getString(R.string.library_change_folder)
+
+        try {
+            composeTestRule.setContent {
+                MaterialTheme {
+                    LibraryScreen(onOpenBook = {}, viewModel = viewModel)
+                }
+            }
+
+            composeTestRule.runOnUiThread { viewModel.onRootFolderSelected(fakeRoot) }
+            composeTestRule.waitUntil(timeoutMillis = 5_000) { viewModel.uiState.value.entries.isNotEmpty() }
+            composeTestRule.waitForIdle()
+
+            // The FAB never merged its label into a single semantics node, so this has to look at
+            // the unmerged tree — the same reason AppSmokeTest does.
+            composeTestRule
+                .onNode(hasText(changeFolderLabel), useUnmergedTree = true)
+                .assertDoesNotExist()
+
+            composeTestRule.onNodeWithContentDescription(application.getString(R.string.library_settings_desc)).performClick()
+            composeTestRule.waitForIdle()
+
+            composeTestRule.onNodeWithText(application.getString(R.string.settings_section_home_folder)).assertExists()
+            composeTestRule.onNodeWithText(changeFolderLabel).assertExists()
+        } finally {
             testDb.close()
         }
     }

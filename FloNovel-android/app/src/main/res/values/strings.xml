@@ -39,6 +39,7 @@
     <string name="chapter_pattern_preset_hash_example">## Chapter 1: An Utterly Ordinary Beginning</string>
 
     <!-- Quick settings sheet -->
+    <string name="settings_section_home_folder">Home folder</string>
     <string name="settings_section_font">Font</string>
     <string name="settings_font_size">Size</string>
     <string name="settings_line_height">Line height</string>

@@ -56,15 +56,46 @@ import com.moonkata.flonovel.android.data.datastore.ReaderSettings
 import com.moonkata.flonovel.android.data.datastore.ThemePreset
 import com.moonkata.flonovel.android.ui.SettingsController
 
+/**
+ * [homeFolderName] and [onChangeHomeFolder] are the library screen's only additions to this sheet.
+ * The reader passes neither, so the home-folder section stays hidden there — a book is already open
+ * by then, and swapping the library root out from under it is not something to offer mid-read.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuickSettingsSheet(viewModel: SettingsController, settings: ReaderSettings, onDismiss: () -> Unit) {
+fun QuickSettingsSheet(
+    viewModel: SettingsController,
+    settings: ReaderSettings,
+    onDismiss: () -> Unit,
+    homeFolderName: String? = null,
+    onChangeHomeFolder: (() -> Unit)? = null,
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showFontPicker by remember { mutableStateOf(false) }
     var showChapterPatterns by remember { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
+            // Changing the home folder used to be a permanent extended FAB on the library screen.
+            // It is a rare action, and giving it the loudest control on the screen made the library
+            // read as "setup is not finished yet" every time the folder view was opened (real-usage
+            // feedback). It sits first here because it is the one setting that decides what the
+            // library even contains.
+            if (onChangeHomeFolder != null) {
+                Text(stringResource(R.string.settings_section_home_folder), style = MaterialTheme.typography.titleMedium)
+                if (homeFolderName != null) {
+                    Text(
+                        homeFolderName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                OutlinedButton(onClick = onChangeHomeFolder, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.library_change_folder))
+                }
+
+                SectionDivider()
+            }
             Text(stringResource(R.string.settings_section_font), style = MaterialTheme.typography.titleMedium)
             LabeledStepper(stringResource(R.string.settings_font_size), settings.fontSizeSp, 1f, 12f..32f, format = { "${it.toInt()}sp" }) { viewModel.setFontSizeSp(it) }
             LabeledStepper(stringResource(R.string.settings_line_height), settings.lineHeightMultiplier, 0.1f, 1.0f..2.5f, format = { "%.1f".format(it) }) { viewModel.setLineHeightMultiplier(it) }

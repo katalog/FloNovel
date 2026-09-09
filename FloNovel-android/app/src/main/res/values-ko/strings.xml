@@ -39,6 +39,7 @@
     <string name="chapter_pattern_preset_hash_example">## 제1장 평범하기 그지없는 노르만인 수도사</string>
 
     <!-- Quick settings sheet -->
+    <string name="settings_section_home_folder">홈 폴더</string>
     <string name="settings_section_font">글자</string>
     <string name="settings_font_size">크기</string>
     <string name="settings_line_height">줄간격</string>
