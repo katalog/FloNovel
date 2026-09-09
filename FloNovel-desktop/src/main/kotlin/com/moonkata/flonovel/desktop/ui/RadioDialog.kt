@@ -43,7 +43,7 @@ fun RadioDialog(
     onToast: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val streams = remember { RadioStreamCatalog.loadStreams() }
+    var streams by remember { mutableStateOf(RadioStreamCatalog.loadStreams()) }
     val playbackState by RadioPlayer.state
 
     var selectedStream by remember {
@@ -126,15 +126,33 @@ fun RadioDialog(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Text(
-                        text = "⚙ ${stringResource("radio_edit_streams")}",
-                        color = Color(0xFF60A5FA),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier
-                            .clickable { RadioStreamCatalog.openConfigFile() }
-                            .padding(4.dp),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "↺ ${stringResource("radio_reset_default")}",
+                            color = Color(0xFFAAAAAA),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .clickable {
+                                    RadioStreamCatalog.resetToDefaults()
+                                    streams = RadioStreamCatalog.loadStreams()
+                                    if (selectedStream == null || streams.none { it.name == selectedStream?.name }) {
+                                        selectedStream = streams.firstOrNull { it.name == playbackState.streamName } ?: streams.firstOrNull()
+                                    }
+                                }
+                                .padding(4.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "⚙ ${stringResource("radio_edit_streams")}",
+                            color = Color(0xFF60A5FA),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .clickable { RadioStreamCatalog.openConfigFile() }
+                                .padding(4.dp),
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 

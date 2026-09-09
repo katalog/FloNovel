@@ -88,5 +88,21 @@ class RadioStreamCatalogTest {
         assertEquals("Valid Stream", parsed[0].name)
         assertEquals("http://example.com/stream", parsed[0].url)
     }
+
+    @Test
+    fun resetToDefaults_overwritesCustomOrCorruptedFileWithDefaults() {
+        val configFile = tempDir.resolve("custom_streams.json")
+        Files.writeString(configFile, """[{"name": "Custom", "url": "http://custom.stream"}]""")
+
+        val result = RadioStreamCatalog.resetToDefaults(configFile)
+        assertTrue(result)
+
+        val restoredText = Files.readString(configFile)
+        assertTrue(restoredText.contains("_guide"))
+        assertTrue(restoredText.contains("The Lounge Hour"))
+
+        val loaded = RadioStreamCatalog.loadStreams(configFile)
+        assertEquals(RadioStreamCatalog.DEFAULT_STREAMS, loaded)
+    }
 }
 

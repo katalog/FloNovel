@@ -145,6 +145,18 @@ object RadioStreamCatalog {
             }
         } catch (_: Exception) {}
     }
+
+    fun resetToDefaults(file: Path = streamsConfigFile()): Boolean {
+        return try {
+            if (file.parent != null) {
+                Files.createDirectories(file.parent)
+            }
+            Files.writeString(file, defaultJsonContent())
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
 }
 
 /**

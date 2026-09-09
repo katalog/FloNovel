@@ -207,6 +207,7 @@
     <string name="radio_dialog_title">배경음악 스트림</string>
     <string name="radio_dialog_subtitle">인터넷 라디오 스트림 재생 및 타이머 설정</string>
     <string name="radio_stream_selection">스트림 선택</string>
+    <string name="radio_reset_default">디폴트</string>
     <string name="radio_edit_streams">목록 편집</string>
     <string name="radio_stream_url_guide">※ MP3/AAC 직접 오디오 스트림(Icecast, Shoutcast 등)을 지원합니다. (유튜브 등 웹페이지 링크 제외)</string>
     <string name="radio_duration_label">재생 시간 설정 (분)</string>

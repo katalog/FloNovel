@@ -10,7 +10,7 @@ class RadioPlayerTest {
 
     @Test
     fun testDefaultStreamsLoadSuccessfully() {
-        val streams = RadioStreamCatalog.loadStreams()
+        val streams = RadioStreamCatalog.parseStreamsJson(RadioStreamCatalog.defaultJsonContent())
         assertTrue(streams.isNotEmpty(), "Streams list should not be empty")
         assertEquals(3, streams.size, "Default streams count should be 3")
 

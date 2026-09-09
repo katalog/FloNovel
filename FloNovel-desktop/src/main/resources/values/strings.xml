@@ -207,6 +207,7 @@
     <string name="radio_dialog_title">Background Audio Stream</string>
     <string name="radio_dialog_subtitle">Internet radio streaming and timer</string>
     <string name="radio_stream_selection">Select Stream</string>
+    <string name="radio_reset_default">Default</string>
     <string name="radio_edit_streams">Edit list</string>
     <string name="radio_stream_url_guide">※ Supports direct MP3/AAC audio streams (Icecast, Shoutcast). Webpages like YouTube are not supported.</string>
     <string name="radio_duration_label">Playback Duration (minutes)</string>
