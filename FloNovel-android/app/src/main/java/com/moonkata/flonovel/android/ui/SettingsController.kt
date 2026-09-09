@@ -1,0 +1,63 @@
+package com.moonkata.flonovel.android.ui
+
+import com.moonkata.flonovel.android.data.datastore.AutoAdvanceMode
+import com.moonkata.flonovel.android.data.datastore.OrientationLock
+import com.moonkata.flonovel.android.data.datastore.PageGestureAction
+import com.moonkata.flonovel.android.data.datastore.PageTransitionAnimation
+import com.moonkata.flonovel.android.data.datastore.PageTurnMode
+import com.moonkata.flonovel.android.data.datastore.ThemePreset
+import com.moonkata.flonovel.android.data.font.FontCatalogEntry
+import com.moonkata.flonovel.android.data.font.FontDownloadState
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * An interface distilled down to just what `QuickSettingsSheet`/`FontPickerSheet`/`ChapterPatternSheet`
+ * actually need — all "app-wide setting" operations that stay meaningful even without a book open
+ * (e.g. from the library screen). Both `ReaderViewModel` and `LibraryViewModel` implement this interface
+ * so the same settings sheets can be reused on both the reader screen and the library screen — added
+ * based on real-usage feedback that users should be able to configure font/margins/theme/VSCode sync
+ * etc. without opening a book from the library screen.
+ *
+ * The reader-side implementation layers on side effects beyond just persisting the value (e.g. starting
+ * TTS narration immediately if the auto-advance mode is set to TTS), while the library-side
+ * implementation just persists the value since there's no open book — later, when a book is actually
+ * opened, `ReaderViewModel` reads the persisted settings and applies the necessary side effects at
+ * that point.
+ */
+interface SettingsController {
+    fun setFontSizeSp(value: Float)
+    fun setLineHeightMultiplier(value: Float)
+    fun setLetterSpacingSp(value: Float)
+    fun setMarginHorizontalDp(value: Float)
+    fun setMarginTopDp(value: Float)
+    fun setMarginBottomDp(value: Float)
+    fun setThemePreset(value: ThemePreset)
+    fun setPageTurnMode(value: PageTurnMode)
+    fun setBrightnessOverrideEnabled(value: Boolean)
+    fun setBrightnessValue(value: Float)
+    fun setOrientationLock(value: OrientationLock)
+    fun setKeepScreenOnEnabled(value: Boolean)
+    fun setVolumeKeyPagingEnabled(value: Boolean)
+    fun setChapterJumpDivisions(value: Int)
+    fun setAutoPageTurnIntervalSeconds(value: Int)
+    fun selectFont(fontId: String)
+    fun setTouchLeftAction(value: PageGestureAction)
+    fun setTouchRightAction(value: PageGestureAction)
+    fun setSwipeLeftAction(value: PageGestureAction)
+    fun setSwipeRightAction(value: PageGestureAction)
+    fun setSwipeUpAction(value: PageGestureAction)
+    fun setSwipeDownAction(value: PageGestureAction)
+    fun setPageTransitionAnimation(value: PageTransitionAnimation)
+    fun setAutoAdvanceMode(mode: AutoAdvanceMode)
+
+    fun toggleChapterPattern(id: String, enabled: Boolean)
+
+    /** If the pattern is not a well-formed regex, it is not added and false is returned. */
+    fun addCustomChapterPattern(pattern: String): Boolean
+    fun removeCustomChapterPattern(pattern: String)
+
+    fun downloadFont(entry: FontCatalogEntry): Flow<FontDownloadState>
+    fun isFontDownloaded(entry: FontCatalogEntry): Boolean
+
+
+}

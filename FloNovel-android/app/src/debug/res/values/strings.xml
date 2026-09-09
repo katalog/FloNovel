@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only override of app_name.
+
+  Uses a build-type resource override rather than resValue() in build.gradle.kts:
+  resValue would collide with the app_name already declared in main, and defining
+  it in Gradle would drop the ko/en split that values-ko provides.
+-->
+<resources>
+    <string name="app_name">FloNovel DEV</string>
+</resources>

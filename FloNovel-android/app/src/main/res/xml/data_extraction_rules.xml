@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Android 12+ backup/transfer rules. See backup_rules.xml for the rationale and for 11-.
+
+    Cloud backup excludes the credential store outright. Device-to-device transfer keeps it: that is
+    a direct handoff between two devices the same person holds, not a copy parked on a server, and
+    excluding it there would force a re-login for no security gain.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/flonovel_settings.preferences_pb" />
+    </cloud-backup>
+</data-extraction-rules>

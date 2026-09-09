@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- debug source set only — not merged into release builds. Allows cleartext (http://) only as an
+     exception for the MockWebServer (local fake HTTP server) that FontDownloadManagerTest uses.
+     PC file sync (.docs/PC_SYNC_SERVER_PLAN.md) once widened this file to allow everything, but
+     once the PC server switched to HTTPS with a self-signed certificate (§5, TOFU-style fingerprint
+     pinning), cleartext was no longer needed and this was reverted back to its original scope. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

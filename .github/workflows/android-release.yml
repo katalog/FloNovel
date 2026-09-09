@@ -1,0 +1,101 @@
+name: Android Release
+
+# Runs when an android-v* tag is pushed (android-v1.0, android-v1.2.3, ...): runs the unit tests,
+# and on success builds an APK signed with the release keystore (stored as base64 in a repo secret),
+# creates a GitHub Release named after that tag, and attaches the APK. If the
+# RELEASE_KEYSTORE_BASE64 secret is missing, build.gradle.kts silently falls back to debug signing
+# (so the workflow itself doesn't break on forks, etc.). SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and
+# DROPBOX_APP_KEY fall back to empty values for the same reason if their secrets are missing, in
+# which case the build still succeeds and only the optional sync features report themselves as
+# unconfigured.
+#
+# The tag prefix is what separates the two apps in this repository: a desktop release workflow
+# triggering on desktop-v* is the intended counterpart and does not exist yet.
+on:
+  push:
+    tags:
+      - "android-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # AGP 8.12 (the android-application plugin in build.gradle.kts) requires the JDK running
+      # Gradle itself to be 17+ — separate from the Java 11 the app code's
+      # compileOptions/kotlinOptions target (that's just the compiled bytecode target, not a
+      # requirement on the Gradle/AGP execution environment).
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-root-directory: FloNovel-android
+
+      # Instrumented tests (app/src/androidTest) need an emulator, and some of them
+      # (RealFontDownloadIntegrationTest, FontApplyRepaginatesViewerTest) hit real external font
+      # sources over the internet — too slow and flaky to run in CI as a release gate. Only the
+      # pure-logic unit tests (app/src/test) gate the release.
+      - name: Run unit tests
+        working-directory: FloNovel-android
+        run: ./gradlew testDebugUnitTest
+
+      - name: Decode release keystore
+        run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+
+      # Uses the tag (android-v1.1 → "1.1") as versionName, and the ever-increasing CI run number as
+      # versionCode — the original bug was that a fixed value hardcoded in build.gradle.kts went
+      # into the APK regardless of the tag (causing the "latest tag" shown in tools like Obtainium
+      # to disagree with the installed app's actual displayed version).
+      - name: Compute release version
+        id: version
+        run: |
+          echo "name=${GITHUB_REF_NAME#android-v}" >> "$GITHUB_OUTPUT"
+          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release APK
+        working-directory: FloNovel-android
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_VERSION_NAME: ${{ steps.version.outputs.name }}
+          RELEASE_VERSION_CODE: ${{ steps.version.outputs.code }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          # Same Dropbox app as the Desktop build. A public PKCE client key, so there is no client
+          # secret at stake, but it stays a repository secret rather than sitting in git. If it is
+          # missing the build still succeeds and the app simply reports Dropbox as unconfigured.
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+        run: ./gradlew assembleRelease
+
+      - name: Remove decoded keystore
+        if: always()
+        run: rm -f release.keystore
+
+      # Named after the version rather than the raw tag, so the asset reads flonovel-android-v1.1.apk
+      # instead of repeating the android- prefix the tag already carries.
+      - name: Rename APK with version
+        run: |
+          mkdir -p release-artifacts
+          cp FloNovel-android/app/build/outputs/apk/release/app-release.apk \
+             "release-artifacts/flonovel-android-v${{ steps.version.outputs.name }}.apk"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*.apk
+          generate_release_notes: true
+          # GitHub adds a "Pre-release" badge if the tag name contains -beta
+          # (e.g. android-v1.5.0-beta.1).
+          prerelease: ${{ contains(github.ref_name, '-beta') }}

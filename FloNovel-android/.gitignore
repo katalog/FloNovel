@@ -1,0 +1,73 @@
+# ===============================================
+#    .gitignore for Android Studio Projects
+# ===============================================
+
+# Built application files
+*.apk
+*.aab
+*.ap_
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Built native files
+**/*.so
+**/*.a
+**/*.dll
+**/*.exe
+
+# Build directory
+build/
+.cxx/
+
+# Gradle cache
+.gradle/
+
+# Local configuration file
+# Contains SDK path and other sensitive information.
+local.properties
+
+# IDE files (Android Studio / IntelliJ)
+# .idea/modules.xml, .idea/workspace.xml, and .idea/libraries are user-specific.
+# *.iml files are module-specific and are often generated.
+*.iml
+.idea/workspace.xml
+.idea/libraries/
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/deploymentTargetDropDown.xml
+.idea/dictionaries/
+
+# Keystore files (VERY IMPORTANT)
+# Release signing keys must NEVER be shared.
+*.jks
+*.keystore
+keystore.properties
+
+# Log files
+*.log
+*/build/reports/
+
+# Profiler and memory snapshots
+captures/
+*.hprof
+*.prof
+
+# Google services file
+# If each developer has their own, ignore it. If it's a shared dev file, comment this line out.
+google-services.json
+
+# Temporary files from Android Studio
+.DS_Store
+Thumbs.db
+
+# Kover reports (Kotlin code coverage)
+**/reports/kover
+
+# Scratch screenshots/UI dumps from device testing
+.tmp_screens/
+
+# Raw icon export (source files for app/web/ios icons; applied copies live under res/)
+.tmp_icon/
+
+.idea/

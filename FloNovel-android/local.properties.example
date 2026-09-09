@@ -1,0 +1,26 @@
+# FloNovel Android — local configuration
+# Copy this file to local.properties and fill in your values.
+# local.properties is gitignored and will never be committed.
+
+# Android SDK location. Android Studio writes this for you on first sync.
+# sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
+
+# Dropbox app key — the same app the Desktop build uses. The two are separated
+# by secret filename, not by key. Public PKCE client, so no client secret.
+# The Android redirect scheme db-<app key>:// is derived from this value.
+# Leave blank to build without Dropbox; file sync then reports itself unconfigured.
+DROPBOX_APP_KEY=
+
+# Reading position sync. Table: flonovel_sync
+# Leave blank to build without position sync.
+SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=
+
+# Release signing. Also readable from environment variables of the same names,
+# which is how CI supplies them. When RELEASE_KEYSTORE_PATH is absent the release
+# build silently falls back to debug signing, so a fork can still run
+# assembleRelease — verify the certificate, not the build result.
+RELEASE_KEYSTORE_PATH=
+RELEASE_KEYSTORE_PASSWORD=
+RELEASE_KEY_ALIAS=
+RELEASE_KEY_PASSWORD=

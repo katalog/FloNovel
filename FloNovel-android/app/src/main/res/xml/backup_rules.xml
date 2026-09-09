@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Applies to Android 11 and below (API 30-). See data_extraction_rules.xml for 12+.
+
+    "flonovel_settings.preferences_pb" is the DataStore file. It holds the Dropbox OAuth refresh token
+    and the Supabase shared secret, so it must never leave the device in a cloud backup. DataStore
+    keeps every preference in one file, so excluding the token means excluding the reading settings
+    (font, theme, gestures) with it — an acceptable trade: those are a minute to set again, whereas a
+    leaked refresh token grants standing access to the user's Dropbox app folder.
+-->
+<full-backup-content>
+    <exclude domain="file" path="datastore/flonovel_settings.preferences_pb" />
+</full-backup-content>

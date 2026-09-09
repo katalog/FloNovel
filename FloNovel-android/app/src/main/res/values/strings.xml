@@ -1,0 +1,152 @@
+<resources>
+    <string name="app_name">FloNovel</string>
+
+    <!-- Library screen -->
+    <string name="library_default_title">My Library</string>
+    <string name="library_up_folder_desc">Parent folder</string>
+    <string name="library_sort_desc">Sort</string>
+    <string name="library_settings_desc">Settings</string>
+    <string name="library_add_folder">Add folder</string>
+    <string name="library_change_folder">Change folder</string>
+    <string name="library_no_folder_added">Add a home folder to load your .txt novels</string>
+    <string name="library_folder_access_lost">Can no longer access your home folder. Please choose it again.</string>
+    <string name="library_no_txt_zip_files">This folder has no txt/zip files</string>
+    <string name="library_percent_read">%1$.3f%% read</string>
+    <string name="library_unread">Unread</string>
+    <string name="library_resume_reading_title">Resume reading</string>
+    <string name="library_resume_reading_message">Continue \"%1$s\"?</string>
+    <string name="library_resume_reading_confirm">Continue</string>
+    <string name="library_resume_reading_dismiss">Not now</string>
+    <string name="sort_name_asc">Name (A–Z)</string>
+    <string name="sort_name_desc">Name (Z–A)</string>
+    <string name="sort_date_desc">Recently modified</string>
+    <string name="sort_date_asc">Oldest modified</string>
+    <string name="sort_size_desc">Largest first</string>
+    <string name="sort_size_asc">Smallest first</string>
+
+    <!-- QR scanner -->
+
+    <!-- Chapter pattern sheet -->
+    <string name="chapter_pattern_title">Chapter detection patterns</string>
+    <string name="chapter_pattern_description">A line is recognized as a chapter title if it fully matches any of the patterns below.</string>
+    <string name="chapter_pattern_example_prefix">e.g. %1$s</string>
+    <string name="chapter_pattern_custom_title">Add a custom pattern</string>
+    <string name="chapter_pattern_custom_placeholder" translatable="false">e.g. ^Vol\\.\\s*\\d+</string>
+    <string name="chapter_pattern_add_desc">Add</string>
+    <string name="chapter_pattern_invalid_regex">That\'s not a valid regular expression</string>
+    <string name="chapter_pattern_delete_desc">Delete</string>
+    <string name="chapter_pattern_preset_hash_label">Starts with ##</string>
+    <string name="chapter_pattern_preset_hash_example">## Chapter 1: An Utterly Ordinary Beginning</string>
+
+    <!-- Quick settings sheet -->
+    <string name="settings_section_font">Font</string>
+    <string name="settings_font_size">Size</string>
+    <string name="settings_line_height">Line height</string>
+    <string name="settings_letter_spacing">Letter spacing</string>
+    <string name="settings_font_picker_button">Choose / download font</string>
+    <string name="settings_section_margins">Margins</string>
+    <string name="settings_margin_horizontal">Left/right</string>
+    <string name="settings_margin_top">Top</string>
+    <string name="settings_margin_bottom">Bottom</string>
+    <string name="settings_section_theme">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_sepia">Sepia</string>
+    <string name="settings_section_page_turn_mode">Page-turn mode</string>
+    <string name="settings_page_turn_paged">Page turn</string>
+    <string name="settings_page_turn_scroll">Scroll</string>
+    <string name="settings_section_transition_animation">Transition animation</string>
+    <string name="settings_transition_none">None</string>
+    <string name="settings_transition_slide">Slide</string>
+    <string name="settings_transition_cover">Cover</string>
+    <string name="settings_section_page_turn_options">Page-turn options</string>
+    <string name="settings_touch_left">Touch left</string>
+    <string name="settings_touch_right">Touch right</string>
+    <string name="settings_swipe_left">Swipe left</string>
+    <string name="settings_swipe_right">Swipe right</string>
+    <string name="settings_swipe_up">Swipe up</string>
+    <string name="settings_swipe_down">Swipe down</string>
+    <string name="settings_swipe_vertical_scroll_mode_note">Swipe up/down only apply in Page turn mode — in Scroll mode, vertical dragging scrolls instead.</string>
+    <string name="settings_gesture_previous_page">Previous page</string>
+    <string name="settings_gesture_next_page">Next page</string>
+    <string name="settings_gesture_previous_chapter_jump">Previous chapter jump</string>
+    <string name="settings_gesture_next_chapter_jump">Next chapter jump</string>
+    <string name="settings_gesture_none">No action</string>
+    <string name="settings_section_chapter_jump">Chapter jump</string>
+    <string name="settings_chapter_jump_divisions">Divisions</string>
+    <string name="settings_chapter_pattern_button">Chapter detection patterns</string>
+    <string name="settings_section_screen">Screen</string>
+    <string name="settings_keep_screen_on">Keep screen on</string>
+    <string name="settings_volume_key_paging">Page with volume keys</string>
+    <string name="settings_brightness_override">Manual brightness</string>
+    <string name="settings_brightness">Brightness</string>
+    <string name="settings_orientation">Screen orientation</string>
+    <string name="settings_orientation_auto">Auto</string>
+    <string name="settings_orientation_portrait">Portrait</string>
+    <string name="settings_orientation_landscape">Landscape</string>
+    <string name="settings_section_auto_advance">Auto-advance / TTS</string>
+    <string name="settings_auto_advance_off">Off</string>
+    <string name="settings_auto_advance_timer">Timer</string>
+    <string name="settings_auto_advance_tts">TTS</string>
+    <string name="settings_auto_advance_interval">%1$d sec</string>
+    <string name="settings_auto_advance_interval_label">Interval</string>
+    <string name="settings_connected">Connected</string>
+    <string name="settings_stepper_decrease_desc">Decrease %1$s</string>
+    <string name="settings_stepper_increase_desc">Increase %1$s</string>
+
+    <!-- Font picker sheet -->
+    <string name="font_picker_title">Font</string>
+    <string name="font_picker_system_default">System default</string>
+    <string name="font_picker_download_desc">Download</string>
+
+    <!-- Reader screen -->
+    <string name="reader_back_desc">Back</string>
+    <string name="reader_settings_desc">Settings</string>
+    <string name="reader_toc_desc">Table of contents</string>
+    <string name="reader_search_desc">Search</string>
+    <string name="reader_chapter_jump_no_pattern">No chapter pattern found</string>
+    <string name="reader_external_position_title">Another device has read further</string>
+    <string name="reader_external_position_message">You\'re at %1$.1f%% — another device has reached %2$.1f%%. Jump to that spot?</string>
+    <string name="reader_external_position_confirm">Jump</string>
+    <string name="reader_external_position_dismiss">Not now</string>
+
+    <!-- Search sheet -->
+    <string name="search_field_label">Search text</string>
+    <string name="search_desc">Search</string>
+
+    <!-- Table of contents sheet -->
+    <string name="toc_empty">No table of contents found</string>
+
+    <!-- PC file sync sheet -->
+
+    <!-- Misc data-layer fallback strings -->
+    <string name="folder_root_fallback_name">Home</string>
+    <string name="font_download_failed_fallback">Download failed</string>
+
+    <!-- Dropbox file sync -->
+    <string name="dropbox_desc">Dropbox sync</string>
+    <string name="dropbox_title">Dropbox sync</string>
+    <string name="dropbox_description">Downloads books from the PC. One-way: the phone never uploads or deletes.</string>
+    <string name="dropbox_sign_in">Connect Dropbox</string>
+    <string name="dropbox_sign_out">Disconnect</string>
+    <string name="dropbox_connected">Connected</string>
+    <string name="dropbox_sync_now">Sync now</string>
+    <string name="dropbox_progress">%1$d / %2$d</string>
+    <string name="dropbox_result">Downloaded %1$d, updated %2$d, deleted %3$d.</string>
+    <string name="dropbox_result_failed_suffix">%1$d failed. Try syncing again.</string>
+    <string name="dropbox_one_way_notice">Sync is one-way. A book deleted here comes back on the next sync — delete it on the PC instead.</string>
+    <string name="dropbox_select_folder_first">Choose a library folder first.</string>
+    <string name="dropbox_sign_in_failed">Sign-in failed. Please try again.</string>
+    <string name="dropbox_sync_failed">Could not sync. Check your connection and try again.</string>
+    <string name="dropbox_no_browser">No browser available to sign in with.</string>
+    <string name="dropbox_not_configured">This build has no Dropbox app key.</string>
+    <string name="settings_section_position_sync">Reading-position sync</string>
+    <string name="settings_position_sync_not_ready">Connect Dropbox in the library to turn this on.</string>
+    <string name="dropbox_position_sync_label">Reading-position sync</string>
+    <string name="dropbox_position_sync_on">On</string>
+    <string name="dropbox_secret_pending">Not set up yet.</string>
+    <string name="dropbox_secret_not_found">Run the desktop app once — it creates the key this needs.</string>
+    <string name="dropbox_secret_failed">Could not read the key. Try again.</string>
+    <string name="dropbox_secret_retry">Retry</string>
+    <string name="dropbox_withheld_deletions">The PC folder looks empty, so %1$d books were kept instead of deleted. Check that the right Dropbox account is connected and that the desktop app has run at least once.</string>
+</resources>

@@ -1,0 +1,22 @@
+# FloNovel Desktop — local configuration
+# Copy this file to local.properties and fill in your values.
+# local.properties is gitignored and will never be committed.
+
+# Dropbox app key (public client, PKCE — there is no client secret)
+# Register at https://www.dropbox.com/developers/apps
+#   Access type : App folder
+#   Scopes      : files.metadata.read/write, files.content.read/write, account_info.read
+#   Redirect URI: http://localhost:52475/oauth/callback
+# Leave blank to build without Dropbox; file sync then reports itself unconfigured.
+DROPBOX_APP_KEY=
+
+# Development mode isolation (true / false)
+# true  -> config directory FloNovelDev, Dropbox secret /.flonovel/secret-dev.json
+# false -> config directory FloNovel,    Dropbox secret /.flonovel/secret.json
+# Keeps a dev run from writing into the real Supabase partition.
+FLONOVEL_DEV=false
+
+# Reading position sync. Table: flonovel_sync
+# Leave blank to build without position sync.
+SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=

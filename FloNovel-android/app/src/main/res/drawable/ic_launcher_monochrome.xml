@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon layer (Android 13+). Single-colour strokes, tinted by the system. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group
+        android:translateX="84.96"
+        android:translateY="224.04"
+        android:scaleX="0.68"
+        android:scaleY="0.68">
+        <path
+            android:strokeColor="#000000"
+            android:strokeWidth="52"
+            android:strokeLineJoin="round"
+            android:pathData="M332,236h328a44,44 0 0 1 44,44v464a44,44 0 0 1 -44,44H332a44,44 0 0 1 -44,-44V280a44,44 0 0 1 44,-44z" />
+        <path
+            android:strokeColor="#000000"
+            android:strokeWidth="52"
+            android:pathData="M384,262v500" />
+        <path
+            android:fillColor="#000000"
+            android:pathData="M540,236h96v220l-48,-44 -48,44z" />
+        <path
+            android:fillColor="#000000"
+            android:pathData="M772,56a196,196 0 1 0 0,392a196,196 0 1 0 0,-392zM772,120a132,132 0 1 1 0,264a132,132 0 1 1 0,-264z" />
+        <group
+            android:translateX="652"
+            android:translateY="132"
+            android:scaleX="2.4"
+            android:scaleY="2.4">
+            <path
+                android:strokeColor="#000000"
+                android:strokeWidth="13"
+                android:strokeLineCap="round"
+                android:pathData="M18,50A32,32 0 0 1 50,18" />
+            <path
+                android:strokeColor="#000000"
+                android:strokeWidth="13"
+                android:strokeLineCap="round"
+                android:pathData="M82,50A32,32 0 0 1 50,82" />
+            <path
+                android:fillColor="#000000"
+                android:pathData="M46,4L70,18L46,32z" />
+            <path
+                android:fillColor="#000000"
+                android:pathData="M54,96L30,82L54,68z" />
+        </group>
+    </group>
+</vector>

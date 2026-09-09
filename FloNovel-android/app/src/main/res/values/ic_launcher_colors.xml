@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#0F5257</color>
+    <color name="flonovel_teal">#0F5257</color>
+    <color name="flonovel_paper">#F4EFE3</color>
+    <color name="flonovel_page_edge">#C9BFA6</color>
+    <color name="flonovel_bookmark">#E2603F</color>
+</resources>
