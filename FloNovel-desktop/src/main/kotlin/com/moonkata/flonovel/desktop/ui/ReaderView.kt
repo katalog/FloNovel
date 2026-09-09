@@ -847,11 +847,11 @@ fun ReaderView(
                                 }
                             }
                             .padding(4.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = if (radioPlaybackState.isPlaying) "⏹" else "🎵",
-                            color = colors.progressText,
-                            fontSize = 17.sp,
+                        MediaControlIcon(
+                            shape = if (radioPlaybackState.isPlaying) MediaControlShape.STOP else MediaControlShape.PLAY,
+                            size = 19.dp,
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))

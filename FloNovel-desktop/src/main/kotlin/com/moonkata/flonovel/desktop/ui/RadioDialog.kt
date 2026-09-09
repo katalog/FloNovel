@@ -80,9 +80,9 @@ fun RadioDialog(
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "🎵",
-                                fontSize = 18.sp,
+                            MediaControlIcon(
+                                shape = MediaControlShape.PLAY,
+                                size = 18.dp,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
@@ -277,12 +277,21 @@ fun RadioDialog(
                                 }
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
-                            Text(
-                                text = stringResource("radio_stop_playback"),
-                                color = Color(0xFFFCA5A5),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                MediaControlIcon(
+                                    shape = MediaControlShape.STOP,
+                                    size = 14.dp,
+                                    circleColor = Color(0xFFEF4444),
+                                    iconColor = Color.White,
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource("radio_stop_playback"),
+                                    color = Color(0xFFFCA5A5),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                     }
@@ -323,12 +332,21 @@ fun RadioDialog(
                             }
                             .padding(horizontal = 18.dp, vertical = 8.dp),
                     ) {
-                        Text(
-                            text = stringResource("radio_start_playback"),
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            MediaControlIcon(
+                                shape = MediaControlShape.PLAY,
+                                size = 14.dp,
+                                circleColor = Color.White.copy(alpha = 0.25f),
+                                iconColor = Color.White,
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = stringResource("radio_start_playback"),
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
             }
