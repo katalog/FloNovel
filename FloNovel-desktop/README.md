@@ -36,7 +36,7 @@ left, exactly as turning a paper page would.
 ### ⌨️ Built for the keyboard
 
 Every action is a key, and every key can be reassigned by clicking a row in settings and pressing what
-you'd rather use. `F11` strips the window down to nothing but text.
+you'd rather use. Controls auto-hide seamlessly so you can focus entirely on reading.
 
 ### 🧹 Your library, cleaned up automatically
 
@@ -150,9 +150,8 @@ Then start the first full upload from the banner in the library.
 | Search | `F2` |
 | Table of contents | `F3` |
 | Settings | `F4` |
-| Focus mode | `F11` |
 
-All of these except focus mode are remappable under **Settings → Shortcuts**: click the row, press the
+All of these are remappable under **Settings → Shortcuts**: click the row, press the
 key you want. **Reset to Defaults** puts the table above back.
 
 ---

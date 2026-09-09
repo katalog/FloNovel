@@ -108,7 +108,6 @@ class StorageRoundTripTest {
                     gutter = 32.0f,
                     paneRatio = 0.5f,
                     maxLineWidth = 1000,
-                    focusMode = true,
                     alignChapterToLeftPane = false,
                     uiScale = 1.3f,
                     emptyLineSpacingRatio = 0.8f,
@@ -147,7 +146,6 @@ class StorageRoundTripTest {
             assertEquals(0.75f, reloaded.view.advanceRatio)
             assertEquals("NanumGothic", reloaded.view.fontFamily)
             assertEquals("DARK", reloaded.view.theme)
-            assertTrue(reloaded.view.focusMode)
             assertEquals(1.3f, reloaded.view.uiScale)
             assertEquals(0.8f, reloaded.view.emptyLineSpacingRatio)
             assertEquals(listOf("hash", "num_dot"), reloaded.chapter.enabledPresets)

@@ -103,8 +103,6 @@
     <string name="settings_gutter">Pane gutter</string>
     <string name="settings_pane_ratio_title">Left/right pane ratio</string>
     <string name="settings_max_line_width">Max line width</string>
-    <string name="settings_focus_mode_title">Focus mode</string>
-    <string name="settings_focus_mode_desc">Hide top buttons and progress bar (F11)</string>
     <string name="settings_chapter_left_align_title">Start chapter at left pane</string>
     <string name="settings_chapter_left_align_desc">In 2-pane mode, always start a new chapter in the left pane (default off)</string>
     <string name="settings_sync_title">Synchronization</string>

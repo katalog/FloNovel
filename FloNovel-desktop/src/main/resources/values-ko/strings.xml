@@ -103,8 +103,6 @@
     <string name="settings_gutter">pane 간격 (gutter)</string>
     <string name="settings_pane_ratio_title">좌우 pane 폭 비율</string>
     <string name="settings_max_line_width">최대 폭 제한</string>
-    <string name="settings_focus_mode_title">집중 모드</string>
-    <string name="settings_focus_mode_desc">상단 버튼 및 구석 진행률 숨김 (단축키 F11)</string>
     <string name="settings_chapter_left_align_title">챕터 시작 좌측 정렬</string>
     <string name="settings_chapter_left_align_desc">2-pane 모드에서 새 챕터를 좌측 pane 시작에 배치 (기본 꺼짐)</string>
     <string name="settings_sync_title">동기화 (Synchronization)</string>

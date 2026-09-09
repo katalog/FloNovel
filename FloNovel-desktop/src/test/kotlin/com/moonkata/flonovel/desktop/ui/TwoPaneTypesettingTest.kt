@@ -45,7 +45,7 @@ class TwoPaneTypesettingTest {
         )
     }
 
-    // --- 2. Changing gutter / paneRatio / maxLineWidth / focusMode preserves anchor ---
+    // --- 2. Changing gutter / paneRatio / maxLineWidth preserves anchor ---
 
     @Test
     fun typesettingChanges_preserveAnchor() {
@@ -80,12 +80,6 @@ class TwoPaneTypesettingTest {
         val specWithMaxWidth = specWithNewRatio.copy(maxLineWidthPx = 800)
         navigator.onLayoutKeyChanged(specWithMaxWidth)
         assertEquals(500, navigator.anchor, "Changing maxLineWidth must strictly preserve anchor")
-
-        // 2.4 Toggling focusMode preserves anchor
-        var settings = ViewSettings()
-        val initialAnchor = navigator.anchor
-        settings = settings.copy(focusMode = !settings.focusMode)
-        assertEquals(initialAnchor, navigator.anchor, "Toggling focusMode must not touch anchor")
     }
 
     // --- 3. alignChapterToLeftPane toggling preserves anchor ---
@@ -179,28 +173,7 @@ class TwoPaneTypesettingTest {
         assertEquals(400, specLimited.rightPaneWidthPx)
     }
 
-    // --- 5. Focus Mode F11 shortcut ---
 
-    @Test
-    fun f11_togglesFocusMode() {
-        val text = makeSampleText(20)
-        val measurer = createTextMeasurer()
-        val style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp)
-        val fitter = ComposeTextFitter(text, measurer, style)
-        val spec = ViewportSpec(widthPx = 600, heightPx = 400, paneMode = PaneMode.TWO)
-        val navigator = ReaderNavigator(text.length, fitter, spec, initialAnchor = 0)
-
-        var toggleInvoked = false
-        val handled = handleKeyAction(
-            key = Key.F11,
-            navigator = navigator,
-            advanceRatio = 0.5f,
-            onToggleFocusMode = { toggleInvoked = true },
-        )
-
-        assertTrue(handled, "F11 must be handled")
-        assertTrue(toggleInvoked, "onToggleFocusMode must be called when F11 is pressed")
-    }
 
     // --- 6. Search result pane indication in 2-pane layout ---
 

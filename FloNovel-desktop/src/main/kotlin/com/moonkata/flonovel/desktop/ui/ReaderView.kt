@@ -147,8 +147,6 @@ fun resolveFontFamily(fontFamilyName: String): FontFamily {
  * - Search: Ctrl+F, '/'
  * - Regular navigation: PageDown, PageUp, DirectionRight, DirectionLeft, Period (>), Comma (<), Spacebar
  * - Dialogs: F2 (Settings), F3/T (TOC)
- * - Dialogs: F2 (Settings), F3/T (TOC)
- * - Focus Mode: F11 (Toggle focus mode)
  * - Exit: Escape (Return to library/folder view)
  *
  * Returns true if the key was handled, false otherwise.
@@ -169,7 +167,6 @@ fun handleKeyAction(
     onPreviousChapterJump: (() -> Unit)? = null,
     onHome: (() -> Unit)? = null,
     onEnd: (() -> Unit)? = null,
-    onToggleFocusMode: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
 ): Boolean {
     // 0. Escape / Back (returns to library/folder view)
@@ -233,13 +230,7 @@ fun handleKeyAction(
         return true
     }
 
-    // 8. Focus Mode toggle (F11)
-    if (key == Key.F11) {
-        onToggleFocusMode?.invoke()
-        return true
-    }
-
-    // 9. Regular page navigation: Next Page ('>' / '.' by default, or DirectionRight, or Spacebar without Shift)
+    // 8. Regular page navigation: Next Page ('>' / '.' by default, or DirectionRight, or Spacebar without Shift)
     if (KeymapHelper.matches(keymap.nextPage, key, codePoint) ||
         (!isCtrlPressed && (key == Key.DirectionRight || (key == Key.Spacebar && !isShiftPressed)))
     ) {
@@ -277,7 +268,6 @@ fun handleReaderKeyEvent(
     onPreviousChapterJump: (() -> Unit)? = null,
     onHome: (() -> Unit)? = null,
     onEnd: (() -> Unit)? = null,
-    onToggleFocusMode: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
 ): Boolean {
     if (keyEvent.type != KeyEventType.KeyDown) return false
@@ -308,7 +298,6 @@ fun handleReaderKeyEvent(
         onPreviousChapterJump = onPreviousChapterJump,
         onHome = onHome,
         onEnd = onEnd,
-        onToggleFocusMode = onToggleFocusMode,
         onBack = onBack,
     )
 }
@@ -377,18 +366,11 @@ fun ReaderView(
 
     var isHeaderVisible by remember { mutableStateOf(true) }
     var isHoveringTopRight by remember { mutableStateOf(false) }
-    var f11ForceVisible by remember { mutableStateOf<Boolean?>(null) }
 
-    fun toggleHeaderVisibility() {
-        val next = !isHeaderVisible
-        isHeaderVisible = next
-        f11ForceVisible = next
-    }
-
-    // Auto-hide top-right buttons after 5 seconds on startup unless hovered or forced by F11
+    // Auto-hide top-right buttons after 5 seconds on startup unless hovered
     LaunchedEffect(Unit) {
         delay(5000L)
-        if (!isHoveringTopRight && f11ForceVisible != true) {
+        if (!isHoveringTopRight) {
             isHeaderVisible = false
         }
     }
@@ -397,10 +379,9 @@ fun ReaderView(
     LaunchedEffect(isHoveringTopRight) {
         if (isHoveringTopRight) {
             isHeaderVisible = true
-            f11ForceVisible = null
         } else {
             delay(1200L)
-            if (!isHoveringTopRight && f11ForceVisible != true) {
+            if (!isHoveringTopRight) {
                 isHeaderVisible = false
             }
         }
@@ -573,9 +554,6 @@ fun ReaderView(
                     onPreviousChapterJump = { performPreviousChapterJump() },
                     onHome = { onHome?.invoke() ?: performHome() },
                     onEnd = { performEnd() },
-                    onToggleFocusMode = {
-                        toggleHeaderVisibility()
-                    },
                     onBack = {
                         onBackToLibrary?.invoke()
                     },
@@ -797,7 +775,7 @@ fun ReaderView(
             }
         }
 
-        // Header buttons in top-right corner with auto-hide, hover detection, and F11 toggle
+        // Header buttons in top-right corner with auto-hide and hover detection
         @OptIn(ExperimentalComposeUiApi::class)
         Box(
             modifier = Modifier

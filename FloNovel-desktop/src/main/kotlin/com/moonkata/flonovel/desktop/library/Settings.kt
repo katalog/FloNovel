@@ -17,7 +17,6 @@ data class ViewSettings(
     val gutter: Float = 24.0f,
     val paneRatio: Float = 0.5f,
     val maxLineWidth: Int = 900,
-    val focusMode: Boolean = false,
     val alignChapterToLeftPane: Boolean = false,
     val uiScale: Float = 1.0f,
     val emptyLineSpacingRatio: Float = 1.0f,
@@ -37,7 +36,6 @@ data class ViewSettings(
         obj.put("gutter", gutter)
         obj.put("paneRatio", paneRatio)
         obj.put("maxLineWidth", maxLineWidth)
-        obj.put("focusMode", focusMode)
         obj.put("alignChapterToLeftPane", alignChapterToLeftPane)
         obj.put("uiScale", uiScale)
         obj.put("emptyLineSpacingRatio", emptyLineSpacingRatio)
@@ -61,7 +59,6 @@ data class ViewSettings(
                 gutter = obj.optDouble("gutter", 24.0).toFloat(),
                 paneRatio = obj.optDouble("paneRatio", 0.5).toFloat(),
                 maxLineWidth = obj.optInt("maxLineWidth", 900),
-                focusMode = obj.optBoolean("focusMode", false),
                 alignChapterToLeftPane = obj.optBoolean("alignChapterToLeftPane", false),
                 uiScale = obj.optDouble("uiScale", 1.0).toFloat(),
                 emptyLineSpacingRatio = obj.optDouble("emptyLineSpacingRatio", 1.0).toFloat(),

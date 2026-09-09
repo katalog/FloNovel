@@ -647,36 +647,7 @@ fun SettingsDialog(
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    // 12. Focus Mode
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column {
-                                Text(text = stringResource("settings_focus_mode_title"), color = Color(0xFFCCCCCC), fontSize = 13.sp)
-                                Text(text = stringResource("settings_focus_mode_desc"), color = Color(0xFF888888), fontSize = 11.sp)
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                ThemeButton(
-                                    name = stringResource("common_off"),
-                                    selected = !currentSettings.focusMode,
-                                    onClick = { onSettingsChanged(currentSettings.copy(focusMode = false)) },
-                                    modifier = Modifier.width(60.dp),
-                                )
-                                ThemeButton(
-                                    name = stringResource("common_on"),
-                                    selected = currentSettings.focusMode,
-                                    onClick = { onSettingsChanged(currentSettings.copy(focusMode = true)) },
-                                    modifier = Modifier.width(60.dp),
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    // 13. Align Chapter to Left Pane (optional, defaults to false)
+                    // 12. Align Chapter to Left Pane (optional, defaults to false)
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
