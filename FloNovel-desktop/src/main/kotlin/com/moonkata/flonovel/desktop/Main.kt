@@ -124,12 +124,19 @@ fun main(args: Array<String>) {
     var lastSupabaseTestError by remember { mutableStateOf<String?>(null) }
 
     var settings by remember { mutableStateOf(settingsStore.load()) }
-    var booksData by remember { mutableStateOf(bookStore.load()) }
-    var credentials by remember { mutableStateOf(credentialsStore.load()) }
-
     val homePath = remember(settings.homeFolder) {
         if (settings.homeFolder.isNotBlank()) runCatching { Path.of(settings.homeFolder) }.getOrNull() else null
     }
+    var booksData by remember(homePath) {
+        val raw = bookStore.load()
+        val initial = if (homePath != null && Files.exists(homePath)) {
+            bookStore.sanitizePaths(homePath)
+        } else {
+            raw
+        }
+        mutableStateOf(initial)
+    }
+    var credentials by remember { mutableStateOf(credentialsStore.load()) }
     var failedFilesState by remember { mutableStateOf<List<IntakeFailure>>(emptyList()) }
 
     val dropboxClient = remember(credentialsStore) {
@@ -202,8 +209,20 @@ fun main(args: Array<String>) {
         } else null
     }
 
-    val initialFolder = remember(initialResumeTarget) {
-        initialResumeTarget?.book?.path?.replace('\\', '/')?.substringBeforeLast('/', "") ?: ""
+    val initialFolder = remember(initialResumeTarget, homePath) {
+        val rawPath = initialResumeTarget?.book?.path ?: ""
+        val relPath = if (homePath != null && rawPath.isNotBlank()) {
+            val p = runCatching { Path.of(rawPath) }.getOrNull()
+            val normHome = homePath.toAbsolutePath().normalize()
+            if (p != null && p.isAbsolute && p.startsWith(normHome)) {
+                normHome.relativize(p).toString().replace('\\', '/')
+            } else {
+                rawPath.replace('\\', '/')
+            }
+        } else {
+            rawPath.replace('\\', '/')
+        }
+        relPath.substringBeforeLast('/', "")
     }
     var currentLibraryFolder by remember { mutableStateOf(initialFolder) }
 

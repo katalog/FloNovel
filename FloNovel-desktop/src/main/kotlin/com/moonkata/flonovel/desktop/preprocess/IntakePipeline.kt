@@ -414,7 +414,7 @@ class IntakePipeline(
         val finalKey = RelativePath.normalize(finalRel)
 
         val record = BookRecord(
-            path = preprocessResult.finalPath.toAbsolutePath().toString(),
+            path = finalRel,
             key = finalKey,
             displayName = preprocessResult.finalPath.fileName.toString().removeSuffix(".txt"),
             sizeBytes = Files.size(preprocessResult.finalPath),

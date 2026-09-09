@@ -11,6 +11,7 @@ import com.moonkata.flonovel.desktop.library.LibraryScanner
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -105,6 +106,44 @@ class LibraryFolderNavigationTest {
             }
 
             assertEquals(1, selectedIndex, "When returning to root from 'Fantasy', 'Fantasy' folder must be selected")
+        } finally {
+            tempDir.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun sanitizePaths_convertsAbsoluteLegacyPathsToRelative() {
+        val tempDir = Files.createTempDirectory("lib_sanitize_test")
+        try {
+            val homeFolder = tempDir.resolve("Books").resolve("Reading")
+            Files.createDirectories(homeFolder)
+            val storeFile = tempDir.resolve("books.json")
+            val bookStore = com.moonkata.flonovel.desktop.library.BookStore(storeFile)
+
+            try {
+                val absoluteLegacyPath = homeFolder.resolve("0830").resolve("novel.txt").toString()
+                val legacyRecord = BookRecord(
+                    path = absoluteLegacyPath,
+                    key = "0830/novel.txt",
+                    displayName = "novel",
+                    sizeBytes = 100L,
+                    totalCharCount = 50,
+                    detectedEncoding = "UTF-8",
+                    anchor = 0,
+                    progress = 0.0,
+                )
+                bookStore.addOrUpdate(legacyRecord)
+                bookStore.flush()
+
+                // Sanitize paths
+                val sanitized = bookStore.sanitizePaths(homeFolder)
+                val updatedRecord = sanitized.books.firstOrNull { it.key == "0830/novel.txt" }
+                assertNotNull(updatedRecord)
+                assertEquals("0830/novel.txt", updatedRecord.path.replace('\\', '/'))
+                assertFalse(java.nio.file.Path.of(updatedRecord.path).isAbsolute, "Path must now be relative")
+            } finally {
+                bookStore.close()
+            }
         } finally {
             tempDir.toFile().deleteRecursively()
         }

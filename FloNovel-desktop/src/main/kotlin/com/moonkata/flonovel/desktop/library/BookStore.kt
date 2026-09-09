@@ -134,6 +134,37 @@ class BookStore(
         pendingTask = null
     }
 
+    /**
+     * Converts any legacy absolute file paths in [cachedData] to relative paths
+     * based on [homeFolder], ensuring breadcrumbs and navigation work consistently.
+     */
+    fun sanitizePaths(homeFolder: Path): BooksData {
+        synchronized(lock) {
+            val normalizedHome = homeFolder.toAbsolutePath().normalize()
+            var modified = false
+            val updatedList = cachedData.books.map { record ->
+                val p = runCatching { Path.of(record.path) }.getOrNull()
+                if (p != null && p.isAbsolute) {
+                    val rel = if (p.startsWith(normalizedHome)) {
+                        normalizedHome.relativize(p).toString().replace('\\', '/')
+                    } else {
+                        record.key
+                    }
+                    if (rel != record.path) {
+                        modified = true
+                        record.copy(path = rel)
+                    } else record
+                } else record
+            }
+            if (modified) {
+                cachedData = cachedData.copy(books = updatedList)
+                dirty.set(true)
+                flushLocked()
+            }
+            return cachedData
+        }
+    }
+
     override fun close() {
         flush()
         executor.shutdown()

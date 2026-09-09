@@ -108,26 +108,42 @@ fun LibraryView(
     var showSyncFailureDialog by remember { mutableStateOf(false) }
     var pendingAuthAfterFolder by remember { mutableStateOf(false) }
     var folderInputText by remember { mutableStateOf(homeFolder) }
-    var currentRelativePath by remember(homeFolder) { mutableStateOf(initialRelativePath) }
+
+    fun toSafeRelative(pathStr: String): String {
+        val root = if (homeFolder.isNotBlank()) runCatching { Path.of(homeFolder) }.getOrNull() else null
+        if (root != null && pathStr.isNotBlank()) {
+            val p = runCatching { Path.of(pathStr) }.getOrNull()
+            val normRoot = root.toAbsolutePath().normalize()
+            if (p != null && p.isAbsolute && p.startsWith(normRoot)) {
+                return normRoot.relativize(p).toString().replace('\\', '/').trim('/')
+            }
+        }
+        return pathStr.replace('\\', '/').trim('/')
+    }
+
+    var currentRelativePath by remember(homeFolder, initialRelativePath) {
+        mutableStateOf(toSafeRelative(initialRelativePath))
+    }
     var selectedIndex by remember { mutableStateOf(0) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     fun navigateToFolder(newFolder: String) {
+        val safeFolder = toSafeRelative(newFolder)
         val root = if (homeFolder.isNotBlank()) runCatching { Path.of(homeFolder) }.getOrNull() else null
         val scanned = if (root != null) {
-            runCatching { LibraryScanner.scanDirectory(root, newFolder, booksData) }.getOrNull()
+            runCatching { LibraryScanner.scanDirectory(root, safeFolder, booksData) }.getOrNull()
         } else null
         val hasContent = scanned != null && (scanned.subfolders.isNotEmpty() || scanned.books.isNotEmpty())
-        val hasParentEntry = newFolder.isNotBlank()
-        currentRelativePath = newFolder
-        onRelativePathChanged?.invoke(newFolder)
+        val hasParentEntry = safeFolder.isNotBlank()
+        currentRelativePath = safeFolder
+        onRelativePathChanged?.invoke(safeFolder)
         selectedIndex = if (hasParentEntry && hasContent) 1 else 0
         coroutineScope.launch { listState.scrollToItem(selectedIndex) }
     }
 
     fun navigateToParent() {
-        val oldFolder = currentRelativePath.replace('\\', '/').trim('/')
+        val oldFolder = toSafeRelative(currentRelativePath)
         val lastSlash = oldFolder.lastIndexOf('/')
         val parentFolder = if (lastSlash >= 0) oldFolder.substring(0, lastSlash) else ""
         val exitingFolder = if (lastSlash >= 0) oldFolder.substring(lastSlash + 1) else oldFolder

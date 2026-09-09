@@ -494,5 +494,29 @@ class IntakePipelineTest {
             pipeline.close()
         }
     }
+
+    @Test
+    fun testProcessedBookRecordPathIsRelative() {
+        val subDir = Files.createDirectories(homeFolder.resolve("0830"))
+        val novelFile = subDir.resolve("my_novel.txt")
+        Files.writeString(novelFile, "Line 1\r\nLine 2\r\n제1화 시작\r\nLine 4", StandardCharsets.UTF_8)
+
+        val pipeline = IntakePipeline(
+            homeFolder = homeFolder,
+            bookStore = bookStore,
+            checkIntervalMs = 50L,
+            stableChecksRequired = 1,
+        )
+
+        try {
+            val record = pipeline.processSingleFile(novelFile)
+            assertNotNull(record, "Processed file should produce a record")
+            assertEquals("0830/my_novel.txt", record.path.replace('\\', '/'))
+            assertEquals("0830/my_novel.txt", record.key)
+            assertFalse(Path.of(record.path).isAbsolute, "Record path must be relative, not absolute")
+        } finally {
+            pipeline.close()
+        }
+    }
 }
 
