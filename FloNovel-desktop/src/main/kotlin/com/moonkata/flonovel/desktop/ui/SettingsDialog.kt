@@ -43,6 +43,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import com.moonkata.flonovel.desktop.i18n.stringResource
 import com.moonkata.flonovel.desktop.font.CatalogFont
+import kotlin.math.roundToInt
 import com.moonkata.flonovel.desktop.font.FontManager
 import com.moonkata.flonovel.desktop.font.FontState
 import com.moonkata.flonovel.desktop.font.FontStatus
@@ -463,6 +464,27 @@ fun SettingsDialog(
                             onIncrease = {
                                 if (currentSettings.lineHeightMultiplier < 3.0f) {
                                     onSettingsChanged(currentSettings.copy(lineHeightMultiplier = currentSettings.lineHeightMultiplier + 0.1f))
+                                }
+                            },
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    // 5-1. Empty Line Spacing
+                    item {
+                        NumericSettingRow(
+                            title = stringResource("settings_empty_line_spacing"),
+                            valueDisplay = "${(currentSettings.emptyLineSpacingRatio * 100).roundToInt()}%",
+                            onDecrease = {
+                                if (currentSettings.emptyLineSpacingRatio > 0.55f) {
+                                    val next = ((currentSettings.emptyLineSpacingRatio - 0.1f) * 10).roundToInt() / 10f
+                                    onSettingsChanged(currentSettings.copy(emptyLineSpacingRatio = next.coerceIn(0.5f, 1.0f)))
+                                }
+                            },
+                            onIncrease = {
+                                if (currentSettings.emptyLineSpacingRatio < 0.95f) {
+                                    val next = ((currentSettings.emptyLineSpacingRatio + 0.1f) * 10).roundToInt() / 10f
+                                    onSettingsChanged(currentSettings.copy(emptyLineSpacingRatio = next.coerceIn(0.5f, 1.0f)))
                                 }
                             },
                         )

@@ -424,15 +424,14 @@ fun ReaderView(
         viewSettings.fontSizeSp,
         viewSettings.lineHeightMultiplier,
         viewSettings.letterSpacing,
+        viewSettings.emptyLineSpacingRatio,
         resolvedFontFamily,
         colors.text,
     ) {
-        TextStyle(
-            color = colors.text,
-            fontSize = viewSettings.fontSizeSp.sp,
-            lineHeight = (viewSettings.fontSizeSp * viewSettings.lineHeightMultiplier).sp,
-            letterSpacing = viewSettings.letterSpacing.sp,
+        ReaderTextLayout.resolveTextStyle(
+            viewSettings = viewSettings,
             fontFamily = resolvedFontFamily,
+            textColor = colors.text,
         )
     }
 
@@ -604,8 +603,8 @@ fun ReaderView(
         val contentHeightPx = (totalHeightPx - topMarginPx - bottomMarginPx).coerceAtLeast(1)
         val gutterPx = with(density) { viewSettings.gutter.dp.roundToPx() }
 
-        val fitter = remember(fullText, textMeasurer, style) {
-            ComposeTextFitter(fullText, textMeasurer, style)
+        val fitter = remember(fullText, textMeasurer, style, viewSettings.emptyLineSpacingRatio) {
+            ComposeTextFitter(fullText, textMeasurer, style, viewSettings.emptyLineSpacingRatio)
         }
 
         // Layout specification for 1-pane or 2-pane
@@ -663,12 +662,14 @@ fun ReaderView(
                     }
                 }
 
-                val displayText = remember(pageText, primaryPane.startOffset, activeChapterOffsets, colors.chapterHighlight) {
-                    ChapterHighlighter.highlightChapters(
-                        pageText = pageText,
+                val displayText = remember(pageText, primaryPane.startOffset, activeChapterOffsets, colors.chapterHighlight, viewSettings.fontSizeSp, viewSettings.emptyLineSpacingRatio) {
+                    ReaderTextLayout.buildAnnotatedText(
+                        rawText = pageText,
                         baseOffset = primaryPane.startOffset,
                         chapterOffsets = activeChapterOffsets,
-                        highlightColor = colors.chapterHighlight,
+                        chapterHighlightColor = colors.chapterHighlight,
+                        fontSizeSp = viewSettings.fontSizeSp,
+                        emptyLineSpacingRatio = viewSettings.emptyLineSpacingRatio,
                     )
                 }
 
@@ -695,13 +696,15 @@ fun ReaderView(
                     }
                 }
 
-                val leftDisplay = remember(leftText, leftSpan.startOffset, activeChapterOffsets, colors.chapterHighlight) {
+                val leftDisplay = remember(leftText, leftSpan.startOffset, activeChapterOffsets, colors.chapterHighlight, viewSettings.fontSizeSp, viewSettings.emptyLineSpacingRatio) {
                     if (leftText.isNotEmpty()) {
-                        ChapterHighlighter.highlightChapters(
-                            pageText = leftText,
+                        ReaderTextLayout.buildAnnotatedText(
+                            rawText = leftText,
                             baseOffset = leftSpan.startOffset,
                             chapterOffsets = activeChapterOffsets,
-                            highlightColor = colors.chapterHighlight,
+                            chapterHighlightColor = colors.chapterHighlight,
+                            fontSizeSp = viewSettings.fontSizeSp,
+                            emptyLineSpacingRatio = viewSettings.emptyLineSpacingRatio,
                         )
                     } else {
                         AnnotatedString("")
@@ -716,13 +719,15 @@ fun ReaderView(
                     }
                 }
 
-                val rightDisplay = remember(rightText, rightSpan?.startOffset, activeChapterOffsets, colors.chapterHighlight) {
+                val rightDisplay = remember(rightText, rightSpan?.startOffset, activeChapterOffsets, colors.chapterHighlight, viewSettings.fontSizeSp, viewSettings.emptyLineSpacingRatio) {
                     if (rightSpan != null && rightText.isNotEmpty()) {
-                        ChapterHighlighter.highlightChapters(
-                            pageText = rightText,
+                        ReaderTextLayout.buildAnnotatedText(
+                            rawText = rightText,
                             baseOffset = rightSpan.startOffset,
                             chapterOffsets = activeChapterOffsets,
-                            highlightColor = colors.chapterHighlight,
+                            chapterHighlightColor = colors.chapterHighlight,
+                            fontSizeSp = viewSettings.fontSizeSp,
+                            emptyLineSpacingRatio = viewSettings.emptyLineSpacingRatio,
                         )
                     } else {
                         AnnotatedString("")

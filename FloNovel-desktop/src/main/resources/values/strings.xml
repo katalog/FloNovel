@@ -89,6 +89,7 @@
     <string name="settings_font_action_open_site">Open site</string>
     <string name="settings_font_size">Font size</string>
     <string name="settings_line_height">Line height</string>
+    <string name="settings_empty_line_spacing">Empty line spacing</string>
     <string name="settings_letter_spacing">Letter spacing</string>
     <string name="settings_margin_horizontal">Horizontal margin</string>
     <string name="settings_margin_vertical">Vertical margin</string>

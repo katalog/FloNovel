@@ -89,6 +89,7 @@
     <string name="settings_font_action_open_site">사이트 열기</string>
     <string name="settings_font_size">글자 크기</string>
     <string name="settings_line_height">줄간격</string>
+    <string name="settings_empty_line_spacing">빈 줄 간격</string>
     <string name="settings_letter_spacing">자간</string>
     <string name="settings_margin_horizontal">좌우 여백</string>
     <string name="settings_margin_vertical">상하 여백</string>

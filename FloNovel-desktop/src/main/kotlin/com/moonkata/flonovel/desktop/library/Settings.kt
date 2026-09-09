@@ -20,6 +20,7 @@ data class ViewSettings(
     val focusMode: Boolean = false,
     val alignChapterToLeftPane: Boolean = false,
     val uiScale: Float = 1.0f,
+    val emptyLineSpacingRatio: Float = 1.0f,
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -39,6 +40,7 @@ data class ViewSettings(
         obj.put("focusMode", focusMode)
         obj.put("alignChapterToLeftPane", alignChapterToLeftPane)
         obj.put("uiScale", uiScale)
+        obj.put("emptyLineSpacingRatio", emptyLineSpacingRatio)
         return obj
     }
 
@@ -62,6 +64,7 @@ data class ViewSettings(
                 focusMode = obj.optBoolean("focusMode", false),
                 alignChapterToLeftPane = obj.optBoolean("alignChapterToLeftPane", false),
                 uiScale = obj.optDouble("uiScale", 1.0).toFloat(),
+                emptyLineSpacingRatio = obj.optDouble("emptyLineSpacingRatio", 1.0).toFloat(),
             )
         }
     }
