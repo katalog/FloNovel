@@ -149,8 +149,11 @@ class SettingsInvarianceTest {
         val targetAnchor = navigator.anchor
         val targetProgress = navigator.progress()
 
-        // Theme change (LIGHT -> DARK -> SEPIA) only changes colors, layout spec is unchanged
-        listOf("LIGHT", "DARK", "SEPIA").forEach { theme ->
+        // Theme change (all 6 themes and legacy aliases) only changes colors, layout spec is unchanged
+        listOf(
+            "WARM_IVORY", "SEPIA_CREAM", "DARK_NAVY", "SOFT_GRAY", "COOL_LIGHT", "SOFT_DARK_BROWN",
+            "LIGHT", "DARK", "SEPIA"
+        ).forEach { theme ->
             val colors = ReaderColors.forName(theme)
             assertTrue(colors.background.value != 0UL)
             assertEquals(targetAnchor, navigator.anchor, "Theme change ($theme) must never modify anchor")

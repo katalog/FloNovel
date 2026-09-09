@@ -79,7 +79,7 @@ fun getAvailableSystemFonts(): List<String> {
  * Settings dialog overlay for FloNovel.
  *
  * Requirements (T-09):
- * - Font family, font size, theme 3 types (LIGHT, DARK, SEPIA),
+ * - Font family, font size, theme 6 types (WARM_IVORY, SEPIA_CREAM, DARK_NAVY, SOFT_GRAY, COOL_LIGHT, SOFT_DARK_BROWN),
  *   line height multiplier, letter spacing, margins (horizontal, top, bottom).
  * - Changes are reflected immediately upon adjustment.
  * - Changing settings MUST NEVER modify the reading position anchor or progress percentage.
@@ -272,25 +272,30 @@ fun SettingsDialog(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    // 1. Theme (LIGHT, DARK, SEPIA)
+                    // 1. Theme (6 options in 2 rows of 3)
                     item {
                         SettingSectionTitle(stringResource("settings_theme_title"))
-                        Row(
+                        val currentCode = ReaderColors.canonicalCode(currentSettings.theme)
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            listOf(
-                                "LIGHT" to stringResource("settings_theme_light"),
-                                "DARK" to stringResource("settings_theme_dark"),
-                                "SEPIA" to stringResource("settings_theme_sepia")
-                            ).forEach { (code, name) ->
-                                val selected = currentSettings.theme.equals(code, ignoreCase = true)
-                                ThemeButton(
-                                    name = name,
-                                    selected = selected,
-                                    onClick = { onSettingsChanged(currentSettings.copy(theme = code)) },
-                                    modifier = Modifier.weight(1f),
-                                )
+                            ReaderColors.AllThemes.chunked(3).forEach { rowThemes ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    rowThemes.forEach { spec ->
+                                        val selected = currentCode.equals(spec.code, ignoreCase = true)
+                                        ThemePreviewButton(
+                                            name = stringResource(spec.stringResKey),
+                                            themeColors = spec.colors,
+                                            selected = selected,
+                                            onClick = { onSettingsChanged(currentSettings.copy(theme = spec.code)) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    }
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
@@ -1057,6 +1062,37 @@ private fun ThemeButton(
             color = if (selected) Color.White else Color(0xFFCCCCCC),
             fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
+    }
+}
+
+@Composable
+private fun ThemePreviewButton(
+    name: String,
+    themeColors: ThemeColors,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .background(themeColors.background, RoundedCornerShape(6.dp))
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) Color(0xFF3B82F6) else Color(0x33888888),
+                shape = RoundedCornerShape(6.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = name,
+            color = themeColors.text,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            maxLines = 1,
         )
     }
 }

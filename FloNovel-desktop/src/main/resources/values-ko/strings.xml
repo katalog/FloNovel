@@ -78,9 +78,12 @@
     <string name="settings_language_ko">한국어</string>
     <string name="settings_language_en">English</string>
     <string name="settings_theme_title">테마 (Theme)</string>
-    <string name="settings_theme_light">라이트</string>
-    <string name="settings_theme_dark">다크</string>
-    <string name="settings_theme_sepia">세피아</string>
+    <string name="settings_theme_warm_ivory">웜 아이보리</string>
+    <string name="settings_theme_sepia_cream">세피아 크림</string>
+    <string name="settings_theme_dark_navy">다크 네이비</string>
+    <string name="settings_theme_soft_gray">소프트 그레이</string>
+    <string name="settings_theme_cool_light">쿨 라이트</string>
+    <string name="settings_theme_soft_dark_brown">소프트 다크 브라운</string>
     <string name="settings_pane_mode_title">보기 모드 (Pane Mode)</string>
     <string name="settings_ui_scale_title">UI 배율 (UI Scale)</string>
     <string name="settings_font_family_title">폰트 (Font Family)</string>

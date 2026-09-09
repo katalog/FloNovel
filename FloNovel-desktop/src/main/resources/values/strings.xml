@@ -78,9 +78,12 @@
     <string name="settings_language_ko">Korean</string>
     <string name="settings_language_en">English</string>
     <string name="settings_theme_title">Theme</string>
-    <string name="settings_theme_light">Light</string>
-    <string name="settings_theme_dark">Dark</string>
-    <string name="settings_theme_sepia">Sepia</string>
+    <string name="settings_theme_warm_ivory">Warm Ivory</string>
+    <string name="settings_theme_sepia_cream">Sepia Cream</string>
+    <string name="settings_theme_dark_navy">Dark Navy</string>
+    <string name="settings_theme_soft_gray">Soft Gray</string>
+    <string name="settings_theme_cool_light">Cool Light</string>
+    <string name="settings_theme_soft_dark_brown">Soft Dark Brown</string>
     <string name="settings_pane_mode_title">Pane Mode</string>
     <string name="settings_ui_scale_title">UI Scale</string>
     <string name="settings_font_family_title">Font Family</string>
