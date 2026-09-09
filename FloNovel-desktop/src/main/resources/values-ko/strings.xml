@@ -207,6 +207,7 @@
     <string name="radio_dialog_title">배경음악 스트림</string>
     <string name="radio_dialog_subtitle">인터넷 라디오 스트림 재생 및 타이머 설정</string>
     <string name="radio_stream_selection">스트림 선택</string>
+    <string name="radio_edit_streams">목록 편집</string>
     <string name="radio_duration_label">재생 시간 설정 (분)</string>
     <string name="radio_start_playback">재생 시작</string>
     <string name="radio_stop_playback">재생 중지</string>

@@ -12,12 +12,16 @@ import net.sourceforge.jaad.aac.Decoder
 import net.sourceforge.jaad.SampleBuffer
 import net.sourceforge.jaad.adts.ADTSDemultiplexer
 import org.json.JSONArray
+import java.awt.Desktop
 import java.io.BufferedInputStream
 import java.net.HttpURLConnection
 import java.net.URI
+import java.nio.file.Files
+import java.nio.file.Path
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.SourceDataLine
+import com.moonkata.flonovel.desktop.platform.configDir
 
 /**
  * Represents an internet radio stream option.
@@ -51,7 +55,8 @@ data class RadioPlaybackState(
 }
 
 /**
- * Loads default radio streams from resources/radio_streams.json.
+ * Loads customizable radio streams from user config directory (radio_streams.json).
+ * Automatically initializes from bundled resources if file does not exist yet.
  */
 object RadioStreamCatalog {
     val DEFAULT_STREAMS = listOf(
@@ -69,25 +74,73 @@ object RadioStreamCatalog {
         ),
     )
 
-    fun loadStreams(): List<RadioStreamItem> {
-        return try {
-            val resourceStream = RadioStreamCatalog::class.java.getResourceAsStream("/radio_streams.json")
-                ?: return DEFAULT_STREAMS
-            val text = resourceStream.bufferedReader().use { it.readText() }
-            val jsonArray = JSONArray(text)
-            val list = mutableListOf<RadioStreamItem>()
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val name = obj.optString("name", "").trim()
-                val url = obj.optString("url", "").trim()
-                if (name.isNotEmpty() && url.isNotEmpty()) {
-                    list.add(RadioStreamItem(name = name, url = url))
+    fun streamsConfigFile(): Path = configDir().resolve("radio_streams.json")
+
+    fun defaultJsonContent(): String {
+        val resourceStream = RadioStreamCatalog::class.java.getResourceAsStream("/radio_streams.json")
+        if (resourceStream != null) {
+            try {
+                return resourceStream.bufferedReader().use { it.readText() }
+            } catch (_: Exception) {}
+        }
+        val array = JSONArray()
+        for (stream in DEFAULT_STREAMS) {
+            val obj = org.json.JSONObject()
+            obj.put("name", stream.name)
+            obj.put("url", stream.url)
+            array.put(obj)
+        }
+        return array.toString(2)
+    }
+
+    fun ensureConfigFileExists(targetFile: Path = streamsConfigFile()): Path {
+        try {
+            if (!Files.exists(targetFile)) {
+                if (targetFile.parent != null) {
+                    Files.createDirectories(targetFile.parent)
                 }
+                Files.writeString(targetFile, defaultJsonContent())
             }
-            if (list.isNotEmpty()) list else DEFAULT_STREAMS
+        } catch (_: Exception) {}
+        return targetFile
+    }
+
+    fun parseStreamsJson(text: String): List<RadioStreamItem> {
+        val jsonArray = JSONArray(text)
+        val list = mutableListOf<RadioStreamItem>()
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            val name = obj.optString("name", "").trim()
+            val url = obj.optString("url", "").trim()
+            if (name.isNotEmpty() && url.isNotEmpty()) {
+                list.add(RadioStreamItem(name = name, url = url))
+            }
+        }
+        return list
+    }
+
+    fun loadStreams(file: Path = streamsConfigFile()): List<RadioStreamItem> {
+        ensureConfigFileExists(file)
+        return try {
+            if (Files.isRegularFile(file)) {
+                val text = Files.readString(file).trim()
+                val parsed = parseStreamsJson(text)
+                if (parsed.isNotEmpty()) parsed else DEFAULT_STREAMS
+            } else {
+                DEFAULT_STREAMS
+            }
         } catch (_: Exception) {
             DEFAULT_STREAMS
         }
+    }
+
+    fun openConfigFile(file: Path = streamsConfigFile()) {
+        ensureConfigFileExists(file)
+        try {
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                Desktop.getDesktop().open(file.toFile())
+            }
+        } catch (_: Exception) {}
     }
 }
 

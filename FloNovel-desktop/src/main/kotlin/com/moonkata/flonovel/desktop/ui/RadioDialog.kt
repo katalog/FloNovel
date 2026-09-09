@@ -115,12 +115,27 @@ fun RadioDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Stream list section
-                Text(
-                    text = stringResource("radio_stream_selection"),
-                    color = Color(0xFFDDDDDD),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource("radio_stream_selection"),
+                        color = Color(0xFFDDDDDD),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "⚙ ${stringResource("radio_edit_streams")}",
+                        color = Color(0xFF60A5FA),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .clickable { RadioStreamCatalog.openConfigFile() }
+                            .padding(4.dp),
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
