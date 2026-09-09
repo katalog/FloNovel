@@ -80,4 +80,25 @@ class StringsTest {
         val map = Strings.parseStringsXml(xml.byteInputStream())
         assertEquals("Hello World", map["test_key"])
     }
+
+    @Test
+    fun testApplyLanguage() {
+        val originalLocale = Strings.currentLocale
+        try {
+            Strings.applyLanguage("KO")
+            assertEquals("ko", Strings.currentLocale.language.lowercase())
+            assertEquals("언어 (Language)", Strings.get("settings_language_title"))
+            assertEquals("한국어", Strings.get("settings_language_ko"))
+
+            Strings.applyLanguage("EN")
+            assertEquals("en", Strings.currentLocale.language.lowercase())
+            assertEquals("Language", Strings.get("settings_language_title"))
+            assertEquals("Korean", Strings.get("settings_language_ko"))
+
+            Strings.applyLanguage("SYSTEM")
+            assertEquals(Locale.getDefault().language.lowercase(), Strings.currentLocale.language.lowercase())
+        } finally {
+            Strings.setLocale(originalLocale)
+        }
+    }
 }

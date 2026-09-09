@@ -36,6 +36,18 @@ object Strings {
     }
 
     /**
+     * Apply language setting ("SYSTEM", "KO", "EN").
+     */
+    fun applyLanguage(langSetting: String) {
+        val targetLocale = when (langSetting.trim().uppercase()) {
+            "KO" -> Locale.KOREAN
+            "EN" -> Locale.ENGLISH
+            else -> Locale.getDefault()
+        }
+        setLocale(targetLocale)
+    }
+
+    /**
      * Retrieve a string by key, formatting with arguments if provided.
      */
     fun get(key: String, vararg args: Any?): String {

@@ -222,6 +222,7 @@ data class KeymapSettings(
 data class Settings(
     val schemaVersion: Int = 1,
     val homeFolder: String = "",
+    val language: String = "SYSTEM",
     val view: ViewSettings = ViewSettings(),
     val chapter: ChapterSettings = ChapterSettings(),
     val sync: SyncSettings = SyncSettings(),
@@ -234,6 +235,7 @@ data class Settings(
         val obj = JSONObject()
         obj.put("schemaVersion", schemaVersion)
         obj.put("homeFolder", homeFolder)
+        obj.put("language", language)
         obj.put("view", view.toJsonObject())
         obj.put("chapter", chapter.toJsonObject())
         obj.put("sync", sync.toJsonObject())
@@ -250,6 +252,7 @@ data class Settings(
             return Settings(
                 schemaVersion = obj.optInt("schemaVersion", 1),
                 homeFolder = obj.optString("homeFolder", ""),
+                language = obj.optString("language", "SYSTEM"),
                 view = ViewSettings.fromJsonObject(obj.optJSONObject("view")),
                 chapter = ChapterSettings.fromJsonObject(obj.optJSONObject("chapter")),
                 sync = SyncSettings.fromJsonObject(obj.optJSONObject("sync")),

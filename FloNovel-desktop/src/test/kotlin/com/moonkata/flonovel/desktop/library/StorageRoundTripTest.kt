@@ -93,6 +93,7 @@ class StorageRoundTripTest {
             val original = Settings(
                 schemaVersion = 1,
                 homeFolder = "C:\\FloNovel\\Library",
+                language = "KO",
                 view = ViewSettings(
                     paneMode = "TWO",
                     advanceRatio = 0.75f,
@@ -141,6 +142,7 @@ class StorageRoundTripTest {
 
             assertEquals(1, reloaded.schemaVersion)
             assertEquals("C:\\FloNovel\\Library", reloaded.homeFolder)
+            assertEquals("KO", reloaded.language)
             assertEquals("TWO", reloaded.view.paneMode)
             assertEquals(0.75f, reloaded.view.advanceRatio)
             assertEquals("NanumGothic", reloaded.view.fontFamily)

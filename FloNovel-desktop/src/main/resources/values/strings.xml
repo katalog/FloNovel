@@ -73,6 +73,10 @@
 
     <!-- Settings Dialog -->
     <string name="settings_title">Settings</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_system">System default</string>
+    <string name="settings_language_ko">Korean</string>
+    <string name="settings_language_en">English</string>
     <string name="settings_theme_title">Theme</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>

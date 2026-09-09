@@ -337,6 +337,8 @@ fun ReaderView(
     onHome: (() -> Unit)? = null,
     keymap: KeymapSettings = KeymapSettings(),
     onKeymapChanged: ((KeymapSettings) -> Unit)? = null,
+    currentLanguage: String = "SYSTEM",
+    onLanguageChanged: ((String) -> Unit)? = null,
     onStartDropboxLogin: (() -> Unit)? = null,
     isDropboxLinked: Boolean = false,
     cachedSupabaseSecret: String? = null,
@@ -953,6 +955,8 @@ fun ReaderView(
                     onViewSettingsChanged?.invoke(updated)
                 },
                 onDismiss = { showSettings = false },
+                currentLanguage = currentLanguage,
+                onLanguageChanged = onLanguageChanged,
                 currentKeymap = keymap,
                 onKeymapChanged = onKeymapChanged,
                 isDropboxLinked = isDropboxLinked,

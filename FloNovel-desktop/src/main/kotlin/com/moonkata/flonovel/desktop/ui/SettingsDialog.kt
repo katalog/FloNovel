@@ -103,6 +103,8 @@ fun SettingsDialog(
     currentSettings: ViewSettings,
     onSettingsChanged: (ViewSettings) -> Unit,
     onDismiss: () -> Unit,
+    currentLanguage: String = "SYSTEM",
+    onLanguageChanged: ((String) -> Unit)? = null,
     currentKeymap: KeymapSettings = KeymapSettings(),
     onKeymapChanged: ((KeymapSettings) -> Unit)? = null,
     initialTab: SettingsTab = SettingsTab.VIEW,
@@ -246,6 +248,30 @@ fun SettingsDialog(
                         .heightIn(max = 420.dp),
                 ) {
                     if (currentTab == SettingsTab.VIEW) {
+                    // 0. Language (SYSTEM, KO, EN)
+                    item {
+                        SettingSectionTitle(stringResource("settings_language_title"))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            listOf(
+                                "SYSTEM" to stringResource("settings_language_system"),
+                                "KO" to stringResource("settings_language_ko"),
+                                "EN" to stringResource("settings_language_en"),
+                            ).forEach { (code, name) ->
+                                val selected = currentLanguage.equals(code, ignoreCase = true)
+                                ThemeButton(
+                                    name = name,
+                                    selected = selected,
+                                    onClick = { onLanguageChanged?.invoke(code) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
                     // 1. Theme (LIGHT, DARK, SEPIA)
                     item {
                         SettingSectionTitle(stringResource("settings_theme_title"))

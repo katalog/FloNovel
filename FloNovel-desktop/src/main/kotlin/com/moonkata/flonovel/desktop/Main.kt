@@ -123,7 +123,11 @@ fun main(args: Array<String>) {
     }
     var lastSupabaseTestError by remember { mutableStateOf<String?>(null) }
 
-    var settings by remember { mutableStateOf(settingsStore.load()) }
+    var settings by remember {
+        val loaded = settingsStore.load()
+        Strings.applyLanguage(loaded.language)
+        mutableStateOf(loaded)
+    }
     val homePath = remember(settings.homeFolder) {
         if (settings.homeFolder.isNotBlank()) runCatching { Path.of(settings.homeFolder) }.getOrNull() else null
     }
@@ -507,6 +511,13 @@ fun main(args: Array<String>) {
                     settings = newSettings
                     settingsStore.save(newSettings)
                 },
+                currentLanguage = settings.language,
+                onLanguageChanged = { newLang ->
+                    val updated = settings.copy(language = newLang)
+                    settings = updated
+                    settingsStore.save(updated)
+                    Strings.applyLanguage(newLang)
+                },
                 onBackToLibrary = {
                     readingSyncCoordinator.onBookClosed()
                     bookStore.flush()
@@ -715,6 +726,13 @@ fun main(args: Array<String>) {
                         val newSettings = settings.copy(keymap = newKeymap)
                         settings = newSettings
                         settingsStore.save(newSettings)
+                    },
+                    currentLanguage = settings.language,
+                    onLanguageChanged = { newLang ->
+                        val updated = settings.copy(language = newLang)
+                        settings = updated
+                        settingsStore.save(updated)
+                        Strings.applyLanguage(newLang)
                     },
                     onDismiss = { showLibrarySettingsDialog = false },
                     isDropboxLinked = !credentials.dropboxRefreshToken.isNullOrBlank(),
