@@ -62,6 +62,21 @@ left/right pane ratio are all adjustable — and a separate UI scale means you c
 without inflating the buttons. Cap the line width so a paragraph doesn't stretch across an ultrawide
 monitor.
 
+**Blank lines get their own spacing control.** Preprocessed novels alternate one line of text with one
+blank line, so the blanks end up eating as much of the page as the prose. Tighten them on their own,
+from 100% down to 50% in 10% steps, without touching the line height of the text itself.
+
+The interface speaks **English and Korean**, following your system by default or set explicitly in
+settings.
+
+### 🎧 Background audio with a sleep timer
+
+Play an internet radio stream while you read — three stations are built in (The Lounge Hour,
+RelaxingJazz.com, COTN Radio). Set how long it should run (60 minutes by default, with 30/90/120
+presets and minute-level adjustment) and it stops on its own, so it winds down when you do instead of
+playing all night. The remaining time sits next to the progress percentage in the footer, and one
+click on the reader's media button stops everything immediately.
+
 ### 🔠 Fonts, handled honestly
 
 A built-in catalog shows what's already installed, what can be downloaded directly, and what has to
@@ -90,8 +105,9 @@ cd FloNovel-desktop
 | macOS | `.dmg` |
 | Linux | `.deb` |
 
-On Windows, `flonovel-desktop-build-exe.bat` builds both an installer and a **portable** version that
-runs from a folder without installing anything.
+On Windows there are two more options: `./gradlew packageExe` builds a `.exe` installer, and
+`./gradlew createDistributable` produces a **portable** build that runs from a folder without
+installing anything.
 
 Just want to try it without packaging?
 
@@ -237,7 +253,8 @@ works.
 <details>
 <summary><b>Is the app available in English?</b></summary>
 
-Yes — it follows your system language, with English and Korean included.
+Yes. English and Korean are both included. It follows your system language by default, and you can
+pick one explicitly under **Settings → Reading View → Language**.
 </details>
 
 ---
@@ -248,7 +265,7 @@ Requires **JDK 17 or newer**.
 
 ```bash
 ./gradlew run                              # launch
-./gradlew test                             # 237 unit tests
+./gradlew test                             # unit tests (headless)
 ./gradlew packageDistributionForCurrentOS  # msi / dmg / deb
 ./gradlew packageExe                       # Windows installer
 ```
@@ -266,8 +283,9 @@ as unconfigured at runtime.
 
 ### Built with
 
-Kotlin/JVM · Compose Desktop · juniversalchardet · org.json. No dependency-injection framework, no
-ORM, no reactive framework — 238 tests run headless without a window, against a fake text measurer.
+Kotlin/JVM · Compose Desktop · juniversalchardet (encoding detection) · org.json · jlayer and
+javasound-aac (radio streaming). No dependency-injection framework, no ORM, no reactive framework —
+the whole test suite runs headless without a window, against a fake text measurer.
 
 ---
 

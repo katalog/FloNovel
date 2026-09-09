@@ -244,7 +244,7 @@ Requires **JDK 17+** to run Gradle. The app targets Java 11 bytecode, `minSdk` 2
 
 ```bash
 ./gradlew assembleDebug        # debug APK
-./gradlew testDebugUnitTest    # 121 unit tests
+./gradlew testDebugUnitTest    # unit tests
 ./gradlew assembleRelease      # release APK
 ```
 
@@ -260,10 +260,10 @@ certificate on the artifact, not the build result.
 
 ### Tests
 
-| Suite | Count | Needs |
+| Suite | What it covers | Needs |
 |---|---|---|
-| `app/src/test` | 121 | nothing — runs on the JVM |
-| `app/src/androidTest` | 131 | a device or emulator (two tests download fonts) |
+| `app/src/test` | pure logic — encoding, chapters, pagination math, the sync protocol | nothing — runs on the JVM |
+| `app/src/androidTest` | the real Compose UI, Room, and DataStore | a device or emulator (two tests download fonts) |
 
 ```bash
 ./gradlew testDebugUnitTest

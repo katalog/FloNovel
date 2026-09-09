@@ -37,7 +37,7 @@ never leave it.
 | Reading | Page flip or continuous scroll | One-page or two-page spread |
 | Controls | Tap zones, swipes, volume keys | Keyboard, fully remappable |
 | Files | Downloads your library | Owns and organizes your library |
-| Extras | Read-aloud (TTS), auto-advance | Focus mode, search, chapter list |
+| Extras | Read-aloud (TTS), auto-advance | Focus mode, search, background audio |
 | Runs on | Android 7.0 and newer | Windows, macOS, Linux |
 
 Each app has its own guide: **[Android →](FloNovel-android/README.md)** · **[Desktop →](FloNovel-desktop/README.md)**
@@ -84,6 +84,11 @@ patterns if your books use a different convention.
 Light, dark, and sepia themes. Adjustable font, size, line height, letter spacing, and margins.
 Downloadable fonts built in. On Android: brightness override, orientation lock, keep-screen-on, and
 read-aloud with the system voice.
+
+### 🎧 Something in the background
+
+The desktop app can play an internet radio stream while you read, with a sleep timer that stops it on
+its own — so it winds down when you do instead of playing all night.
 
 ---
 
@@ -229,7 +234,8 @@ Compose Desktop on the JVM. The Android app stores its library in **Room** and i
 no dependency-injection framework, no ORM beyond Room, and no shared code between the two apps — just
 a documented contract that both sides enforce with tests.
 
-Around **360 unit tests** run on the JVM, plus **131 instrumented tests** on a real Android device.
+Both apps ship with unit tests that run headless on the JVM, and the Android app adds an instrumented
+suite that drives the real Compose UI on a device.
 
 ---
 
@@ -240,12 +246,12 @@ There's no Gradle project at the repository root; each app builds independently.
 ```bash
 # Android — needs JDK 17+ to run Gradle
 cd FloNovel-android
-./gradlew testDebugUnitTest    # 121 tests
+./gradlew testDebugUnitTest    # unit tests
 ./gradlew assembleDebug
 
 # Desktop — needs JDK 17+
 cd FloNovel-desktop
-./gradlew test                 # 238 tests
+./gradlew test                 # unit tests
 ./gradlew run
 ```
 
