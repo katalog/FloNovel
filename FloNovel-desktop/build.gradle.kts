@@ -50,6 +50,8 @@ dependencies {
     implementation("org.json:json:20240303")
     implementation("javazoom:jlayer:1.0.1")
     implementation("com.tianscar.javasound:javasound-aac:0.9.8")
+    implementation("net.java.dev.jna:jna:5.14.0")
+    implementation("net.java.dev.jna:jna-platform:5.14.0")
     testImplementation(kotlin("test"))
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

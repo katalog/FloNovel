@@ -65,9 +65,11 @@ import com.moonkata.flonovel.desktop.library.ResumeManager
 import com.moonkata.flonovel.desktop.library.ResumeTarget
 import com.moonkata.flonovel.desktop.library.SettingsStore
 import com.moonkata.flonovel.desktop.library.WindowSettings
+import com.moonkata.flonovel.desktop.platform.WindowsTitleBar
 import com.moonkata.flonovel.desktop.platform.configDir
 import com.moonkata.flonovel.desktop.preprocess.IntakeFailure
 import com.moonkata.flonovel.desktop.preprocess.IntakePipeline
+import com.moonkata.flonovel.desktop.ui.ReaderColors
 import com.moonkata.flonovel.desktop.reader.PaneMode
 import com.moonkata.flonovel.desktop.reader.ReaderNavigator
 import com.moonkata.flonovel.desktop.reader.ViewportSpec
@@ -448,6 +450,22 @@ fun main(args: Array<String>) {
             onDispose {
                 window.removeWindowFocusListener(focusListener)
             }
+        }
+
+        LaunchedEffect(window, settings.view.theme) {
+            val themeColors = ReaderColors.forName(settings.view.theme)
+            WindowsTitleBar.updateTitleBarColor(
+                window = window,
+                backgroundColor = themeColors.background,
+                textColor = themeColors.text,
+            )
+            // Re-apply after short delay to ensure native peer binding on initial launch
+            delay(50L)
+            WindowsTitleBar.updateTitleBarColor(
+                window = window,
+                backgroundColor = themeColors.background,
+                textColor = themeColors.text,
+            )
         }
 
         val baseDensity = LocalDensity.current
