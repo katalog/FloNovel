@@ -84,6 +84,9 @@ object RadioStreamCatalog {
             } catch (_: Exception) {}
         }
         val array = JSONArray()
+        val guideObj = org.json.JSONObject()
+        guideObj.put("_guide", "Direct MP3/AAC streams only (Icecast/Shoutcast). YouTube/webpages not supported. Find streams: https://www.radio-browser.info")
+        array.put(guideObj)
         for (stream in DEFAULT_STREAMS) {
             val obj = org.json.JSONObject()
             obj.put("name", stream.name)
@@ -109,7 +112,7 @@ object RadioStreamCatalog {
         val jsonArray = JSONArray(text)
         val list = mutableListOf<RadioStreamItem>()
         for (i in 0 until jsonArray.length()) {
-            val obj = jsonArray.getJSONObject(i)
+            val obj = jsonArray.optJSONObject(i) ?: continue
             val name = obj.optString("name", "").trim()
             val url = obj.optString("url", "").trim()
             if (name.isNotEmpty() && url.isNotEmpty()) {

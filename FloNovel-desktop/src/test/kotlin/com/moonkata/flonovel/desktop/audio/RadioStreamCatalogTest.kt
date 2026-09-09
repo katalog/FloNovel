@@ -70,4 +70,23 @@ class RadioStreamCatalogTest {
         val loadedFromCorrupted = RadioStreamCatalog.loadStreams(corruptedConfigFile)
         assertEquals(RadioStreamCatalog.DEFAULT_STREAMS, loadedFromCorrupted)
     }
+
+    @Test
+    fun parseStreamsJson_ignoresGuideAndMalformedEntries() {
+        val json = """
+            [
+                {"_guide": "Only direct MP3/AAC streams are supported."},
+                {"name": "Valid Stream", "url": "http://example.com/stream"},
+                {"name": "Missing URL"},
+                {"url": "http://example.com/no-name"},
+                "Random String in Array"
+            ]
+        """.trimIndent()
+
+        val parsed = RadioStreamCatalog.parseStreamsJson(json)
+        assertEquals(1, parsed.size)
+        assertEquals("Valid Stream", parsed[0].name)
+        assertEquals("http://example.com/stream", parsed[0].url)
+    }
 }
+

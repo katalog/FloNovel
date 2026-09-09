@@ -1,5 +1,8 @@
 [
   {
+    "_guide": "FloNovel Radio Streams - Only direct MP3/AAC streams (Icecast, Shoutcast) are supported. Webpages like YouTube/Spotify will NOT work. Find streams at https://www.radio-browser.info"
+  },
+  {
     "name": "The Lounge Hour",
     "url": "https://listen2.streamaudio.co/stream/8056"
   },
@@ -12,3 +15,4 @@
     "url": "https://streaming.smartradio.ch:8510/stream"
   }
 ]
+

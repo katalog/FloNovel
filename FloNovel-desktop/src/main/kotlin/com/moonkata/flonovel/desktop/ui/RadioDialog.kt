@@ -191,7 +191,16 @@ fun RadioDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = stringResource("radio_stream_url_guide"),
+                    color = Color(0xFF8E8E93),
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp,
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Playback duration section
                 Text(
