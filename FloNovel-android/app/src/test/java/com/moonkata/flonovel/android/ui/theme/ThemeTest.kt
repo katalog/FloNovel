@@ -15,26 +15,76 @@ import org.junit.Test
 class ThemeTest {
 
     @Test
-    fun lightPreset_usesReaderThemePresetsColors() {
-        val scheme = deriveColorScheme(ReaderSettings(themePreset = ThemePreset.LIGHT))
-        assertEquals(ReaderThemePresets.LIGHT.background, scheme.background)
-        assertEquals(ReaderThemePresets.LIGHT.text, scheme.onBackground)
-        assertEquals(scheme.background, scheme.surface)
-        assertEquals(scheme.onBackground, scheme.onSurface)
+    fun sixPresets_useReaderThemePresetsColorsAndCorrectBasePalette() {
+        // Light-based themes
+        listOf(
+            ThemePreset.WARM_IVORY to ReaderThemePresets.WARM_IVORY,
+            ThemePreset.SEPIA_CREAM to ReaderThemePresets.SEPIA_CREAM,
+            ThemePreset.SOFT_GRAY to ReaderThemePresets.SOFT_GRAY,
+            ThemePreset.COOL_LIGHT to ReaderThemePresets.COOL_LIGHT,
+        ).forEach { (preset, expectedColors) ->
+            val scheme = deriveColorScheme(ReaderSettings(themePreset = preset))
+            assertEquals(expectedColors.background, scheme.background)
+            assertEquals(expectedColors.text, scheme.onBackground)
+            assertEquals(scheme.background, scheme.surface)
+            assertEquals(scheme.onBackground, scheme.onSurface)
+            assertEquals(Purple40, scheme.primary)
+        }
+
+        // Dark-based themes
+        listOf(
+            ThemePreset.DARK_NAVY to ReaderThemePresets.DARK_NAVY,
+            ThemePreset.SOFT_DARK_BROWN to ReaderThemePresets.SOFT_DARK_BROWN,
+        ).forEach { (preset, expectedColors) ->
+            val scheme = deriveColorScheme(ReaderSettings(themePreset = preset))
+            assertEquals(expectedColors.background, scheme.background)
+            assertEquals(expectedColors.text, scheme.onBackground)
+            assertEquals(scheme.background, scheme.surface)
+            assertEquals(scheme.onBackground, scheme.onSurface)
+            assertEquals(Purple80, scheme.primary)
+        }
     }
 
     @Test
-    fun darkPreset_usesReaderThemePresetsColors() {
-        val scheme = deriveColorScheme(ReaderSettings(themePreset = ThemePreset.DARK))
-        assertEquals(ReaderThemePresets.DARK.background, scheme.background)
-        assertEquals(ReaderThemePresets.DARK.text, scheme.onBackground)
+    fun sixPresets_matchExactRgbSpecifications() {
+        fun assertRgb(expectedR: Int, expectedG: Int, expectedB: Int, color: androidx.compose.ui.graphics.Color, label: String) {
+            val r = (color.red * 255).toInt()
+            val g = (color.green * 255).toInt()
+            val b = (color.blue * 255).toInt()
+            assertEquals("$label R", expectedR, r)
+            assertEquals("$label G", expectedG, g)
+            assertEquals("$label B", expectedB, b)
+        }
+
+        // 1. Warm Ivory
+        assertRgb(45, 45, 42, ReaderThemePresets.WARM_IVORY.text, "WarmIvory text")
+        assertRgb(250, 247, 239, ReaderThemePresets.WARM_IVORY.background, "WarmIvory bg")
+
+        // 2. Sepia Cream
+        assertRgb(55, 48, 40, ReaderThemePresets.SEPIA_CREAM.text, "SepiaCream text")
+        assertRgb(245, 239, 224, ReaderThemePresets.SEPIA_CREAM.background, "SepiaCream bg")
+
+        // 3. Dark Navy
+        assertRgb(220, 224, 230, ReaderThemePresets.DARK_NAVY.text, "DarkNavy text")
+        assertRgb(28, 32, 40, ReaderThemePresets.DARK_NAVY.background, "DarkNavy bg")
+
+        // 4. Soft Gray
+        assertRgb(50, 52, 54, ReaderThemePresets.SOFT_GRAY.text, "SoftGray text")
+        assertRgb(242, 243, 245, ReaderThemePresets.SOFT_GRAY.background, "SoftGray bg")
+
+        // 5. Cool Light
+        assertRgb(45, 48, 52, ReaderThemePresets.COOL_LIGHT.text, "CoolLight text")
+        assertRgb(235, 238, 242, ReaderThemePresets.COOL_LIGHT.background, "CoolLight bg")
+
+        // 6. Soft Dark Brown
+        assertRgb(218, 211, 198, ReaderThemePresets.SOFT_DARK_BROWN.text, "SoftDarkBrown text")
+        assertRgb(38, 35, 32, ReaderThemePresets.SOFT_DARK_BROWN.background, "SoftDarkBrown bg")
     }
 
     @Test
-    fun sepiaPreset_usesReaderThemePresetsColors() {
-        val scheme = deriveColorScheme(ReaderSettings(themePreset = ThemePreset.SEPIA))
-        assertEquals(ReaderThemePresets.SEPIA.background, scheme.background)
-        assertEquals(ReaderThemePresets.SEPIA.text, scheme.onBackground)
+    fun defaultPreset_isWarmIvory() {
+        val settings = ReaderSettings()
+        assertEquals(ThemePreset.WARM_IVORY, settings.themePreset)
     }
 
     @Test
@@ -47,9 +97,6 @@ class ThemeTest {
         val scheme = deriveColorScheme(settings)
         assertEquals(ReaderThemePresets.forSettings(settings).background, scheme.background)
         assertEquals(ReaderThemePresets.forSettings(settings).text, scheme.onBackground)
-        // A dark custom background should pick the dark palette's accent colors (primary etc.),
-        // not just override background/text — proves the luminance-based base selection, not only
-        // that the override itself works.
         assertEquals(Purple80, scheme.primary)
     }
 

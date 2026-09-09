@@ -52,9 +52,8 @@ class QuickSettingsSheetTest {
         val targetFontSize = if (originalSettings.fontSizeSp < 30f) originalSettings.fontSizeSp + 1f else originalSettings.fontSizeSp - 1f
         val targetMargin = if (originalSettings.marginHorizontalDp < 70f) originalSettings.marginHorizontalDp + 4f else originalSettings.marginHorizontalDp - 4f
         val targetTheme = when (originalSettings.themePreset) {
-            ThemePreset.LIGHT -> ThemePreset.DARK
-            ThemePreset.DARK -> ThemePreset.SEPIA
-            else -> ThemePreset.LIGHT
+            ThemePreset.WARM_IVORY -> ThemePreset.DARK_NAVY
+            else -> ThemePreset.WARM_IVORY
         }
         val targetTransition = when (originalSettings.pageTransitionAnimation) {
             PageTransitionAnimation.NONE -> PageTransitionAnimation.SLIDE
@@ -63,10 +62,13 @@ class QuickSettingsSheetTest {
         }
         val themeLabel = application.getString(
             when (targetTheme) {
-                ThemePreset.LIGHT -> R.string.settings_theme_light
-                ThemePreset.DARK -> R.string.settings_theme_dark
-                ThemePreset.SEPIA -> R.string.settings_theme_sepia
-                ThemePreset.CUSTOM -> R.string.settings_theme_light
+                ThemePreset.WARM_IVORY -> R.string.settings_theme_warm_ivory
+                ThemePreset.SEPIA_CREAM -> R.string.settings_theme_sepia_cream
+                ThemePreset.DARK_NAVY -> R.string.settings_theme_dark_navy
+                ThemePreset.SOFT_GRAY -> R.string.settings_theme_soft_gray
+                ThemePreset.COOL_LIGHT -> R.string.settings_theme_cool_light
+                ThemePreset.SOFT_DARK_BROWN -> R.string.settings_theme_soft_dark_brown
+                ThemePreset.CUSTOM -> R.string.settings_theme_warm_ivory
             },
         )
         val transitionLabel = application.getString(

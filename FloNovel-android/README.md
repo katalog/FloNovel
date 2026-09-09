@@ -63,7 +63,7 @@ different style.
 
 ### 🎨 Comfortable for long sessions
 
-Light, dark, and sepia themes, or set your own background and text colors. Adjust font size, line
+Six curated themes (Warm Ivory, Sepia Cream, Dark Navy, Soft Gray, Cool Light, Soft Dark Brown), or set your own background and text colors. Adjust font size, line
 height, letter spacing, and each margin independently. Download extra fonts from inside the app.
 Keep the screen on, override system brightness, and lock the orientation.
 
@@ -124,7 +124,7 @@ Left/right, top, and bottom set independently.
 <details>
 <summary><b>Theme</b></summary>
 
-Light, dark, sepia, or fully custom background and text colors.
+Six curated themes (Warm Ivory, Sepia Cream, Dark Navy, Soft Gray, Cool Light, Soft Dark Brown), or fully custom background and text colors.
 </details>
 
 <details>

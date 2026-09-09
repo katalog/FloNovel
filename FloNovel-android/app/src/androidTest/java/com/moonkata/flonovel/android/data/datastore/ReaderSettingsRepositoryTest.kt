@@ -72,7 +72,7 @@ class ReaderSettingsRepositoryTest {
 
     @Test
     fun enumValue_roundTripsThroughDataStore_storedByName() = runBlocking {
-        val target = if (original.themePreset == ThemePreset.DARK) ThemePreset.SEPIA else ThemePreset.DARK
+        val target = if (original.themePreset == ThemePreset.DARK_NAVY) ThemePreset.SEPIA_CREAM else ThemePreset.DARK_NAVY
         repository.updateThemePreset(target)
         assertEquals(target, repository.settingsFlow.first().themePreset)
     }

@@ -3,7 +3,7 @@ package com.moonkata.flonovel.android.data.datastore
 import com.moonkata.flonovel.android.data.parser.ChapterPatternCatalog
 import com.moonkata.flonovel.android.model.FolderSortOption
 
-enum class ThemePreset { LIGHT, DARK, SEPIA, CUSTOM }
+enum class ThemePreset { WARM_IVORY, SEPIA_CREAM, DARK_NAVY, SOFT_GRAY, COOL_LIGHT, SOFT_DARK_BROWN, CUSTOM }
 enum class PageTurnMode { HORIZONTAL_PAGE, VERTICAL_SCROLL }
 enum class OrientationLock { AUTO, PORTRAIT, LANDSCAPE }
 enum class AutoAdvanceMode { OFF, TIMER, TTS }
@@ -26,7 +26,7 @@ data class ReaderSettings(
     val marginHorizontalDp: Float = 16f,
     val marginTopDp: Float = 16f,
     val marginBottomDp: Float = 16f,
-    val themePreset: ThemePreset = ThemePreset.LIGHT,
+    val themePreset: ThemePreset = ThemePreset.WARM_IVORY,
     val customBackgroundColorArgb: Int = 0xFFFFFFFF.toInt(),
     val customTextColorArgb: Int = 0xFF000000.toInt(),
     val pageTurnMode: PageTurnMode = PageTurnMode.HORIZONTAL_PAGE,

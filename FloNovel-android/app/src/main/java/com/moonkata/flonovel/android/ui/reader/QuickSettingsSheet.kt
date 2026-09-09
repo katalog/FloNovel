@@ -1,5 +1,8 @@
 package com.moonkata.flonovel.android.ui.reader
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -43,9 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.moonkata.flonovel.android.R
 import com.moonkata.flonovel.android.data.datastore.AutoAdvanceMode
 import com.moonkata.flonovel.android.data.datastore.OrientationLock
@@ -55,6 +61,8 @@ import com.moonkata.flonovel.android.data.datastore.PageTurnMode
 import com.moonkata.flonovel.android.data.datastore.ReaderSettings
 import com.moonkata.flonovel.android.data.datastore.ThemePreset
 import com.moonkata.flonovel.android.ui.SettingsController
+import com.moonkata.flonovel.android.ui.theme.ReaderColors
+import com.moonkata.flonovel.android.ui.theme.ReaderThemePresets
 
 /**
  * [homeFolderName] and [onChangeHomeFolder] are the library screen's only additions to this sheet.
@@ -112,17 +120,33 @@ fun QuickSettingsSheet(
 
             SectionDivider()
             Text(stringResource(R.string.settings_section_theme), style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(
-                    ThemePreset.LIGHT to R.string.settings_theme_light,
-                    ThemePreset.DARK to R.string.settings_theme_dark,
-                    ThemePreset.SEPIA to R.string.settings_theme_sepia,
-                ).forEach { (preset, labelRes) ->
-                    FilterChip(
-                        selected = settings.themePreset == preset,
-                        onClick = { viewModel.setThemePreset(preset) },
-                        label = { Text(stringResource(labelRes)) },
-                    )
+            val themeItems = listOf(
+                Triple(ThemePreset.WARM_IVORY, R.string.settings_theme_warm_ivory, ReaderThemePresets.WARM_IVORY),
+                Triple(ThemePreset.SEPIA_CREAM, R.string.settings_theme_sepia_cream, ReaderThemePresets.SEPIA_CREAM),
+                Triple(ThemePreset.DARK_NAVY, R.string.settings_theme_dark_navy, ReaderThemePresets.DARK_NAVY),
+                Triple(ThemePreset.SOFT_GRAY, R.string.settings_theme_soft_gray, ReaderThemePresets.SOFT_GRAY),
+                Triple(ThemePreset.COOL_LIGHT, R.string.settings_theme_cool_light, ReaderThemePresets.COOL_LIGHT),
+                Triple(ThemePreset.SOFT_DARK_BROWN, R.string.settings_theme_soft_dark_brown, ReaderThemePresets.SOFT_DARK_BROWN),
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                themeItems.chunked(3).forEach { rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        rowItems.forEach { (preset, labelRes, colors) ->
+                            ThemePreviewButton(
+                                name = stringResource(labelRes),
+                                colors = colors,
+                                selected = settings.themePreset == preset,
+                                onClick = { viewModel.setThemePreset(preset) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -340,5 +364,36 @@ private fun LabeledStepper(
         IconButton(onClick = { onValueChange((value + step).coerceIn(range)) }, enabled = value < range.endInclusive) {
             Icon(Icons.Default.Add, contentDescription = stringResource(R.string.settings_stepper_increase_desc, label))
         }
+    }
+}
+
+@Composable
+private fun ThemePreviewButton(
+    name: String,
+    colors: ReaderColors,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .background(colors.background, RoundedCornerShape(8.dp))
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) Color(0xFF3B82F6) else Color(0x33888888),
+                shape = RoundedCornerShape(8.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = name,
+            color = colors.text,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
     }
 }

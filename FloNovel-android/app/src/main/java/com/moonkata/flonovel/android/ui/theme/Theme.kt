@@ -33,8 +33,8 @@ private val LightColorScheme = lightColorScheme(
 fun deriveColorScheme(settings: ReaderSettings): ColorScheme {
     val readerColors = ReaderThemePresets.forSettings(settings)
     val isDark = when (settings.themePreset) {
-        ThemePreset.DARK -> true
-        ThemePreset.LIGHT, ThemePreset.SEPIA -> false
+        ThemePreset.DARK_NAVY, ThemePreset.SOFT_DARK_BROWN -> true
+        ThemePreset.WARM_IVORY, ThemePreset.SEPIA_CREAM, ThemePreset.SOFT_GRAY, ThemePreset.COOL_LIGHT -> false
         ThemePreset.CUSTOM -> readerColors.background.luminance() < 0.5f
     }
     val base = if (isDark) DarkColorScheme else LightColorScheme
