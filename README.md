@@ -110,7 +110,7 @@ cd FloNovel-desktop
 ```
 
 That produces an `.msi` on Windows, a `.dmg` on macOS, or a `.deb` on Linux. Requires **JDK 17 or
-newer**. On Windows, `flonovel-desktop-build-exe.bat` also builds a portable version that runs
+newer**. On Windows, `./gradlew createDistributable` also builds a portable version that runs
 without installing.
 
 Just want to try it? `./gradlew run` launches the app directly.
