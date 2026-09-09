@@ -20,6 +20,12 @@ data class PaginationParams(
     val textColor: Color,
 )
 
+val READER_LINE_BREAK = androidx.compose.ui.text.style.LineBreak(
+    strategy = androidx.compose.ui.text.style.LineBreak.Strategy.Simple,
+    strictness = androidx.compose.ui.text.style.LineBreak.Strictness.Normal,
+    wordBreak = androidx.compose.ui.text.style.LineBreak.WordBreak.Phrase,
+)
+
 /**
  * Determines page boundaries by measuring the exact source span (a substring of fullText) that
  * will go on the page. It does not measure each paragraph separately and sum their heights —
@@ -68,6 +74,7 @@ object Paginator {
             lineHeight = params.fontSizeSp * params.lineHeightMultiplier,
             letterSpacing = params.letterSpacingSp,
             color = params.textColor,
+            lineBreak = READER_LINE_BREAK,
         )
         val constraints = Constraints(maxWidth = params.contentWidthPx)
         val contentHeightPx = params.contentHeightPx.toFloat()

@@ -42,15 +42,11 @@ class ComposeTextFitter(
 
         while (true) {
             val candidateText = fullText.substring(from, candidateEnd)
-            val candidateAnnotated = if (emptyLineSpacingRatio < 0.999f) {
-                ReaderTextLayout.buildAnnotatedText(
-                    rawText = candidateText,
-                    fontSizeSp = fontSizeVal,
-                    emptyLineSpacingRatio = emptyLineSpacingRatio,
-                )
-            } else {
-                AnnotatedString(candidateText)
-            }
+            val candidateAnnotated = ReaderTextLayout.buildAnnotatedText(
+                rawText = candidateText,
+                fontSizeSp = fontSizeVal,
+                emptyLineSpacingRatio = emptyLineSpacingRatio,
+            )
             val layout = textMeasurer.measure(
                 text = candidateAnnotated,
                 style = style,
@@ -72,11 +68,12 @@ class ComposeTextFitter(
                     fitLines = lineIndex + 1
                 }
                 if (fitLines == 0) fitLines = 1 // Safety net: at least 1 line
-                val splitAt = if (fitLines < layout.lineCount) {
+                val splitAnnotated = if (fitLines < layout.lineCount) {
                     layout.getLineStart(fitLines)
                 } else {
                     layout.getLineEnd(fitLines - 1, visibleEnd = false)
                 }.coerceAtLeast(1)
+                val splitAt = ReaderTextLayout.mapAnnotatedOffsetToRaw(candidateAnnotated.text, splitAnnotated).coerceAtLeast(1)
                 return minOf(from + splitAt, fullText.length)
             }
         }

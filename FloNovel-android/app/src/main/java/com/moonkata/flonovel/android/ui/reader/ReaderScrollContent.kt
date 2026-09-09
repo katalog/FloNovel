@@ -94,7 +94,9 @@ fun ReaderScrollContent(viewModel: ReaderViewModel, uiState: ReaderUiState, read
                 fontSize = settings.fontSizeSp.sp,
                 lineHeight = (settings.fontSizeSp * settings.lineHeightMultiplier).sp,
                 letterSpacing = settings.letterSpacingSp.sp,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    lineBreak = com.moonkata.flonovel.android.data.parser.READER_LINE_BREAK,
+                ),
                 modifier = Modifier
                     .padding(bottom = 8.dp)
                     .then(
