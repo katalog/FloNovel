@@ -44,6 +44,8 @@ class ReaderSettingsRepository(private val context: Context) {
         val LIBRARY_SORT_OPTION = stringPreferencesKey("library_sort_option")
         val CHAPTER_PATTERN_ENABLED_IDS = stringSetPreferencesKey("chapter_pattern_enabled_ids")
         val CHAPTER_CUSTOM_PATTERNS = stringSetPreferencesKey("chapter_custom_patterns")
+        val TOUCH_ZONE_MODE = stringPreferencesKey("touch_zone_mode")
+        val GRID_TOUCH_ACTIONS = stringPreferencesKey("grid_touch_actions")
         val TOUCH_LEFT_ACTION = stringPreferencesKey("touch_left_action")
         val TOUCH_RIGHT_ACTION = stringPreferencesKey("touch_right_action")
         val SWIPE_LEFT_ACTION = stringPreferencesKey("swipe_left_action")
@@ -87,6 +89,15 @@ class ReaderSettingsRepository(private val context: Context) {
             librarySortOption = prefs[Keys.LIBRARY_SORT_OPTION]?.let { runCatching { FolderSortOption.valueOf(it) }.getOrNull() } ?: defaults.librarySortOption,
             chapterPatternEnabledIds = prefs[Keys.CHAPTER_PATTERN_ENABLED_IDS] ?: defaults.chapterPatternEnabledIds,
             chapterCustomPatterns = prefs[Keys.CHAPTER_CUSTOM_PATTERNS] ?: defaults.chapterCustomPatterns,
+            touchZoneMode = prefs[Keys.TOUCH_ZONE_MODE]?.let { runCatching { TouchZoneMode.valueOf(it) }.getOrNull() } ?: defaults.touchZoneMode,
+            gridTouchActions = prefs[Keys.GRID_TOUCH_ACTIONS]?.let { raw ->
+                val tokens = raw.split(",")
+                if (tokens.size == 9) {
+                    tokens.map { token ->
+                        runCatching { PageGestureAction.valueOf(token) }.getOrDefault(PageGestureAction.NEXT_PAGE)
+                    }
+                } else null
+            } ?: defaults.gridTouchActions,
             touchLeftAction = prefs[Keys.TOUCH_LEFT_ACTION]?.let { runCatching { PageGestureAction.valueOf(it) }.getOrNull() } ?: defaults.touchLeftAction,
             touchRightAction = prefs[Keys.TOUCH_RIGHT_ACTION]?.let { runCatching { PageGestureAction.valueOf(it) }.getOrNull() } ?: defaults.touchRightAction,
             swipeLeftAction = prefs[Keys.SWIPE_LEFT_ACTION]?.let { runCatching { PageGestureAction.valueOf(it) }.getOrNull() } ?: defaults.swipeLeftAction,
@@ -133,6 +144,25 @@ class ReaderSettingsRepository(private val context: Context) {
     suspend fun updateLibrarySortOption(value: FolderSortOption) = edit { it[Keys.LIBRARY_SORT_OPTION] = value.name }
     suspend fun updateChapterPatternEnabledIds(value: Set<String>) = edit { it[Keys.CHAPTER_PATTERN_ENABLED_IDS] = value }
     suspend fun updateChapterCustomPatterns(value: Set<String>) = edit { it[Keys.CHAPTER_CUSTOM_PATTERNS] = value }
+    suspend fun updateTouchZoneMode(value: TouchZoneMode) = edit { it[Keys.TOUCH_ZONE_MODE] = value.name }
+    suspend fun updateGridTouchActions(value: List<PageGestureAction>) = edit {
+        it[Keys.GRID_TOUCH_ACTIONS] = value.take(9).joinToString(",") { action -> action.name }
+    }
+    suspend fun updateGridTouchAction(index: Int, action: PageGestureAction) = edit { prefs ->
+        val current = prefs[Keys.GRID_TOUCH_ACTIONS]?.let { raw ->
+            val tokens = raw.split(",")
+            if (tokens.size == 9) {
+                tokens.map { token ->
+                    runCatching { PageGestureAction.valueOf(token) }.getOrDefault(PageGestureAction.NEXT_PAGE)
+                }
+            } else null
+        } ?: ReaderSettings.defaultGridTouchActions
+        val updated = current.toMutableList()
+        if (index in updated.indices) {
+            updated[index] = action
+        }
+        prefs[Keys.GRID_TOUCH_ACTIONS] = updated.joinToString(",") { it.name }
+    }
     suspend fun updateTouchLeftAction(value: PageGestureAction) = edit { it[Keys.TOUCH_LEFT_ACTION] = value.name }
     suspend fun updateTouchRightAction(value: PageGestureAction) = edit { it[Keys.TOUCH_RIGHT_ACTION] = value.name }
     suspend fun updateSwipeLeftAction(value: PageGestureAction) = edit { it[Keys.SWIPE_LEFT_ACTION] = value.name }
