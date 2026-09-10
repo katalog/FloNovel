@@ -6,6 +6,7 @@ import com.moonkata.flonovel.android.data.datastore.PageGestureAction
 import com.moonkata.flonovel.android.data.datastore.PageTransitionAnimation
 import com.moonkata.flonovel.android.data.datastore.PageTurnMode
 import com.moonkata.flonovel.android.data.datastore.ThemePreset
+import com.moonkata.flonovel.android.data.datastore.TouchZoneMode
 import com.moonkata.flonovel.android.data.font.FontCatalogEntry
 import com.moonkata.flonovel.android.data.font.FontDownloadState
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +42,8 @@ interface SettingsController {
     fun setChapterJumpDivisions(value: Int)
     fun setAutoPageTurnIntervalSeconds(value: Int)
     fun selectFont(fontId: String)
+    fun setTouchZoneMode(value: TouchZoneMode)
+    fun setGridTouchAction(index: Int, action: PageGestureAction)
     fun setTouchLeftAction(value: PageGestureAction)
     fun setTouchRightAction(value: PageGestureAction)
     fun setSwipeLeftAction(value: PageGestureAction)

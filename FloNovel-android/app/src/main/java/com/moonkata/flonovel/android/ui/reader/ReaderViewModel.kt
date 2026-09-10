@@ -16,6 +16,7 @@ import com.moonkata.flonovel.android.data.datastore.PageTurnMode
 import com.moonkata.flonovel.android.data.datastore.ReaderSettings
 import com.moonkata.flonovel.android.data.datastore.ReaderSettingsRepository
 import com.moonkata.flonovel.android.data.datastore.ThemePreset
+import com.moonkata.flonovel.android.data.datastore.TouchZoneMode
 import com.moonkata.flonovel.android.data.db.AppDatabase
 import com.moonkata.flonovel.android.data.db.BookEntity
 import com.moonkata.flonovel.android.data.font.FontCatalogEntry
@@ -73,6 +74,7 @@ sealed class ReaderNavEvent {
     data class JumpToOffset(val offset: Int, val animate: Boolean) : ReaderNavEvent()
     data object RequestNextPage : ReaderNavEvent()
     data object RequestPreviousPage : ReaderNavEvent()
+    data object ToggleMenu : ReaderNavEvent()
 }
 
 /**
@@ -481,13 +483,16 @@ class ReaderViewModel(
         }
     }
 
-    /** Routes one of the six configurable gestures (touch/swipe zones) to the action assigned to it. */
+    /** Routes one of the configurable gestures (touch zones / swipe directions) to the action assigned to it. */
     fun performGestureAction(action: PageGestureAction) {
         when (action) {
             PageGestureAction.PREVIOUS_PAGE -> previousPage()
             PageGestureAction.NEXT_PAGE -> nextPage()
             PageGestureAction.PREVIOUS_CHAPTER_JUMP -> previousChapterJump()
             PageGestureAction.NEXT_CHAPTER_JUMP -> nextChapterJump()
+            PageGestureAction.PREVIOUS_CHAPTER -> previousChapter()
+            PageGestureAction.NEXT_CHAPTER -> nextChapter()
+            PageGestureAction.SHOW_MENU -> _navEvents.tryEmit(ReaderNavEvent.ToggleMenu)
             PageGestureAction.NONE -> {}
         }
     }
@@ -495,6 +500,59 @@ class ReaderViewModel(
     fun nextPage() = advanceNormally(_uiState.value)
 
     fun previousPage() = retreatNormally(_uiState.value)
+
+    fun nextChapter() {
+        val state = _uiState.value
+        if (state.chapters.isEmpty()) {
+            _messages.tryEmit(R.string.reader_chapter_jump_no_pattern)
+            advanceNormally(state)
+            return
+        }
+        val targetChapter = state.chapters.firstOrNull { it.charOffset > state.currentOffset }
+        if (targetChapter == null) {
+            _messages.tryEmit(R.string.reader_notice_last_chapter)
+            advanceNormally(state)
+            return
+        }
+        val target = targetChapter.charOffset
+        lastChapterJumpOffset = target
+        updateCurrentOffset(target)
+        _messages.tryEmit(R.string.reader_notice_next_chapter)
+        if (state.settings.pageTurnMode == PageTurnMode.HORIZONTAL_PAGE) {
+            jumpToPageAt(target)
+        } else {
+            _navEvents.tryEmit(ReaderNavEvent.JumpToOffset(target, animate = false))
+        }
+    }
+
+    fun previousChapter() {
+        val state = _uiState.value
+        if (state.chapters.isEmpty()) {
+            _messages.tryEmit(R.string.reader_chapter_jump_no_pattern)
+            retreatNormally(state)
+            return
+        }
+        val currentChapter = state.chapters.lastOrNull { it.charOffset <= state.currentOffset }
+        val targetChapter = if (currentChapter != null && state.currentOffset > currentChapter.charOffset + 30) {
+            currentChapter
+        } else {
+            state.chapters.lastOrNull { it.charOffset < (currentChapter?.charOffset ?: state.currentOffset) }
+        }
+        if (targetChapter == null) {
+            _messages.tryEmit(R.string.reader_notice_first_chapter)
+            retreatNormally(state)
+            return
+        }
+        val target = targetChapter.charOffset
+        lastChapterJumpOffset = target
+        updateCurrentOffset(target)
+        _messages.tryEmit(R.string.reader_notice_previous_chapter)
+        if (state.settings.pageTurnMode == PageTurnMode.HORIZONTAL_PAGE) {
+            jumpToPageAt(target)
+        } else {
+            _navEvents.tryEmit(ReaderNavEvent.JumpToOffset(target, animate = false))
+        }
+    }
 
     fun nextChapterJump() {
         val state = _uiState.value
@@ -515,6 +573,7 @@ class ReaderViewModel(
         }
         lastChapterJumpOffset = target
         updateCurrentOffset(target)
+        _messages.tryEmit(R.string.reader_notice_next_chapter_jump)
         if (state.settings.pageTurnMode == PageTurnMode.HORIZONTAL_PAGE) {
             jumpToPageAt(target)
         } else {
@@ -538,6 +597,7 @@ class ReaderViewModel(
         }
         lastChapterJumpOffset = target
         updateCurrentOffset(target)
+        _messages.tryEmit(R.string.reader_notice_previous_chapter_jump)
         if (state.settings.pageTurnMode == PageTurnMode.HORIZONTAL_PAGE) {
             jumpToPageAt(target)
         } else {
@@ -605,6 +665,8 @@ class ReaderViewModel(
     override fun setChapterJumpDivisions(value: Int) = launchSetting { settingsRepository.updateChapterJumpDivisions(value) }
     override fun setAutoPageTurnIntervalSeconds(value: Int) = launchSetting { settingsRepository.updateAutoPageTurnIntervalSeconds(value) }
     override fun selectFont(fontId: String) = launchSetting { settingsRepository.updateFontFamilyId(fontId) }
+    override fun setTouchZoneMode(value: TouchZoneMode) = launchSetting { settingsRepository.updateTouchZoneMode(value) }
+    override fun setGridTouchAction(index: Int, action: PageGestureAction) = launchSetting { settingsRepository.updateGridTouchAction(index, action) }
     override fun setTouchLeftAction(value: PageGestureAction) = launchSetting { settingsRepository.updateTouchLeftAction(value) }
     override fun setTouchRightAction(value: PageGestureAction) = launchSetting { settingsRepository.updateTouchRightAction(value) }
     override fun setSwipeLeftAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeLeftAction(value) }

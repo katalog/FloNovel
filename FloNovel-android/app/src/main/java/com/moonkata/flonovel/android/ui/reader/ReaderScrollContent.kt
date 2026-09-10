@@ -59,6 +59,7 @@ fun ReaderScrollContent(viewModel: ReaderViewModel, uiState: ReaderUiState, read
                     val target = (listState.firstVisibleItemIndex - 10).coerceAtLeast(0)
                     listState.scrollToItem(target)
                 }
+                ReaderNavEvent.ToggleMenu -> Unit
             }
         }
     }

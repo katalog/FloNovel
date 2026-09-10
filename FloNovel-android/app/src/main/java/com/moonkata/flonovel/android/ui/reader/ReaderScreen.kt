@@ -49,7 +49,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.moonkata.flonovel.android.MainActivity
 import com.moonkata.flonovel.android.R
 import com.moonkata.flonovel.android.data.datastore.OrientationLock
+import com.moonkata.flonovel.android.data.datastore.PageGestureAction
 import com.moonkata.flonovel.android.data.datastore.PageTurnMode
+import com.moonkata.flonovel.android.data.datastore.ThemePreset
+import com.moonkata.flonovel.android.data.datastore.TouchZoneMode
 import com.moonkata.flonovel.android.ui.theme.ReaderThemePresets
 import kotlin.math.abs
 
@@ -77,11 +80,17 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
         }
     }
 
-    // Transient notices (e.g. "no chapter pattern found") — the app has no Snackbar/Toast
-    // infrastructure yet, so a plain Android Toast is the simplest way to surface these.
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { messageRes ->
             Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.navEvents.collect { event ->
+            if (event is ReaderNavEvent.ToggleMenu) {
+                showChrome = !showChrome
+            }
         }
     }
 
@@ -256,10 +265,25 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                         }
                         val width = size.width
                         val height = size.height
-                        when {
-                            offset.y < height * 0.3f -> showChrome = true
-                            offset.x < width * 0.5f -> viewModel.performGestureAction(currentSettings.touchLeftAction)
-                            else -> viewModel.performGestureAction(currentSettings.touchRightAction)
+                        when (currentSettings.touchZoneMode) {
+                            TouchZoneMode.STANDARD_3_COLUMN -> {
+                                when {
+                                    offset.x < width * 0.25f -> viewModel.performGestureAction(PageGestureAction.PREVIOUS_PAGE)
+                                    offset.x > width * 0.75f -> viewModel.performGestureAction(PageGestureAction.NEXT_PAGE)
+                                    else -> showChrome = true
+                                }
+                            }
+                            TouchZoneMode.GRID_3X3 -> {
+                                val col = (offset.x / (width / 3f)).toInt().coerceIn(0, 2)
+                                val row = (offset.y / (height / 3f)).toInt().coerceIn(0, 2)
+                                val index = row * 3 + col
+                                val action = currentSettings.gridTouchActions.getOrElse(index) { PageGestureAction.NEXT_PAGE }
+                                if (action == PageGestureAction.SHOW_MENU) {
+                                    showChrome = true
+                                } else {
+                                    viewModel.performGestureAction(action)
+                                }
+                            }
                         }
                     })
                 }

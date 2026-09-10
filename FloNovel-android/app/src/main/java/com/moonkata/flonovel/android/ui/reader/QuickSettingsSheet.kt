@@ -1,17 +1,22 @@
 package com.moonkata.flonovel.android.ui.reader
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -34,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -60,6 +66,7 @@ import com.moonkata.flonovel.android.data.datastore.PageTransitionAnimation
 import com.moonkata.flonovel.android.data.datastore.PageTurnMode
 import com.moonkata.flonovel.android.data.datastore.ReaderSettings
 import com.moonkata.flonovel.android.data.datastore.ThemePreset
+import com.moonkata.flonovel.android.data.datastore.TouchZoneMode
 import com.moonkata.flonovel.android.ui.SettingsController
 import com.moonkata.flonovel.android.ui.theme.ReaderColors
 import com.moonkata.flonovel.android.ui.theme.ReaderThemePresets
@@ -183,12 +190,45 @@ fun QuickSettingsSheet(
 
             SectionDivider()
             Text(stringResource(R.string.settings_section_page_turn_options), style = MaterialTheme.typography.titleMedium)
-            GestureActionRow(stringResource(R.string.settings_touch_left), settings.touchLeftAction) { viewModel.setTouchLeftAction(it) }
-            GestureActionRow(stringResource(R.string.settings_touch_right), settings.touchRightAction) { viewModel.setTouchRightAction(it) }
-            GestureActionRow(stringResource(R.string.settings_swipe_left), settings.swipeLeftAction) { viewModel.setSwipeLeftAction(it) }
-            GestureActionRow(stringResource(R.string.settings_swipe_right), settings.swipeRightAction) { viewModel.setSwipeRightAction(it) }
-            GestureActionRow(stringResource(R.string.settings_swipe_up), settings.swipeUpAction) { viewModel.setSwipeUpAction(it) }
-            GestureActionRow(stringResource(R.string.settings_swipe_down), settings.swipeDownAction) { viewModel.setSwipeDownAction(it) }
+
+            Text(stringResource(R.string.settings_touch_zone_mode), style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(
+                    TouchZoneMode.STANDARD_3_COLUMN to R.string.settings_touch_zone_standard,
+                    TouchZoneMode.GRID_3X3 to R.string.settings_touch_zone_grid,
+                ).forEach { (mode, labelRes) ->
+                    FilterChip(
+                        selected = settings.touchZoneMode == mode,
+                        onClick = { viewModel.setTouchZoneMode(mode) },
+                        label = { Text(stringResource(labelRes)) },
+                    )
+                }
+            }
+
+            if (settings.touchZoneMode == TouchZoneMode.STANDARD_3_COLUMN) {
+                Text(
+                    stringResource(R.string.settings_touch_zone_standard_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Standard3ColumnDiagram()
+            } else {
+                Text(
+                    stringResource(R.string.settings_touch_zone_grid_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Grid3x3Customizer(
+                    actions = settings.gridTouchActions,
+                    onSelectAction = { index, action -> viewModel.setGridTouchAction(index, action) },
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+            GestureActionRow(stringResource(R.string.settings_swipe_up_detailed), settings.swipeUpAction) { viewModel.setSwipeUpAction(it) }
+            GestureActionRow(stringResource(R.string.settings_swipe_down_detailed), settings.swipeDownAction) { viewModel.setSwipeDownAction(it) }
+            GestureActionRow(stringResource(R.string.settings_swipe_left_detailed), settings.swipeLeftAction) { viewModel.setSwipeLeftAction(it) }
+            GestureActionRow(stringResource(R.string.settings_swipe_right_detailed), settings.swipeRightAction) { viewModel.setSwipeRightAction(it) }
             Text(
                 stringResource(R.string.settings_swipe_vertical_scroll_mode_note),
                 style = MaterialTheme.typography.bodySmall,
@@ -313,7 +353,134 @@ private fun gestureActionLabelRes(action: PageGestureAction): Int = when (action
     PageGestureAction.NEXT_PAGE -> R.string.settings_gesture_next_page
     PageGestureAction.PREVIOUS_CHAPTER_JUMP -> R.string.settings_gesture_previous_chapter_jump
     PageGestureAction.NEXT_CHAPTER_JUMP -> R.string.settings_gesture_next_chapter_jump
+    PageGestureAction.PREVIOUS_CHAPTER -> R.string.settings_gesture_previous_chapter
+    PageGestureAction.NEXT_CHAPTER -> R.string.settings_gesture_next_chapter
+    PageGestureAction.SHOW_MENU -> R.string.settings_gesture_show_menu
     PageGestureAction.NONE -> R.string.settings_gesture_none
+}
+
+@Composable
+private fun Standard3ColumnDiagram() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+    ) {
+        Row(Modifier.fillMaxSize()) {
+            Box(
+                Modifier
+                    .weight(0.25f)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    stringResource(R.string.settings_gesture_previous_page),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            Box(
+                Modifier
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.outlineVariant),
+            )
+            Box(
+                Modifier
+                    .weight(0.5f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    stringResource(R.string.settings_gesture_show_menu),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            Box(
+                Modifier
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.outlineVariant),
+            )
+            Box(
+                Modifier
+                    .weight(0.25f)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    stringResource(R.string.settings_gesture_next_page),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Grid3x3Customizer(
+    actions: List<PageGestureAction>,
+    onSelectAction: (Int, PageGestureAction) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        for (row in 0..2) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                for (col in 0..2) {
+                    val index = row * 3 + col
+                    val currentAction = actions.getOrElse(index) { PageGestureAction.NEXT_PAGE }
+                    var expanded by remember { mutableStateOf(false) }
+
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { expanded = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(gestureActionLabelRes(currentAction)),
+                                style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                        ) {
+                            PageGestureAction.entries.forEach { action ->
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(gestureActionLabelRes(action))) },
+                                    onClick = {
+                                        onSelectAction(index, action)
+                                        expanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**

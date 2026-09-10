@@ -15,6 +15,7 @@ import com.moonkata.flonovel.android.data.datastore.PageTurnMode
 import com.moonkata.flonovel.android.data.datastore.ReaderSettings
 import com.moonkata.flonovel.android.data.datastore.ReaderSettingsRepository
 import com.moonkata.flonovel.android.data.datastore.ThemePreset
+import com.moonkata.flonovel.android.data.datastore.TouchZoneMode
 import com.moonkata.flonovel.android.data.db.AppDatabase
 import com.moonkata.flonovel.android.data.db.BookEntity
 import com.moonkata.flonovel.android.data.file.BookSource
@@ -417,6 +418,8 @@ class LibraryViewModel(
     override fun setChapterJumpDivisions(value: Int) = launchSetting { settingsRepository.updateChapterJumpDivisions(value) }
     override fun setAutoPageTurnIntervalSeconds(value: Int) = launchSetting { settingsRepository.updateAutoPageTurnIntervalSeconds(value) }
     override fun selectFont(fontId: String) = launchSetting { settingsRepository.updateFontFamilyId(fontId) }
+    override fun setTouchZoneMode(value: TouchZoneMode) = launchSetting { settingsRepository.updateTouchZoneMode(value) }
+    override fun setGridTouchAction(index: Int, action: PageGestureAction) = launchSetting { settingsRepository.updateGridTouchAction(index, action) }
     override fun setTouchLeftAction(value: PageGestureAction) = launchSetting { settingsRepository.updateTouchLeftAction(value) }
     override fun setTouchRightAction(value: PageGestureAction) = launchSetting { settingsRepository.updateTouchRightAction(value) }
     override fun setSwipeLeftAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeLeftAction(value) }

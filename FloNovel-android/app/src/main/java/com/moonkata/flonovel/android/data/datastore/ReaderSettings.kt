@@ -8,12 +8,22 @@ enum class PageTurnMode { HORIZONTAL_PAGE, VERTICAL_SCROLL }
 enum class OrientationLock { AUTO, PORTRAIT, LANDSCAPE }
 enum class AutoAdvanceMode { OFF, TIMER, TTS }
 
+enum class TouchZoneMode { STANDARD_3_COLUMN, GRID_3X3 }
+
 /**
  * What a page-turn gesture (touch zone or swipe direction) does. Each of the six gestures
- * (touch left/right, swipe left/right/up/down) is assigned one of these independently, so e.g.
- * swiping up can jump chapters while a left tap still turns the page normally.
+ * (touch zones, swipe left/right/up/down) is assigned one of these independently.
  */
-enum class PageGestureAction { PREVIOUS_PAGE, NEXT_PAGE, PREVIOUS_CHAPTER_JUMP, NEXT_CHAPTER_JUMP, NONE }
+enum class PageGestureAction {
+    PREVIOUS_PAGE,
+    NEXT_PAGE,
+    PREVIOUS_CHAPTER_JUMP,
+    NEXT_CHAPTER_JUMP,
+    PREVIOUS_CHAPTER,
+    NEXT_CHAPTER,
+    SHOW_MENU,
+    NONE,
+}
 
 /** Transition effect when turning a page. NONE: instant switch, SLIDE: both pages slide together, COVER: the new page slides over the top. */
 enum class PageTransitionAnimation { NONE, SLIDE, COVER }
@@ -44,10 +54,12 @@ data class ReaderSettings(
     val librarySortOption: FolderSortOption = FolderSortOption.NAME_ASC,
     val chapterPatternEnabledIds: Set<String> = ChapterPatternCatalog.defaultEnabledIds,
     val chapterCustomPatterns: Set<String> = emptySet(),
+    val touchZoneMode: TouchZoneMode = TouchZoneMode.STANDARD_3_COLUMN,
+    val gridTouchActions: List<PageGestureAction> = defaultGridTouchActions,
     val touchLeftAction: PageGestureAction = PageGestureAction.PREVIOUS_PAGE,
     val touchRightAction: PageGestureAction = PageGestureAction.NEXT_PAGE,
-    val swipeLeftAction: PageGestureAction = PageGestureAction.NEXT_PAGE,
-    val swipeRightAction: PageGestureAction = PageGestureAction.PREVIOUS_PAGE,
+    val swipeLeftAction: PageGestureAction = PageGestureAction.NEXT_CHAPTER,
+    val swipeRightAction: PageGestureAction = PageGestureAction.PREVIOUS_CHAPTER,
     val swipeUpAction: PageGestureAction = PageGestureAction.NEXT_CHAPTER_JUMP,
     val swipeDownAction: PageGestureAction = PageGestureAction.PREVIOUS_CHAPTER_JUMP,
     val pageTransitionAnimation: PageTransitionAnimation = PageTransitionAnimation.NONE,
@@ -72,4 +84,24 @@ data class ReaderSettings(
     /** Device clock, epoch millis. Display only — the delta comes from the cursor, never from time
      * comparison (a downloaded file's local mtime is "when it arrived", which re-downloads everything). */
     val dropboxLastSyncAtMillis: Long = 0L,
-)
+) {
+    companion object {
+        /**
+         * 3x3 default grid:
+         * Row 0: PREVIOUS_PAGE, SHOW_MENU, PREVIOUS_PAGE
+         * Row 1: NEXT_PAGE, NEXT_PAGE, NEXT_PAGE
+         * Row 2: NEXT_PAGE, NEXT_PAGE, NEXT_PAGE
+         */
+        val defaultGridTouchActions: List<PageGestureAction> = listOf(
+            PageGestureAction.PREVIOUS_PAGE,
+            PageGestureAction.SHOW_MENU,
+            PageGestureAction.PREVIOUS_PAGE,
+            PageGestureAction.NEXT_PAGE,
+            PageGestureAction.NEXT_PAGE,
+            PageGestureAction.NEXT_PAGE,
+            PageGestureAction.NEXT_PAGE,
+            PageGestureAction.NEXT_PAGE,
+            PageGestureAction.NEXT_PAGE,
+        )
+    }
+}
