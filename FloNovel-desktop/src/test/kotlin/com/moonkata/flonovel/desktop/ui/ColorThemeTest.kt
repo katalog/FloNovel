@@ -36,26 +36,32 @@ class ColorThemeTest {
         // 1. Warm Ivory
         assertRgb(45, 45, 42, ReaderColors.WarmIvory.text, "WarmIvory text")
         assertRgb(250, 247, 239, ReaderColors.WarmIvory.background, "WarmIvory background")
+        assertRgb(238, 222, 196, ReaderColors.WarmIvory.chapterHighlight, "WarmIvory chapterHighlight")
 
         // 2. Sepia Cream
         assertRgb(55, 48, 40, ReaderColors.SepiaCream.text, "SepiaCream text")
         assertRgb(245, 239, 224, ReaderColors.SepiaCream.background, "SepiaCream background")
+        assertRgb(226, 208, 172, ReaderColors.SepiaCream.chapterHighlight, "SepiaCream chapterHighlight")
 
         // 3. Dark Navy
         assertRgb(220, 224, 230, ReaderColors.DarkNavy.text, "DarkNavy text")
         assertRgb(28, 32, 40, ReaderColors.DarkNavy.background, "DarkNavy background")
+        assertRgb(44, 62, 92, ReaderColors.DarkNavy.chapterHighlight, "DarkNavy chapterHighlight")
 
         // 4. Soft Gray
         assertRgb(50, 52, 54, ReaderColors.SoftGray.text, "SoftGray text")
         assertRgb(242, 243, 245, ReaderColors.SoftGray.background, "SoftGray background")
+        assertRgb(212, 220, 234, ReaderColors.SoftGray.chapterHighlight, "SoftGray chapterHighlight")
 
         // 5. Cool Light
         assertRgb(45, 48, 52, ReaderColors.CoolLight.text, "CoolLight text")
         assertRgb(235, 238, 242, ReaderColors.CoolLight.background, "CoolLight background")
+        assertRgb(202, 218, 238, ReaderColors.CoolLight.chapterHighlight, "CoolLight chapterHighlight")
 
         // 6. Soft Dark Brown
         assertRgb(218, 211, 198, ReaderColors.SoftDarkBrown.text, "SoftDarkBrown text")
         assertRgb(38, 35, 32, ReaderColors.SoftDarkBrown.background, "SoftDarkBrown background")
+        assertRgb(72, 60, 50, ReaderColors.SoftDarkBrown.chapterHighlight, "SoftDarkBrown chapterHighlight")
     }
 
     @Test
