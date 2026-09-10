@@ -288,4 +288,80 @@ class MovementRulesTest {
         navigator.jumpTo(500)
         assertEquals(0.50, navigator.progress())
     }
+
+    // --- M15: Forward stack restores exact jump target after retreat then advance ---
+
+    @Test
+    fun m15_afterJump_retreatThenAdvance_returnsExactlyToJumpTarget() {
+        val (navigator, _) = createNavigator(initialAnchor = 0)
+        navigator.jumpTo(350) // e.g. chapter jump, TOC, or search result
+        assertEquals(350, navigator.anchor)
+        assertTrue(navigator.historyStack.isEmpty())
+        assertTrue(navigator.forwardHistoryStack.isEmpty())
+
+        navigator.retreat() // Retreats backwards (reverse estimation)
+        val retreatedAnchor = navigator.anchor
+        assertTrue(retreatedAnchor < 350, "Must have moved backward")
+        assertEquals(listOf(350), navigator.forwardHistoryStack, "Forward stack must preserve jump target 350")
+
+        // Advance even with a 0.5 ratio (half page) must restore the exact 350 anchor
+        navigator.advance(ratio = 0.5f)
+        assertEquals(350, navigator.anchor, "Advance must return to exactly 350 using forward stack")
+        assertEquals(listOf(retreatedAnchor), navigator.historyStack, "History must now have retreated anchor")
+        assertTrue(navigator.forwardHistoryStack.isEmpty(), "Forward stack should now be empty")
+    }
+
+    // --- M16: Multiple retreats followed by multiple advances restore exact sequence ---
+
+    @Test
+    fun m16_multipleRetreats_thenMultipleAdvances_restoresExactSequence() {
+        val (navigator, _) = createNavigator(initialAnchor = 0)
+        navigator.jumpTo(400)
+
+        // 2 retreats back
+        navigator.retreat() // e.g. 350
+        val a1 = navigator.anchor
+        navigator.retreat() // e.g. 300
+        val a2 = navigator.anchor
+
+        assertEquals(listOf(400, a1), navigator.forwardHistoryStack)
+
+        // 2 advances forward restore exact sequence
+        navigator.advance(ratio = 0.5f)
+        assertEquals(a1, navigator.anchor)
+
+        navigator.advance(ratio = 0.5f)
+        assertEquals(400, navigator.anchor)
+        assertTrue(navigator.forwardHistoryStack.isEmpty())
+    }
+
+    // --- M17: New jumpTo clears both history and forwardStack ---
+
+    @Test
+    fun m17_jumpTo_clearsBothHistoryAndForwardStack() {
+        val (navigator, _) = createNavigator(initialAnchor = 0)
+        navigator.jumpTo(300)
+        navigator.retreat()
+        assertTrue(navigator.forwardHistoryStack.isNotEmpty())
+
+        // User jumps to another chapter/search match instead of continuing forward
+        navigator.jumpTo(500)
+        assertEquals(500, navigator.anchor)
+        assertTrue(navigator.historyStack.isEmpty(), "History must be cleared on jumpTo")
+        assertTrue(navigator.forwardHistoryStack.isEmpty(), "Forward stack must be cleared on jumpTo")
+    }
+
+    // --- M18: onLayoutKeyChanged clears forwardStack ---
+
+    @Test
+    fun m18_onLayoutKeyChanged_clearsForwardStack() {
+        val (navigator, fitter) = createNavigator(initialAnchor = 0)
+        navigator.jumpTo(300)
+        navigator.retreat()
+        assertTrue(navigator.forwardHistoryStack.isNotEmpty())
+
+        val newSpec = ViewportSpec(widthPx = 150, heightPx = 150, paneMode = PaneMode.ONE)
+        navigator.onLayoutKeyChanged(newSpec, fitter)
+        assertTrue(navigator.forwardHistoryStack.isEmpty(), "Forward stack must be cleared on layout change")
+    }
 }

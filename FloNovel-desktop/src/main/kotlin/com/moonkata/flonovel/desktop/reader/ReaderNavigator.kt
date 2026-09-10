@@ -29,9 +29,13 @@ class ReaderNavigator(
         private set
 
     private val history = ArrayDeque<Int>()
+    private val forwardStack = ArrayDeque<Int>()
 
     val historyStack: List<Int>
         get() = history.toList()
+
+    val forwardHistoryStack: List<Int>
+        get() = forwardStack.toList()
 
     val state: ReaderState
         get() = ReaderState(
@@ -49,7 +53,10 @@ class ReaderNavigator(
     }
 
     /**
-     * Advances the reading position forward by [ratio] of the visible amount.
+     * Advances the reading position forward:
+     * - If forward history is present (e.g. user retreated after a jump or page turn), pops the exact
+     *   previous anchor from the forward stack, restoring the exact original screen.
+     * - If forward history is empty, advances forward by [ratio] of the visible amount.
      *
      * Mode branching only occurs here to compute the visible forward amount:
      * - 1-pane: fitForward(anchor, screenWidth, screenHeight * ratio)
@@ -60,7 +67,17 @@ class ReaderNavigator(
             return state
         }
 
-        // Mode branching only in one place to determine visible amount:
+        // 1. If forward history exists (e.g. retreating after a jump/page turn), restore exact anchor
+        if (forwardStack.isNotEmpty()) {
+            val nextAnchor = forwardStack.removeLast().coerceIn(0, totalLength)
+            if (nextAnchor != anchor) {
+                history.addLast(anchor)
+                anchor = nextAnchor
+            }
+            return state
+        }
+
+        // 2. Mode branching only in one place to determine visible amount:
         val rawNext = when (spec.paneMode) {
             PaneMode.ONE -> {
                 val height = (spec.heightPx * ratio).toInt()
@@ -88,6 +105,7 @@ class ReaderNavigator(
 
     /**
      * Retreats to the previous page:
+     * - Saves current anchor into the forward stack so that a subsequent [advance] can return exactly.
      * - If visit history is present: pops the exact previous anchor.
      * - If visit history is empty: reverse-estimates the previous anchor.
      */
@@ -96,6 +114,7 @@ class ReaderNavigator(
             return state
         }
 
+        val currentAnchor = anchor
         val targetAnchor = if (history.isNotEmpty()) {
             history.removeLast()
         } else {
@@ -105,29 +124,35 @@ class ReaderNavigator(
             }
         }
 
-        anchor = targetAnchor.coerceIn(0, totalLength)
+        val nextAnchor = targetAnchor.coerceIn(0, totalLength)
+        if (nextAnchor != currentAnchor) {
+            forwardStack.addLast(currentAnchor)
+            anchor = nextAnchor
+        }
         return state
     }
 
     /**
      * Jumps directly to [offset] (e.g. from TOC, search, chapter jump, remote sync).
-     * Clears visit history and recalculates layout from target offset.
+     * Clears both visit history and forward history, recalculating layout from target offset.
      */
     fun jumpTo(offset: Int): ReaderState {
         history.clear()
+        forwardStack.clear()
         anchor = offset.coerceIn(0, totalLength)
         return state
     }
 
     /**
      * Handles layout key changes (font, size, line spacing, margins, window size, reflow, pane mode, etc.).
-     * Clears visit history as past boundaries are invalidated, and recalculates the layout
-     * starting strictly at the current [anchor].
+     * Clears visit history and forward history as past boundaries are invalidated, and recalculates
+     * the layout starting strictly at the current [anchor].
      *
      * The [anchor] itself is NEVER modified (Rule 6).
      */
     fun onLayoutKeyChanged(newSpec: ViewportSpec, newFitter: TextFitter = textFitter): ReaderState {
         history.clear()
+        forwardStack.clear()
         spec = newSpec
         textFitter = newFitter
         return state

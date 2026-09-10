@@ -145,6 +145,9 @@ class ReaderViewModel(
     /** Pages navigated forward through — popped straight off the stack for "previous" without recomputing. */
     private val pageHistory = ArrayDeque<PageBreak>()
 
+    /** Pages navigated backward through — popped straight off the stack for "next" without recomputing, restoring the exact page. */
+    private val pageForwardHistory = ArrayDeque<PageBreak>()
+
     /**
      * The target offset of the last chapter jump — once a page actually settles, currentOffset gets
      * readjusted to that page's start offset (which can be earlier than the target), and if that value
@@ -299,8 +302,9 @@ class ReaderViewModel(
         lastPaginationParams = params
         // Changing font/margins/screen size changes line wrapping, which changes the page boundaries
         // themselves — recompute only the current page based on the position being read right now. The
-        // visit history was built against the old page boundaries and is no longer valid, so clear it.
+        // visit histories were built against the old page boundaries and are no longer valid, so clear them.
         pageHistory.clear()
+        pageForwardHistory.clear()
         computeCurrentPageAt(state.currentOffset)
     }
 
@@ -334,10 +338,11 @@ class ReaderViewModel(
     /** In page mode, jumps immediately to the page starting at offset — shared by search/TOC/bookmark/chapter jump. */
     private fun jumpToPageAt(offset: Int) {
         pageHistory.clear()
+        pageForwardHistory.clear()
         computeCurrentPageAt(offset)
     }
 
-    /** In page mode, advances one page forward — pushes the current page onto the visit history and computes just one page from its end. */
+    /** In page mode, advances one page forward — pops from forward history if available, or computes next page from current end. */
     private fun advancePageForward() {
         val textMeasurer = lastTextMeasurer ?: return
         val params = lastPaginationParams ?: return
@@ -345,6 +350,16 @@ class ReaderViewModel(
         val current = state.currentPage ?: return
         if (current.endOffset >= state.fullText.length) return // already the last page
 
+        // 1. If forward history exists (e.g. user retreated after a jump or page turn), restore exact page!
+        val fromForward = pageForwardHistory.removeLastOrNull()
+        if (fromForward != null) {
+            pageHistory.addLast(current)
+            _uiState.update { it.copy(currentPage = fromForward) }
+            updateCurrentOffset(fromForward.startOffset)
+            return
+        }
+
+        // 2. Otherwise compute next page normally
         pageHistory.addLast(current)
         pageComputeJob?.cancel()
         pageComputeJob = viewModelScope.launch(Dispatchers.Default) {
@@ -357,9 +372,10 @@ class ReaderViewModel(
     }
 
     /**
-     * In page mode, goes back one page. If there's visit history accumulated from paging forward, it's
-     * popped and used as-is (accurate, immediate). When there's no history, such as right after a jump,
-     * it's estimated in reverse via [Paginator.onePageEndingAt].
+     * In page mode, goes back one page:
+     * - Saves current page into forward history so that a subsequent "next" returns to it exactly.
+     * - If visit history is present: popped and used as-is (accurate, immediate).
+     * - If visit history is empty: estimated in reverse via [Paginator.onePageEndingAt].
      */
     private fun advancePageBackward() {
         val textMeasurer = lastTextMeasurer ?: return
@@ -372,6 +388,9 @@ class ReaderViewModel(
         }
 
         _messages.tryEmit(R.string.reader_notice_previous_page)
+
+        // Save current page into forward history before moving backward
+        pageForwardHistory.addLast(current)
 
         val fromHistory = pageHistory.removeLastOrNull()
         if (fromHistory != null) {
