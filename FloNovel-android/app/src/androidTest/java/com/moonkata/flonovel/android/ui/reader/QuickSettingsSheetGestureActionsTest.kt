@@ -42,6 +42,9 @@ class QuickSettingsSheetGestureActionsTest {
             PageGestureAction.NEXT_PAGE -> R.string.settings_gesture_next_page
             PageGestureAction.PREVIOUS_CHAPTER_JUMP -> R.string.settings_gesture_previous_chapter_jump
             PageGestureAction.NEXT_CHAPTER_JUMP -> R.string.settings_gesture_next_chapter_jump
+            PageGestureAction.PREVIOUS_CHAPTER -> R.string.settings_gesture_previous_chapter
+            PageGestureAction.NEXT_CHAPTER -> R.string.settings_gesture_next_chapter
+            PageGestureAction.SHOW_MENU -> R.string.settings_gesture_show_menu
             PageGestureAction.NONE -> R.string.settings_gesture_none
         },
     )
