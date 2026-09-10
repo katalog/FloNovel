@@ -40,8 +40,6 @@ class ReaderSettingsRepositoryTest {
         repository.updateThemePreset(original.themePreset)
         repository.updateChapterPatternEnabledIds(original.chapterPatternEnabledIds)
         repository.updateLastUsedSafTreeUri(original.lastUsedSafTreeUri)
-        repository.updateTouchLeftAction(original.touchLeftAction)
-        repository.updateTouchRightAction(original.touchRightAction)
         repository.updateSwipeLeftAction(original.swipeLeftAction)
         repository.updateSwipeRightAction(original.swipeRightAction)
         repository.updateSwipeUpAction(original.swipeUpAction)
@@ -80,17 +78,9 @@ class ReaderSettingsRepositoryTest {
     @Test
     fun gestureActionSettings_eachRoundTripsThroughItsOwnDataStoreKey() = runBlocking {
         // One representative value change per gesture, each checked against a fresh read — this is
-        // the failure mode a copy-paste mistake in the Keys object (e.g. TOUCH_LEFT_ACTION reading
+        // the failure mode a copy-paste mistake in the Keys object (e.g. SWIPE_LEFT_ACTION reading
         // back SWIPE_RIGHT_ACTION's stored value) would produce: the wrong field would silently
         // reflect a value that was never written to it.
-        val target = PageGestureAction.entries.first { it != original.touchLeftAction }
-        repository.updateTouchLeftAction(target)
-        assertEquals(target, repository.settingsFlow.first().touchLeftAction)
-
-        val touchRightTarget = PageGestureAction.entries.first { it != original.touchRightAction }
-        repository.updateTouchRightAction(touchRightTarget)
-        assertEquals(touchRightTarget, repository.settingsFlow.first().touchRightAction)
-
         val swipeLeftTarget = PageGestureAction.entries.first { it != original.swipeLeftAction }
         repository.updateSwipeLeftAction(swipeLeftTarget)
         assertEquals(swipeLeftTarget, repository.settingsFlow.first().swipeLeftAction)
@@ -107,10 +97,8 @@ class ReaderSettingsRepositoryTest {
         repository.updateSwipeDownAction(swipeDownTarget)
         assertEquals(swipeDownTarget, repository.settingsFlow.first().swipeDownAction)
 
-        // None of the six should have leaked into a different field.
+        // None of the four should have leaked into a different field.
         val settings = repository.settingsFlow.first()
-        assertEquals(target, settings.touchLeftAction)
-        assertEquals(touchRightTarget, settings.touchRightAction)
         assertEquals(swipeLeftTarget, settings.swipeLeftAction)
         assertEquals(swipeRightTarget, settings.swipeRightAction)
         assertEquals(swipeUpTarget, settings.swipeUpAction)

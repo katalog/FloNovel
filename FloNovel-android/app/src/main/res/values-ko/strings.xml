@@ -69,8 +69,6 @@
     <string name="settings_touch_zone_standard_desc">좌측: 이전 페이지 | 중앙: 메뉴 보이기 | 우측: 다음 페이지</string>
     <string name="settings_touch_zone_grid">방안 B: 3x3 맞춤 그리드</string>
     <string name="settings_touch_zone_grid_desc">아래 3x3 격자의 각 구역을 탭하여 동작을 지정할 수 있습니다.</string>
-    <string name="settings_touch_left">터치 왼쪽</string>
-    <string name="settings_touch_right">터치 오른쪽</string>
     <string name="settings_swipe_left">스와이프 왼쪽</string>
     <string name="settings_swipe_right">스와이프 오른쪽</string>
     <string name="settings_swipe_up">스와이프 위</string>

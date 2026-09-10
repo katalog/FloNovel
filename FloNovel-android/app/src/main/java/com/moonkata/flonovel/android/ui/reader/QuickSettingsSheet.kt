@@ -355,6 +355,12 @@ private fun gestureActionLabelRes(action: PageGestureAction): Int = when (action
     PageGestureAction.NONE -> R.string.settings_gesture_none
 }
 
+/**
+ * Purely explanatory — no touch targets. Plan A's left/right zones are fixed to previous/next page
+ * (see [ReaderScreen]'s STANDARD_3_COLUMN branch), so unlike every other gesture row in this sheet
+ * there is nothing here to configure; this diagram exists so the fixed mapping is still visible
+ * without a picker. Someone who wants per-zone control has Plan B (GRID_3X3) for that instead.
+ */
 @Composable
 private fun Standard3ColumnDiagram() {
     Surface(

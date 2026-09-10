@@ -54,10 +54,14 @@ data class ReaderSettings(
     val librarySortOption: FolderSortOption = FolderSortOption.NAME_ASC,
     val chapterPatternEnabledIds: Set<String> = ChapterPatternCatalog.defaultEnabledIds,
     val chapterCustomPatterns: Set<String> = emptySet(),
+    // STANDARD_3_COLUMN's left/right tap zones are intentionally fixed (previous/next page — see
+    // settings_touch_zone_standard_desc) rather than user-configurable, unlike every other gesture
+    // here. There used to be a touchLeftAction/touchRightAction pair for that, but the settings UI
+    // that let you change them was replaced by Standard3ColumnDiagram() (a non-interactive
+    // explanation) when GRID_3X3 was added, leaving those two fields impossible to reach from
+    // anywhere — GRID_3X3's per-cell gridTouchActions below is the configurable equivalent now.
     val touchZoneMode: TouchZoneMode = TouchZoneMode.STANDARD_3_COLUMN,
     val gridTouchActions: List<PageGestureAction> = defaultGridTouchActions,
-    val touchLeftAction: PageGestureAction = PageGestureAction.PREVIOUS_PAGE,
-    val touchRightAction: PageGestureAction = PageGestureAction.NEXT_PAGE,
     val swipeLeftAction: PageGestureAction = PageGestureAction.NEXT_CHAPTER,
     val swipeRightAction: PageGestureAction = PageGestureAction.PREVIOUS_CHAPTER,
     val swipeUpAction: PageGestureAction = PageGestureAction.NEXT_CHAPTER_JUMP,

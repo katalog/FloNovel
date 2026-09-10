@@ -275,6 +275,14 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                         val height = size.height
                         when (currentSettings.touchZoneMode) {
                             TouchZoneMode.STANDARD_3_COLUMN -> {
+                                // Left/right are fixed to previous/next page here — this is Plan A's
+                                // whole pitch (settings_touch_zone_standard_desc spells it out to the
+                                // user), unlike every other gesture in this app. There used to be a
+                                // touchLeftAction/touchRightAction pair to make these configurable,
+                                // but the settings row that changed them was removed in favor of
+                                // Standard3ColumnDiagram() (a non-interactive explanation) once
+                                // Plan B (GRID_3X3, with its own per-cell gridTouchActions below) gave
+                                // people who want that flexibility a real way to get it instead.
                                 when {
                                     offset.x < width * 0.25f -> viewModel.performGestureAction(PageGestureAction.PREVIOUS_PAGE)
                                     offset.x > width * 0.75f -> viewModel.performGestureAction(PageGestureAction.NEXT_PAGE)

@@ -44,8 +44,6 @@ interface SettingsController {
     fun selectFont(fontId: String)
     fun setTouchZoneMode(value: TouchZoneMode)
     fun setGridTouchAction(index: Int, action: PageGestureAction)
-    fun setTouchLeftAction(value: PageGestureAction)
-    fun setTouchRightAction(value: PageGestureAction)
     fun setSwipeLeftAction(value: PageGestureAction)
     fun setSwipeRightAction(value: PageGestureAction)
     fun setSwipeUpAction(value: PageGestureAction)

@@ -21,12 +21,12 @@ import com.moonkata.flonovel.android.data.datastore.AutoAdvanceMode
 import com.moonkata.flonovel.android.data.datastore.PageGestureAction
 import com.moonkata.flonovel.android.data.datastore.PageTurnMode
 import com.moonkata.flonovel.android.data.datastore.ReaderSettingsRepository
+import com.moonkata.flonovel.android.data.datastore.TouchZoneMode
 import com.moonkata.flonovel.android.data.db.AppDatabase
 import com.moonkata.flonovel.android.data.file.BookSource
 import com.moonkata.flonovel.android.data.repository.BookRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -34,11 +34,14 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * The mapping from `ReaderScreen`'s tap zones/swipes to `viewModel.performGestureAction` (each of
- * the six gestures assigned an independent `PageGestureAction`) has, until now, only been confirmed
- * by `ReaderChromeAutoHideTest` in the form of "a center tap doesn't turn the page" — whether the
- * actual tap zones (left/right halves) or swipes turn to next or previous according to their
- * assigned action has never been verified.
+ * The mapping from `ReaderScreen`'s swipes to `viewModel.performGestureAction` (each of the four
+ * swipe directions assigned an independent `PageGestureAction`) has, until now, only been confirmed
+ * by `ReaderChromeAutoHideTest` in the form of "a center tap doesn't turn the page" — whether an
+ * actual swipe turns to next or previous according to its assigned action had never been verified.
+ *
+ * The tap zones themselves (left/right halves, Plan A / STANDARD_3_COLUMN) are not configurable —
+ * see the comment on that branch in `ReaderScreen.kt` — so the one tap-zone test here just pins the
+ * fixed previous/next mapping directly, without going through any gesture-action setting.
  */
 @RunWith(AndroidJUnit4::class)
 class ReaderTapZoneAndSwipeNavigationTest {
@@ -68,7 +71,7 @@ class ReaderTapZoneAndSwipeNavigationTest {
         composeTestRule.onAllNodesWithText(marker, substring = true).fetchSemanticsNodes().isNotEmpty()
 
     @Test
-    fun tapZones_leftPreviousRightNext_rightGoesNext_leftGoesPrevious() {
+    fun tapZones_standardMode_leftGoesPrevious_rightGoesNext_fixedNotConfigurable() {
         val application = ApplicationProvider.getApplicationContext<Application>()
         val db = AppDatabase.getDatabase(application)
         val bookRepository = BookRepository(application, db.bookDao())
@@ -76,11 +79,13 @@ class ReaderTapZoneAndSwipeNavigationTest {
         val marker = "TAP_STANDARD_MARKER"
         val originalSettings = runBlocking { settingsRepository.settingsFlow.first() }
 
+        // No touchLeftAction/touchRightAction to set — Plan A (STANDARD_3_COLUMN) fixes left to
+        // previous and right to next unconditionally (see ReaderScreen.kt), so this only needs the
+        // zone mode itself pinned to Plan A.
         runBlocking {
             settingsRepository.updatePageTurnMode(PageTurnMode.HORIZONTAL_PAGE)
             settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.OFF)
-            settingsRepository.updateTouchLeftAction(PageGestureAction.PREVIOUS_PAGE)
-            settingsRepository.updateTouchRightAction(PageGestureAction.NEXT_PAGE)
+            settingsRepository.updateTouchZoneMode(TouchZoneMode.STANDARD_3_COLUMN)
         }
         val bookId = setUpBook(application, bookRepository, marker)
 
@@ -95,63 +100,14 @@ class ReaderTapZoneAndSwipeNavigationTest {
             composeTestRule.onRoot().performTouchInput { click(Offset(width * 0.8f, height * 0.6f)) }
             composeTestRule.waitUntil(timeoutMillis = 5_000) { !firstMarkerVisible(marker) }
 
-            // touchLeftAction=PREVIOUS_PAGE -> tapping the left half goes to previous page (the marker must reappear).
+            // Left is fixed to previous page -> tapping the left half brings the marker back.
             composeTestRule.onRoot().performTouchInput { click(Offset(width * 0.2f, height * 0.6f)) }
             composeTestRule.waitUntil(timeoutMillis = 5_000) { firstMarkerVisible(marker) }
         } finally {
             runBlocking {
                 settingsRepository.updatePageTurnMode(originalSettings.pageTurnMode)
                 settingsRepository.updateAutoAdvanceMode(originalSettings.autoAdvanceMode)
-                settingsRepository.updateTouchLeftAction(originalSettings.touchLeftAction)
-                settingsRepository.updateTouchRightAction(originalSettings.touchRightAction)
-                db.bookDao().getById(bookId).first()?.let { bookRepository.deleteBook(it) }
-            }
-        }
-    }
-
-    @Test
-    fun tapZones_bothSidesNext_leftAlsoGoesNext() {
-        val application = ApplicationProvider.getApplicationContext<Application>()
-        val db = AppDatabase.getDatabase(application)
-        val bookRepository = BookRepository(application, db.bookDao())
-        val settingsRepository = ReaderSettingsRepository(application)
-        val marker = "TAP_BOTHNEXT_MARKER"
-        val originalSettings = runBlocking { settingsRepository.settingsFlow.first() }
-
-        runBlocking {
-            settingsRepository.updatePageTurnMode(PageTurnMode.HORIZONTAL_PAGE)
-            settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.OFF)
-            settingsRepository.updateTouchLeftAction(PageGestureAction.NEXT_PAGE)
-            settingsRepository.updateTouchRightAction(PageGestureAction.NEXT_PAGE)
-        }
-        val bookId = setUpBook(application, bookRepository, marker)
-
-        try {
-            composeTestRule.setContent {
-                MaterialTheme { ReaderScreen(bookId = bookId, onBack = {}) }
-            }
-            composeTestRule.waitUntil(timeoutMillis = 10_000) { firstMarkerVisible(marker) }
-            waitForChromeToHide()
-
-            // Turn once via the right tap to move off the first page.
-            composeTestRule.onRoot().performTouchInput { click(Offset(width * 0.8f, height * 0.6f)) }
-            composeTestRule.waitUntil(timeoutMillis = 5_000) { !firstMarkerVisible(marker) }
-
-            // Both zones are NEXT_PAGE, so the left tap must not return to the first page (the marker must stay hidden).
-            composeTestRule.onRoot().performTouchInput { click(Offset(width * 0.2f, height * 0.6f)) }
-            composeTestRule.waitUntil(timeoutMillis = 5_000) {
-                composeTestRule.onAllNodesWithContentDescription(application.getString(R.string.reader_back_desc)).fetchSemanticsNodes().isEmpty()
-            }
-            assertFalse(
-                "When both tap zones are NEXT_PAGE, the left tap must also go to the next page, so it must not return to the first page",
-                firstMarkerVisible(marker),
-            )
-        } finally {
-            runBlocking {
-                settingsRepository.updatePageTurnMode(originalSettings.pageTurnMode)
-                settingsRepository.updateAutoAdvanceMode(originalSettings.autoAdvanceMode)
-                settingsRepository.updateTouchLeftAction(originalSettings.touchLeftAction)
-                settingsRepository.updateTouchRightAction(originalSettings.touchRightAction)
+                settingsRepository.updateTouchZoneMode(originalSettings.touchZoneMode)
                 db.bookDao().getById(bookId).first()?.let { bookRepository.deleteBook(it) }
             }
         }
@@ -294,54 +250,4 @@ class ReaderTapZoneAndSwipeNavigationTest {
     // but removed — see the "tests we deliberately do not write" rationale for why (Compose UI test's synthetic
     // swipeUp() never reaches ReaderScrollContent's LazyColumn under this screen's outer pointerInput
     // Box, though a real touch on a real device scrolls it correctly).
-
-    @Test
-    fun tapZone_setToNoAction_doesNothing() {
-        val application = ApplicationProvider.getApplicationContext<Application>()
-        val db = AppDatabase.getDatabase(application)
-        val bookRepository = BookRepository(application, db.bookDao())
-        val settingsRepository = ReaderSettingsRepository(application)
-        val marker = "TAP_NONE_MARKER"
-        val originalSettings = runBlocking { settingsRepository.settingsFlow.first() }
-
-        runBlocking {
-            settingsRepository.updatePageTurnMode(PageTurnMode.HORIZONTAL_PAGE)
-            settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.OFF)
-            settingsRepository.updateTouchRightAction(PageGestureAction.NEXT_PAGE)
-            settingsRepository.updateTouchLeftAction(PageGestureAction.NONE)
-        }
-        val bookId = setUpBook(application, bookRepository, marker)
-
-        try {
-            composeTestRule.setContent {
-                MaterialTheme { ReaderScreen(bookId = bookId, onBack = {}) }
-            }
-            composeTestRule.waitUntil(timeoutMillis = 10_000) { firstMarkerVisible(marker) }
-            waitForChromeToHide()
-
-            // Move off the first page first via the right zone (assigned NEXT_PAGE), so a left tap
-            // that (wrongly) still turned the page backward would be observable as the marker
-            // reappearing.
-            composeTestRule.onRoot().performTouchInput { click(Offset(width * 0.8f, height * 0.6f)) }
-            composeTestRule.waitUntil(timeoutMillis = 5_000) { !firstMarkerVisible(marker) }
-
-            // touchLeftAction=NONE -> tapping the left half must not turn the page at all.
-            composeTestRule.onRoot().performTouchInput { click(Offset(width * 0.2f, height * 0.6f)) }
-            composeTestRule.waitUntil(timeoutMillis = 5_000) {
-                composeTestRule.onAllNodesWithContentDescription(application.getString(R.string.reader_back_desc)).fetchSemanticsNodes().isEmpty()
-            }
-            assertFalse(
-                "A tap zone assigned NONE must not turn the page in either direction",
-                firstMarkerVisible(marker),
-            )
-        } finally {
-            runBlocking {
-                settingsRepository.updatePageTurnMode(originalSettings.pageTurnMode)
-                settingsRepository.updateAutoAdvanceMode(originalSettings.autoAdvanceMode)
-                settingsRepository.updateTouchRightAction(originalSettings.touchRightAction)
-                settingsRepository.updateTouchLeftAction(originalSettings.touchLeftAction)
-                db.bookDao().getById(bookId).first()?.let { bookRepository.deleteBook(it) }
-            }
-        }
-    }
 }

@@ -46,8 +46,6 @@ class ReaderSettingsRepository(private val context: Context) {
         val CHAPTER_CUSTOM_PATTERNS = stringSetPreferencesKey("chapter_custom_patterns")
         val TOUCH_ZONE_MODE = stringPreferencesKey("touch_zone_mode")
         val GRID_TOUCH_ACTIONS = stringPreferencesKey("grid_touch_actions")
-        val TOUCH_LEFT_ACTION = stringPreferencesKey("touch_left_action")
-        val TOUCH_RIGHT_ACTION = stringPreferencesKey("touch_right_action")
         val SWIPE_LEFT_ACTION = stringPreferencesKey("swipe_left_action")
         val SWIPE_RIGHT_ACTION = stringPreferencesKey("swipe_right_action")
         val SWIPE_UP_ACTION = stringPreferencesKey("swipe_up_action")
@@ -98,8 +96,6 @@ class ReaderSettingsRepository(private val context: Context) {
                     }
                 } else null
             } ?: defaults.gridTouchActions,
-            touchLeftAction = prefs[Keys.TOUCH_LEFT_ACTION]?.let { runCatching { PageGestureAction.valueOf(it) }.getOrNull() } ?: defaults.touchLeftAction,
-            touchRightAction = prefs[Keys.TOUCH_RIGHT_ACTION]?.let { runCatching { PageGestureAction.valueOf(it) }.getOrNull() } ?: defaults.touchRightAction,
             swipeLeftAction = prefs[Keys.SWIPE_LEFT_ACTION]?.let { runCatching { PageGestureAction.valueOf(it) }.getOrNull() } ?: defaults.swipeLeftAction,
             swipeRightAction = prefs[Keys.SWIPE_RIGHT_ACTION]?.let { runCatching { PageGestureAction.valueOf(it) }.getOrNull() } ?: defaults.swipeRightAction,
             swipeUpAction = prefs[Keys.SWIPE_UP_ACTION]?.let { runCatching { PageGestureAction.valueOf(it) }.getOrNull() } ?: defaults.swipeUpAction,
@@ -163,8 +159,6 @@ class ReaderSettingsRepository(private val context: Context) {
         }
         prefs[Keys.GRID_TOUCH_ACTIONS] = updated.joinToString(",") { it.name }
     }
-    suspend fun updateTouchLeftAction(value: PageGestureAction) = edit { it[Keys.TOUCH_LEFT_ACTION] = value.name }
-    suspend fun updateTouchRightAction(value: PageGestureAction) = edit { it[Keys.TOUCH_RIGHT_ACTION] = value.name }
     suspend fun updateSwipeLeftAction(value: PageGestureAction) = edit { it[Keys.SWIPE_LEFT_ACTION] = value.name }
     suspend fun updateSwipeRightAction(value: PageGestureAction) = edit { it[Keys.SWIPE_RIGHT_ACTION] = value.name }
     suspend fun updateSwipeUpAction(value: PageGestureAction) = edit { it[Keys.SWIPE_UP_ACTION] = value.name }

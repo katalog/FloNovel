@@ -69,8 +69,6 @@
     <string name="settings_touch_zone_standard_desc">Left: Previous page | Center: Toggle menu | Right: Next page</string>
     <string name="settings_touch_zone_grid">Plan B: 3x3 Custom Grid</string>
     <string name="settings_touch_zone_grid_desc">Tap each grid cell below to configure its action.</string>
-    <string name="settings_touch_left">Touch left</string>
-    <string name="settings_touch_right">Touch right</string>
     <string name="settings_swipe_left">Swipe left</string>
     <string name="settings_swipe_right">Swipe right</string>
     <string name="settings_swipe_up">Swipe up</string>

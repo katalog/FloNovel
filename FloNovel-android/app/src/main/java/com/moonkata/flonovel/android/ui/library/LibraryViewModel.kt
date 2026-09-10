@@ -432,8 +432,6 @@ class LibraryViewModel(
     override fun selectFont(fontId: String) = launchSetting { settingsRepository.updateFontFamilyId(fontId) }
     override fun setTouchZoneMode(value: TouchZoneMode) = launchSetting { settingsRepository.updateTouchZoneMode(value) }
     override fun setGridTouchAction(index: Int, action: PageGestureAction) = launchSetting { settingsRepository.updateGridTouchAction(index, action) }
-    override fun setTouchLeftAction(value: PageGestureAction) = launchSetting { settingsRepository.updateTouchLeftAction(value) }
-    override fun setTouchRightAction(value: PageGestureAction) = launchSetting { settingsRepository.updateTouchRightAction(value) }
     override fun setSwipeLeftAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeLeftAction(value) }
     override fun setSwipeRightAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeRightAction(value) }
     override fun setSwipeUpAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeUpAction(value) }
