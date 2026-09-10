@@ -6,7 +6,7 @@ import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.view.KeyEvent
 import android.view.WindowManager
-import android.widget.Toast
+import kotlinx.coroutines.delay
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -69,6 +69,7 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
     var showQuickSettings by remember { mutableStateOf(false) }
     var showToc by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
+    var transientNotice by remember { mutableStateOf<String?>(null) }
 
     // Keep the top/bottom bars up while loading (so at least the title is visible), and auto-hide
     // them without a tap once loading finishes. isLoading only ever flips true→false once per book,
@@ -82,7 +83,14 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { messageRes ->
-            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
+            transientNotice = context.getString(messageRes)
+        }
+    }
+
+    LaunchedEffect(transientNotice) {
+        if (transientNotice != null) {
+            delay(500)
+            transientNotice = null
         }
     }
 
@@ -362,6 +370,32 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                     onSettings = { showQuickSettings = true },
                 )
             }
+            // Transient gesture and navigation notice (e.g. chapter jump, previous page, edge warnings)
+            // displayed at the bottom-left corner for 0.5s, symmetric with the read percentage on the right.
+            if (!showChrome) {
+                AnimatedVisibility(
+                    visible = transientNotice != null,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .safeDrawingPadding()
+                        .padding(8.dp),
+                ) {
+                    Surface(
+                        color = readerColors.background.copy(alpha = 0.85f),
+                        contentColor = readerColors.text,
+                        shape = RoundedCornerShape(50),
+                    ) {
+                        Text(
+                            text = transientNotice.orEmpty(),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+            }
+
             // A small always-on indicator so the read percentage isn't lost even while the top bar is
             // hidden. Plain semi-transparent text with no background would overlap whatever body text
             // happens to be on the last line there and look like a "cut-off line", so a pill-shaped

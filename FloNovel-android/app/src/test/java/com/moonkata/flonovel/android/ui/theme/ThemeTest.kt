@@ -59,26 +59,32 @@ class ThemeTest {
         // 1. Warm Ivory
         assertRgb(45, 45, 42, ReaderThemePresets.WARM_IVORY.text, "WarmIvory text")
         assertRgb(250, 247, 239, ReaderThemePresets.WARM_IVORY.background, "WarmIvory bg")
+        assertRgb(238, 222, 196, ReaderThemePresets.WARM_IVORY.chapterHighlight, "WarmIvory highlight")
 
         // 2. Sepia Cream
         assertRgb(55, 48, 40, ReaderThemePresets.SEPIA_CREAM.text, "SepiaCream text")
         assertRgb(245, 239, 224, ReaderThemePresets.SEPIA_CREAM.background, "SepiaCream bg")
+        assertRgb(226, 208, 172, ReaderThemePresets.SEPIA_CREAM.chapterHighlight, "SepiaCream highlight")
 
         // 3. Dark Navy
         assertRgb(220, 224, 230, ReaderThemePresets.DARK_NAVY.text, "DarkNavy text")
         assertRgb(28, 32, 40, ReaderThemePresets.DARK_NAVY.background, "DarkNavy bg")
+        assertRgb(44, 62, 92, ReaderThemePresets.DARK_NAVY.chapterHighlight, "DarkNavy highlight")
 
         // 4. Soft Gray
         assertRgb(50, 52, 54, ReaderThemePresets.SOFT_GRAY.text, "SoftGray text")
         assertRgb(242, 243, 245, ReaderThemePresets.SOFT_GRAY.background, "SoftGray bg")
+        assertRgb(212, 220, 234, ReaderThemePresets.SOFT_GRAY.chapterHighlight, "SoftGray highlight")
 
         // 5. Cool Light
         assertRgb(45, 48, 52, ReaderThemePresets.COOL_LIGHT.text, "CoolLight text")
         assertRgb(235, 238, 242, ReaderThemePresets.COOL_LIGHT.background, "CoolLight bg")
+        assertRgb(202, 218, 238, ReaderThemePresets.COOL_LIGHT.chapterHighlight, "CoolLight highlight")
 
         // 6. Soft Dark Brown
         assertRgb(218, 211, 198, ReaderThemePresets.SOFT_DARK_BROWN.text, "SoftDarkBrown text")
         assertRgb(38, 35, 32, ReaderThemePresets.SOFT_DARK_BROWN.background, "SoftDarkBrown bg")
+        assertRgb(72, 60, 50, ReaderThemePresets.SOFT_DARK_BROWN.chapterHighlight, "SoftDarkBrown highlight")
     }
 
     @Test

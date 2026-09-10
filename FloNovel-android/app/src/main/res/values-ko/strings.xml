@@ -92,6 +92,8 @@
     <string name="reader_notice_previous_chapter_jump">이전 챕터 분할점 점프</string>
     <string name="reader_notice_next_chapter">다음 챕터로 이동</string>
     <string name="reader_notice_previous_chapter">이전 챕터로 이동</string>
+    <string name="reader_notice_previous_page">이전 페이지</string>
+    <string name="reader_notice_first_page">첫 페이지입니다</string>
     <string name="reader_notice_first_chapter">첫 번째 챕터입니다</string>
     <string name="reader_notice_last_chapter">마지막 챕터입니다</string>
     <string name="settings_section_chapter_jump">챕터 점프</string>
