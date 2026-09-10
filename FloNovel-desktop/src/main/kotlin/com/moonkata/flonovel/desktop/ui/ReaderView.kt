@@ -243,7 +243,7 @@ fun handleKeyAction(
     if (KeymapHelper.matches(keymap.prevPage, key, codePoint) ||
         (!isCtrlPressed && (key == Key.DirectionLeft || (key == Key.Spacebar && isShiftPressed)))
     ) {
-        navigator.retreat()
+        navigator.retreat(advanceRatio.coerceIn(0.1f, 1.0f))
         onAnchorChanged?.invoke(navigator.anchor)
         return true
     }
@@ -463,7 +463,7 @@ fun ReaderView(
         if (chapters.isNullOrEmpty()) {
             toastMessage = Strings.get("reader_no_chapter_toast")
             lastChapterJumpOffset = null
-            navigator.retreat()
+            navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
             currentAnchor = navigator.anchor
             onAnchorChanged?.invoke(currentAnchor)
             return
@@ -475,7 +475,7 @@ fun ReaderView(
             navigator.jumpTo(target)
         } else {
             lastChapterJumpOffset = null
-            navigator.retreat()
+            navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
         }
         currentAnchor = navigator.anchor
         onAnchorChanged?.invoke(currentAnchor)

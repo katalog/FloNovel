@@ -107,9 +107,11 @@ class ReaderNavigator(
      * Retreats to the previous page:
      * - Saves current anchor into the forward stack so that a subsequent [advance] can return exactly.
      * - If visit history is present: pops the exact previous anchor.
-     * - If visit history is empty: reverse-estimates the previous anchor.
+     * - If visit history is empty: reverse-estimates the previous anchor:
+     *   - 1-pane: reverse-fits by [ratio] of visible height so that current anchor lands at [ratio] of the screen.
+     *   - 2-pane: reverse-fits a single pane.
      */
-    fun retreat(): ReaderState {
+    fun retreat(ratio: Float = 1.0f): ReaderState {
         if (anchor <= 0) {
             return state
         }
@@ -119,7 +121,10 @@ class ReaderNavigator(
             history.removeLast()
         } else {
             when (spec.paneMode) {
-                PaneMode.ONE -> estimatePreviousAnchor(anchor, spec.effectiveWidthPx, spec.heightPx)
+                PaneMode.ONE -> {
+                    val height = maxOf(1, (spec.heightPx * ratio).toInt())
+                    estimatePreviousAnchor(anchor, spec.effectiveWidthPx, height)
+                }
                 PaneMode.TWO -> estimatePreviousAnchor(anchor, spec.paneWidthPx, spec.paneHeightPx)
             }
         }

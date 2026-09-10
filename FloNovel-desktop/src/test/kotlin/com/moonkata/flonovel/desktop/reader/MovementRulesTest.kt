@@ -364,4 +364,31 @@ class MovementRulesTest {
         navigator.onLayoutKeyChanged(newSpec, fitter)
         assertTrue(navigator.forwardHistoryStack.isEmpty(), "Forward stack must be cleared on layout change")
     }
+
+    // --- M19: 1-pane retreat(ratio) reverse-estimates by ratio height so target lands at ratio of screen ---
+
+    @Test
+    fun m19_onePane_afterJump_retreatWithRatio_positionsAnchorAtMiddle() {
+        // height = 100, ratio = 0.5 -> height = 50 -> 2 lines -> 20 chars
+        val (navigator, _) = createNavigator(initialAnchor = 0)
+        navigator.jumpTo(200) // Chapter jump to 200 (at the very top of current screen)
+        assertEquals(200, navigator.anchor)
+
+        // Retreat with ratio = 0.5f -> reverse estimates 20 chars backward to 180
+        navigator.retreat(ratio = 0.5f)
+        assertEquals(180, navigator.anchor, "Should retreat by 50% height (20 chars) to 180")
+        assertEquals(listOf(200), navigator.forwardHistoryStack)
+
+        // When layout is rendered from 180 for full height 100px (50 chars), it covers [180, 230).
+        // The previous target (200) starts exactly 20 chars down (line 3 out of 5), right at the middle of the screen!
+        val layout = navigator.state.layout
+        val pane = layout.leftPane
+        assertEquals(180, pane.startOffset)
+        assertEquals(230, pane.endOffset)
+        assertTrue(200 in pane.startOffset until pane.endOffset, "Jump target 200 must be visible inside the pane")
+
+        // And advancing forward restores the exact 200 jump target to the very top
+        navigator.advance(ratio = 0.5f)
+        assertEquals(200, navigator.anchor)
+    }
 }
