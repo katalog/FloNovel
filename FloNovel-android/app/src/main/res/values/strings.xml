@@ -160,6 +160,7 @@
     <string name="dropbox_result_failed_suffix">%1$d failed. Try syncing again.</string>
     <string name="dropbox_one_way_notice">Sync is one-way. A book deleted here comes back on the next sync — delete it on the PC instead.</string>
     <string name="dropbox_select_folder_first">Choose a library folder first.</string>
+    <string name="dropbox_write_permission_missing">This folder was chosen before write access was saved for it. Choose your home folder again to fix syncing — reading is unaffected.</string>
     <string name="dropbox_sign_in_failed">Sign-in failed. Please try again.</string>
     <string name="dropbox_sync_failed">Could not sync. Check your connection and try again.</string>
     <string name="dropbox_no_browser">No browser available to sign in with.</string>

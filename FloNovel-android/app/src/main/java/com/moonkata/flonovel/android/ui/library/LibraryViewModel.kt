@@ -41,7 +41,8 @@ import com.moonkata.flonovel.android.model.FolderEntry
 import com.moonkata.flonovel.android.model.FolderSortOption
 import com.moonkata.flonovel.android.ui.SettingsController
 import com.moonkata.flonovel.android.util.hasPersistedReadPermission
-import com.moonkata.flonovel.android.util.takePersistableReadPermission
+import com.moonkata.flonovel.android.util.hasPersistedWritePermission
+import com.moonkata.flonovel.android.util.takePersistableReadWritePermission
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -177,7 +178,7 @@ class LibraryViewModel(
     }
 
     fun onRootFolderSelected(uri: Uri) {
-        getApplication<Application>().takePersistableReadPermission(uri)
+        getApplication<Application>().takePersistableReadWritePermission(uri)
         viewModelScope.launch { settingsRepository.updateLastUsedSafTreeUri(uri.toString()) }
         openRoot(uri)
     }
@@ -367,6 +368,17 @@ class LibraryViewModel(
         val rootUri = _browseState.value.rootUri
         if (rootUri == null) {
             _dropboxState.update { it.copy(errorMessage = getApplication<Application>().getString(R.string.dropbox_select_folder_first)) }
+            return
+        }
+        // A folder picked before write permission was persisted here too (see SafUriExt.kt) reads
+        // and browses perfectly, but every download/delete this sync attempts would fail — on every
+        // file, every single time, no matter how many times "Sync now" is pressed again. Catching it
+        // here instead of running the sync anyway turns that into one clear, actionable message
+        // instead of a wall of per-file failures that retrying can never fix.
+        if (!getApplication<Application>().hasPersistedWritePermission(rootUri)) {
+            _dropboxState.update {
+                it.copy(errorMessage = getApplication<Application>().getString(R.string.dropbox_write_permission_missing))
+            }
             return
         }
         if (_dropboxState.value.isSyncing) return

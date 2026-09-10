@@ -160,6 +160,7 @@
     <string name="dropbox_result_failed_suffix">%1$d개 실패. 다시 동기화해 보세요.</string>
     <string name="dropbox_one_way_notice">동기화는 단방향입니다. 여기서 지운 책은 다음 동기화 때 다시 내려옵니다 — PC 에서 지우세요.</string>
     <string name="dropbox_select_folder_first">먼저 서재 폴더를 선택하세요.</string>
+    <string name="dropbox_write_permission_missing">이 폴더는 쓰기 권한이 저장되기 전에 선택되었습니다. 홈 폴더를 다시 선택하면 동기화가 정상화됩니다 — 읽기에는 영향이 없습니다.</string>
     <string name="dropbox_sign_in_failed">로그인에 실패했습니다. 다시 시도해 주세요.</string>
     <string name="dropbox_sync_failed">동기화하지 못했습니다. 연결을 확인하고 다시 시도해 주세요.</string>
     <string name="dropbox_no_browser">로그인에 사용할 브라우저가 없습니다.</string>
