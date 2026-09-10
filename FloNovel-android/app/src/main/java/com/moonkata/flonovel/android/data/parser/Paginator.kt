@@ -147,17 +147,18 @@ object Paginator {
         return lo.coerceIn(0, paragraphs.size - 1)
     }
 
-    private const val BACKWARD_SEARCH_BATCH_PAGES = 8
     private const val BACKWARD_SEARCH_MAX_ATTEMPTS = 4
-    private const val BACKWARD_SEARCH_MIN_SPAN = 500
+    private const val BACKWARD_SEARCH_MIN_SPAN = 1000
 
     /**
-     * Estimates the "previous page" by working backward when there's no visit history to fall back on
-     * (e.g. the first "previous" tap right after a jump). Starts [referenceSpanChars] before
-     * [endOffset], paginates forward a few pages from there, and looks for the page that ends right
-     * before endOffset. It's fine if the starting point is a bad guess (the forward pages don't land
-     * exactly on endOffset) — once the user pages forward even once after this, the visit history
-     * gets filled in with exact values.
+     * Estimates the "previous page" ending at [endOffset] when there's no visit history to fall back on
+     * (e.g. the first "previous" tap right after a jump/TOC navigation).
+     *
+     * Unlike forward batch guessing which drops gap paragraphs when page boundaries do not align with
+     * [endOffset], this performs bottom-up line-based measurement directly before [endOffset]:
+     * It measures the preceding text block using Compose [TextMeasurer], and determines the highest
+     * line whose bottom edge is within [PaginationParams.contentHeightPx] from the bottom line ending
+     * at [endOffset]. This ensures 100% continuous text without any dropped characters or paragraphs.
      */
     fun onePageEndingAt(
         fullText: String,
@@ -167,17 +168,62 @@ object Paginator {
         params: PaginationParams,
         referenceSpanChars: Int,
     ): PageBreak? {
-        if (endOffset <= 0 || paragraphs.isEmpty()) return null
-        var span = referenceSpanChars.coerceAtLeast(BACKWARD_SEARCH_MIN_SPAN)
+        if (endOffset <= 0 || paragraphs.isEmpty() || fullText.isEmpty()) return null
+        if (params.contentWidthPx <= 0 || params.contentHeightPx <= 0) return null
+
+        val targetEnd = endOffset.coerceIn(1, fullText.length)
+        val style = TextStyle(
+            fontFamily = params.fontFamily,
+            fontSize = params.fontSizeSp,
+            lineHeight = params.fontSizeSp * params.lineHeightMultiplier,
+            letterSpacing = params.letterSpacingSp,
+            color = params.textColor,
+            lineBreak = READER_LINE_BREAK,
+        )
+        val constraints = Constraints(maxWidth = params.contentWidthPx)
+        val contentHeightPx = params.contentHeightPx.toFloat()
+
+        var span = (referenceSpanChars * 2).coerceAtLeast(BACKWARD_SEARCH_MIN_SPAN)
+        var bestPage: PageBreak? = null
+
         repeat(BACKWARD_SEARCH_MAX_ATTEMPTS) {
-            val candidateStart = (endOffset - span).coerceAtLeast(0)
-            val forward = paginateFrom(fullText, paragraphs, candidateStart, textMeasurer, params, maxPages = BACKWARD_SEARCH_BATCH_PAGES)
-            val match = forward.lastOrNull { it.endOffset <= endOffset }
-            if (match != null && (match.endOffset == endOffset || candidateStart == 0)) return match
-            if (match != null && forward.last() != match) return match // Found the page that breaks right before endOffset
-            if (candidateStart == 0) return match ?: forward.firstOrNull()
-            span *= 2 // Didn't reach far enough — widen the starting point and retry
+            val candidateStart = (targetEnd - span).coerceAtLeast(0)
+            val candidateText = fullText.substring(candidateStart, targetEnd)
+            val layout = textMeasurer.measure(
+                text = AnnotatedString(candidateText),
+                style = style,
+                constraints = constraints,
+            )
+
+            val lineCount = layout.lineCount
+            if (lineCount > 0) {
+                val lastLineIndex = lineCount - 1
+                val bottomPx = layout.getLineBottom(lastLineIndex)
+
+                var topFitLine = lastLineIndex
+                for (line in (lastLineIndex - 1) downTo 0) {
+                    if (bottomPx - layout.getLineTop(line) > contentHeightPx) {
+                        break
+                    }
+                    topFitLine = line
+                }
+
+                val startInCandidate = layout.getLineStart(topFitLine)
+                val rawStart = candidateStart + startInCandidate
+                val pageStart = skipLeadingBlankLines(fullText, rawStart).coerceAtMost(targetEnd)
+                bestPage = PageBreak(pageStart, targetEnd)
+
+                // If candidateStart == 0 or the layout height already exceeded contentHeightPx,
+                // we have found the true highest line that fits before targetEnd.
+                if (candidateStart == 0 || layout.size.height.toFloat() >= contentHeightPx) {
+                    return bestPage
+                }
+            }
+
+            if (candidateStart == 0) return bestPage
+            span *= 2
         }
-        return null
+
+        return bestPage
     }
 }
