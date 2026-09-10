@@ -179,7 +179,22 @@ class LibraryViewModel(
 
     fun onRootFolderSelected(uri: Uri) {
         getApplication<Application>().takePersistableReadWritePermission(uri)
-        viewModelScope.launch { settingsRepository.updateLastUsedSafTreeUri(uri.toString()) }
+        viewModelScope.launch {
+            val previousUri = settingsRepository.settingsFlow.first().lastUsedSafTreeUri
+            settingsRepository.updateLastUsedSafTreeUri(uri.toString())
+            // The Dropbox cursor describes how far into the remote change stream this *folder* has
+            // already been brought up to date — unlinkDropbox() clears it for the same reason when
+            // the account changes. Picking a genuinely different folder (not just re-granting the
+            // same one after losing permission, in which case the URI string comes back identical)
+            // needs the same treatment: left stale, the next sync runs list_folder/continue against
+            // a history the new folder never actually received, silently downloads only whatever
+            // changed on Dropbox after that point, and reports nothing else left to do — even though
+            // the new folder is still missing everything from before that point.
+            val newUriString = uri.toString()
+            if (previousUri != null && previousUri != newUriString) {
+                settingsRepository.updateDropboxSyncState(cursor = "", lastSyncAtMillis = 0L)
+            }
+        }
         openRoot(uri)
     }
 
