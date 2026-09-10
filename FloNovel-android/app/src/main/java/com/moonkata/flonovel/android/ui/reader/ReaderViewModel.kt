@@ -517,7 +517,6 @@ class ReaderViewModel(
         val target = targetChapter.charOffset
         lastChapterJumpOffset = target
         updateCurrentOffset(target)
-        _messages.tryEmit(R.string.reader_notice_next_chapter)
         if (state.settings.pageTurnMode == PageTurnMode.HORIZONTAL_PAGE) {
             jumpToPageAt(target)
         } else {
@@ -539,14 +538,12 @@ class ReaderViewModel(
             state.chapters.lastOrNull { it.charOffset < (currentChapter?.charOffset ?: state.currentOffset) }
         }
         if (targetChapter == null) {
-            _messages.tryEmit(R.string.reader_notice_first_chapter)
             retreatNormally(state)
             return
         }
         val target = targetChapter.charOffset
         lastChapterJumpOffset = target
         updateCurrentOffset(target)
-        _messages.tryEmit(R.string.reader_notice_previous_chapter)
         if (state.settings.pageTurnMode == PageTurnMode.HORIZONTAL_PAGE) {
             jumpToPageAt(target)
         } else {
