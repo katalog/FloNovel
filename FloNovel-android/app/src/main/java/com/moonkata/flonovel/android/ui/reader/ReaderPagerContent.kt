@@ -33,9 +33,6 @@ import com.moonkata.flonovel.android.data.font.FontResolver
 import com.moonkata.flonovel.android.data.parser.PaginationParams
 import com.moonkata.flonovel.android.ui.theme.ReaderColors
 
-/** Highlight color for lines detected as chapters in chapter jump mode — a fixed value so it always stands out regardless of the reader theme. */
-internal val ChapterHighlightColor = Color(0x664CAF50)
-
 /**
  * Applies a highlight background to the lines corresponding to chapterOffsets within [text]
  * (which starts at baseOffset). Only the background color is changed — font weight (bold) is left
@@ -43,7 +40,12 @@ internal val ChapterHighlightColor = Color(0x664CAF50)
  * weight change when splitting pages; applying bold here would widen the glyphs at actual render time,
  * causing the last line to appear slightly clipped past the page edge.
  */
-internal fun buildChapterHighlightedText(text: String, baseOffset: Int, chapterOffsets: Set<Int>): AnnotatedString {
+internal fun buildChapterHighlightedText(
+    text: String,
+    baseOffset: Int,
+    chapterOffsets: Set<Int>,
+    highlightColor: Color,
+): AnnotatedString {
     if (chapterOffsets.isEmpty()) return AnnotatedString(text)
     return buildAnnotatedString {
         append(text)
@@ -51,7 +53,7 @@ internal fun buildChapterHighlightedText(text: String, baseOffset: Int, chapterO
             val local = offset - baseOffset
             if (local < 0 || local >= text.length) continue
             val end = text.indexOf('\n', local).let { if (it == -1) text.length else it }
-            addStyle(SpanStyle(background = ChapterHighlightColor), local, end)
+            addStyle(SpanStyle(background = highlightColor), local, end)
         }
     }
 }
@@ -132,8 +134,8 @@ fun ReaderPagerContent(viewModel: ReaderViewModel, uiState: ReaderUiState, reade
                 },
             ) { page ->
                 val text = uiState.fullText.substring(page.startOffset, page.endOffset)
-                val displayText = remember(text, page.startOffset, chapterOffsets) {
-                    buildChapterHighlightedText(text, page.startOffset, chapterOffsets)
+                val displayText = remember(text, page.startOffset, chapterOffsets, readerColors.chapterHighlight) {
+                    buildChapterHighlightedText(text, page.startOffset, chapterOffsets, readerColors.chapterHighlight)
                 }
                 // Always pin to the top-left to prevent the page content from being vertically centered
                 // (which would leave empty space at the top) when it doesn't fill the whole screen.

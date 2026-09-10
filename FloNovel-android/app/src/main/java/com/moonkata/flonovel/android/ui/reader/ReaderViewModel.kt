@@ -366,7 +366,12 @@ class ReaderViewModel(
         val params = lastPaginationParams ?: return
         val state = _uiState.value
         val current = state.currentPage ?: return
-        if (current.startOffset <= 0) return // already the first page
+        if (current.startOffset <= 0) {
+            _messages.tryEmit(R.string.reader_notice_first_page)
+            return // already the first page
+        }
+
+        _messages.tryEmit(R.string.reader_notice_previous_page)
 
         val fromHistory = pageHistory.removeLastOrNull()
         if (fromHistory != null) {
@@ -538,6 +543,7 @@ class ReaderViewModel(
             state.chapters.lastOrNull { it.charOffset < (currentChapter?.charOffset ?: state.currentOffset) }
         }
         if (targetChapter == null) {
+            _messages.tryEmit(R.string.reader_notice_first_chapter)
             retreatNormally(state)
             return
         }
@@ -614,6 +620,11 @@ class ReaderViewModel(
         if (state.settings.pageTurnMode == PageTurnMode.HORIZONTAL_PAGE) {
             advancePageBackward()
         } else {
+            if (state.currentOffset <= 0) {
+                _messages.tryEmit(R.string.reader_notice_first_page)
+            } else {
+                _messages.tryEmit(R.string.reader_notice_previous_page)
+            }
             _navEvents.tryEmit(ReaderNavEvent.RequestPreviousPage)
         }
     }

@@ -103,7 +103,7 @@ fun ReaderScrollContent(viewModel: ReaderViewModel, uiState: ReaderUiState, read
                     .then(
                         if (isChapterHeading) {
                             Modifier
-                                .background(ChapterHighlightColor, RoundedCornerShape(4.dp))
+                                .background(readerColors.chapterHighlight, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 4.dp, vertical = 2.dp)
                         } else {
                             Modifier
