@@ -21,7 +21,7 @@ object ReaderColors {
     val WarmIvory = ThemeColors(
         background = Color(250, 247, 239),
         text = Color(45, 45, 42),
-        chapterHighlight = Color(237, 230, 218),
+        chapterHighlight = Color(238, 222, 196),
         progressText = Color(140, 134, 124),
     )
 
@@ -30,7 +30,7 @@ object ReaderColors {
     val SepiaCream = ThemeColors(
         background = Color(245, 239, 224),
         text = Color(55, 48, 40),
-        chapterHighlight = Color(230, 220, 198),
+        chapterHighlight = Color(226, 208, 172),
         progressText = Color(148, 133, 114),
     )
 
@@ -39,7 +39,7 @@ object ReaderColors {
     val DarkNavy = ThemeColors(
         background = Color(28, 32, 40),
         text = Color(220, 224, 230),
-        chapterHighlight = Color(45, 53, 68),
+        chapterHighlight = Color(44, 62, 92),
         progressText = Color(131, 140, 158),
     )
 
@@ -48,7 +48,7 @@ object ReaderColors {
     val SoftGray = ThemeColors(
         background = Color(242, 243, 245),
         text = Color(50, 52, 54),
-        chapterHighlight = Color(223, 226, 230),
+        chapterHighlight = Color(212, 220, 234),
         progressText = Color(133, 136, 142),
     )
 
@@ -57,7 +57,7 @@ object ReaderColors {
     val CoolLight = ThemeColors(
         background = Color(235, 238, 242),
         text = Color(45, 48, 52),
-        chapterHighlight = Color(214, 220, 228),
+        chapterHighlight = Color(202, 218, 238),
         progressText = Color(126, 134, 145),
     )
 
@@ -66,7 +66,7 @@ object ReaderColors {
     val SoftDarkBrown = ThemeColors(
         background = Color(38, 35, 32),
         text = Color(218, 211, 198),
-        chapterHighlight = Color(59, 54, 50),
+        chapterHighlight = Color(72, 60, 50),
         progressText = Color(150, 143, 132),
     )
 
