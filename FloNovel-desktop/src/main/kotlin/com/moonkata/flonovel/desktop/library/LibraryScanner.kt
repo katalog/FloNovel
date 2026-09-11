@@ -37,14 +37,16 @@ data class LibraryBookItem(
      * Three states, not two: a book is registered (and so has a non-null [bookRecord]) the moment
      * it's scanned into the library, well before anyone opens it — so "bookRecord present" was
      * never actually distinguishing "read" from "unread" in practice, only "completed" was missing
-     * a color of its own. Compared against [progressPercentInt] rather than [progressFraction]
-     * directly so the color always agrees with the number on screen — e.g. 99.9% displays as "99%"
-     * and must not be colored as complete.
+     * a color of its own. The COMPLETED threshold is checked against [progressPercentInt] so the
+     * color always agrees with the number on screen — e.g. 99.9% displays as "99%" and must not be
+     * colored as complete. The IN_PROGRESS threshold instead checks the raw [progressFraction]: a
+     * book barely started (e.g. 0.1%, displayed as "0%") has still genuinely been opened and must
+     * not read as UNREAD just because the truncated display digit rounds down to zero.
      */
     val progressState: ReadingProgressState
         get() = when {
             progressPercentInt >= 100 -> ReadingProgressState.COMPLETED
-            progressPercentInt > 0 -> ReadingProgressState.IN_PROGRESS
+            progressFraction > 0.0 -> ReadingProgressState.IN_PROGRESS
             else -> ReadingProgressState.UNREAD
         }
 

@@ -127,12 +127,16 @@ class LibraryScannerTest {
                 addedAt = 1000L,
             )
 
+            val barelyStarted = tempDir.resolve("barely_started.txt").apply { writeText("x") }
+
             val booksData = BooksData(
                 books = listOf(
                     record("midway.txt", "midway", 0.5),
                     // 99.9% still displays as "99%" -- it must not read as complete either.
                     record("almost_done.txt", "almost_done", 0.999),
                     record("done.txt", "done", 1.0),
+                    // 0.1% truncates to "0%" on screen but the book has genuinely been opened.
+                    record("barely_started.txt", "barely_started", 0.001),
                 ),
             )
 
@@ -146,6 +150,11 @@ class LibraryScannerTest {
                 "99% on screen must not be colored as complete",
             )
             assertEquals(ReadingProgressState.COMPLETED, scanned["done.txt"]?.progressState)
+            assertEquals(
+                ReadingProgressState.IN_PROGRESS,
+                scanned["barely_started.txt"]?.progressState,
+                "A book displaying '0%' due to truncation must still be colored as started, not unread",
+            )
         } finally {
             tempDir.toFile().deleteRecursively()
         }
