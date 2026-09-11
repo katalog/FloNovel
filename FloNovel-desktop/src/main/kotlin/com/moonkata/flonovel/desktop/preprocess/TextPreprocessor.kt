@@ -47,9 +47,12 @@ object TextPreprocessor {
      * A line counts as a heading if ANY pattern matches; there is no scoring between them.
      */
     private val reHeadingPatterns = listOf(
-        Regex("""[제第]?\s*(\d+)\s*[장화회章話回]"""),
+        Regex("""[제第\*]?\s*(\d+)\s*[장화章話]"""),
         Regex("""(?<!#)#(?!#)\s*(\d+)"""),
-        Regex("""(?:chapter|episode|ep)\s*[.:#]?\s*(\d+)""", RegexOption.IGNORE_CASE),
+        Regex("""^\* """),
+        Regex("""^.{0,2}\d+\s*/\s*\d+\s*"""),
+        Regex("""^.{0,2}\d\d\d+\s+"""),
+        Regex("""(?:chapter|episode|ep|ch)\s*[.:#]?\s*(\d+)""", RegexOption.IGNORE_CASE),
     )
     private val reThreeOrMoreNewlines = Regex("""\n{3,}""")
 
