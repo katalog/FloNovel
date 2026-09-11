@@ -239,6 +239,11 @@ class LibraryViewModel(
         viewModelScope.launch { settingsRepository.updateLibrarySortOption(option) }
     }
 
+    /** Pull-to-refresh reload of the current folder/zip listing. */
+    fun refreshLibrary() {
+        loadCurrent()
+    }
+
     private fun loadCurrent() {
         val location = _browseState.value.path.lastOrNull() ?: return
         viewModelScope.launch {
