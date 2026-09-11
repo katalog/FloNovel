@@ -168,6 +168,8 @@ fun handleKeyAction(
     onHome: (() -> Unit)? = null,
     onEnd: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
+    onOpenInExplorer: (() -> Unit)? = null,
+    onOpenInDefaultApp: (() -> Unit)? = null,
 ): Boolean {
     // 0. Escape / Back (returns to library/folder view)
     if (KeymapHelper.matches(keymap.back, key, codePoint)) {
@@ -178,6 +180,18 @@ fun handleKeyAction(
     // 1. Home (returns to library home or start of book)
     if (KeymapHelper.matches(keymap.home, key, codePoint)) {
         onHome?.invoke()
+        return true
+    }
+
+    // 1b. Reveal the current file in the OS file manager (F7 by default)
+    if (KeymapHelper.matches(keymap.openInExplorer, key, codePoint)) {
+        onOpenInExplorer?.invoke()
+        return true
+    }
+
+    // 1c. Open the current file with the OS default application for it (F8 by default)
+    if (KeymapHelper.matches(keymap.openInDefaultApp, key, codePoint)) {
+        onOpenInDefaultApp?.invoke()
         return true
     }
 
@@ -269,6 +283,8 @@ fun handleReaderKeyEvent(
     onHome: (() -> Unit)? = null,
     onEnd: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
+    onOpenInExplorer: (() -> Unit)? = null,
+    onOpenInDefaultApp: (() -> Unit)? = null,
 ): Boolean {
     if (keyEvent.type != KeyEventType.KeyDown) return false
 
@@ -299,6 +315,8 @@ fun handleReaderKeyEvent(
         onHome = onHome,
         onEnd = onEnd,
         onBack = onBack,
+        onOpenInExplorer = onOpenInExplorer,
+        onOpenInDefaultApp = onOpenInDefaultApp,
     )
 }
 
@@ -324,6 +342,8 @@ fun ReaderView(
     onViewSettingsChanged: ((ViewSettings) -> Unit)? = null,
     onBackToLibrary: (() -> Unit)? = null,
     onHome: (() -> Unit)? = null,
+    onOpenInExplorer: (() -> Unit)? = null,
+    onOpenInDefaultApp: (() -> Unit)? = null,
     keymap: KeymapSettings = KeymapSettings(),
     onKeymapChanged: ((KeymapSettings) -> Unit)? = null,
     currentLanguage: String = "SYSTEM",
@@ -557,6 +577,8 @@ fun ReaderView(
                     onBack = {
                         onBackToLibrary?.invoke()
                     },
+                    onOpenInExplorer = { onOpenInExplorer?.invoke() },
+                    onOpenInDefaultApp = { onOpenInDefaultApp?.invoke() },
                 )
             }
         }

@@ -163,6 +163,8 @@ fun SettingsDialog(
                                 "search" -> currentKeymap.copy(search = newKey)
                                 "toc" -> currentKeymap.copy(toc = newKey)
                                 "settings" -> currentKeymap.copy(settings = newKey)
+                                "openInExplorer" -> currentKeymap.copy(openInExplorer = newKey)
+                                "openInDefaultApp" -> currentKeymap.copy(openInDefaultApp = newKey)
                                 else -> currentKeymap
                             }
                             onKeymapChanged(updated)
@@ -762,6 +764,24 @@ fun SettingsDialog(
                             isRecording = recordingAction == "settings",
                             onClick = {
                                 recordingAction = if (recordingAction == "settings") null else "settings"
+                                focusRequester.requestFocus()
+                            },
+                        )
+                        ShortcutRow(
+                            title = stringResource("settings_shortcut_open_in_explorer"),
+                            keyDisplayName = KeymapHelper.toDisplayName(currentKeymap.openInExplorer),
+                            isRecording = recordingAction == "openInExplorer",
+                            onClick = {
+                                recordingAction = if (recordingAction == "openInExplorer") null else "openInExplorer"
+                                focusRequester.requestFocus()
+                            },
+                        )
+                        ShortcutRow(
+                            title = stringResource("settings_shortcut_open_in_default_app"),
+                            keyDisplayName = KeymapHelper.toDisplayName(currentKeymap.openInDefaultApp),
+                            isRecording = recordingAction == "openInDefaultApp",
+                            onClick = {
+                                recordingAction = if (recordingAction == "openInDefaultApp") null else "openInDefaultApp"
                                 focusRequester.requestFocus()
                             },
                         )

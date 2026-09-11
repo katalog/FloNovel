@@ -200,6 +200,8 @@
     <string name="settings_shortcut_search">본문 검색</string>
     <string name="settings_shortcut_toc">목차 (챕터 목록)</string>
     <string name="settings_shortcut_settings">설정</string>
+    <string name="settings_shortcut_open_in_explorer">파일 탐색기에서 위치 열기</string>
+    <string name="settings_shortcut_open_in_default_app">기본 앱으로 파일 열기</string>
     <string name="settings_shortcut_press_key">키 입력 대기 중...</string>
     <string name="settings_shortcut_reset">기본값으로 초기화</string>
 

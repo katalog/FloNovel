@@ -183,6 +183,8 @@ data class KeymapSettings(
     val search: String = "F2",
     val toc: String = "F3",
     val settings: String = "F4",
+    val openInExplorer: String = "F7",
+    val openInDefaultApp: String = "F8",
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -195,6 +197,8 @@ data class KeymapSettings(
         obj.put("search", search)
         obj.put("toc", toc)
         obj.put("settings", settings)
+        obj.put("openInExplorer", openInExplorer)
+        obj.put("openInDefaultApp", openInDefaultApp)
         return obj
     }
 
@@ -211,6 +215,8 @@ data class KeymapSettings(
                 search = obj.optString("search", "F2"),
                 toc = obj.optString("toc", "F3"),
                 settings = obj.optString("settings", "F4"),
+                openInExplorer = obj.optString("openInExplorer", "F7"),
+                openInDefaultApp = obj.optString("openInDefaultApp", "F8"),
             )
         }
     }
