@@ -35,4 +35,16 @@ object Search {
         }
         return results
     }
+
+    /**
+     * Finds the start character offset of the paragraph containing [charOffset].
+     * Scans backwards from [charOffset] for the preceding newline character (`\n`).
+     * Returns 0 if there is no preceding newline (i.e. first paragraph of document).
+     */
+    fun findParagraphStart(text: String, charOffset: Int): Int {
+        if (charOffset <= 0 || text.isEmpty()) return 0
+        val safeOffset = charOffset.coerceIn(0, text.length)
+        val lastNewline = text.lastIndexOf('\n', (safeOffset - 1).coerceAtLeast(0))
+        return if (lastNewline == -1) 0 else lastNewline + 1
+    }
 }

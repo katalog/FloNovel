@@ -3,6 +3,8 @@ package com.moonkata.flonovel.desktop.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,16 +25,47 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.moonkata.flonovel.desktop.i18n.stringResource
 import com.moonkata.flonovel.desktop.text.Chapter
+import kotlinx.coroutines.launch
+
+/**
+ * Key actions resolved in TocDialog.
+ */
+enum class TocDialogKeyAction {
+    DISMISS,
+    NAVIGATE_DOWN,
+    NAVIGATE_UP,
+    SELECT_CHAPTER,
+    NONE,
+}
+
+fun resolveTocKeyAction(key: Key, hasChapters: Boolean): TocDialogKeyAction = when (key) {
+    Key.Escape -> TocDialogKeyAction.DISMISS
+    Key.DirectionDown -> if (hasChapters) TocDialogKeyAction.NAVIGATE_DOWN else TocDialogKeyAction.NONE
+    Key.DirectionUp -> if (hasChapters) TocDialogKeyAction.NAVIGATE_UP else TocDialogKeyAction.NONE
+    Key.Enter, Key.NumPadEnter -> if (hasChapters) TocDialogKeyAction.SELECT_CHAPTER else TocDialogKeyAction.NONE
+    else -> TocDialogKeyAction.NONE
+}
 
 /**
  * Finds the currently active chapter based on the reading position [anchor].
@@ -54,11 +87,12 @@ fun findCurrentChapter(chapters: List<Chapter>, anchor: Int): Chapter? {
  * Table of Contents dialog overlay.
  *
  * Requirements (T-10):
- * - Displays detected chapters, jumping to selected chapter offset on click.
+ * - Displays detected chapters, jumping to selected chapter offset on click or Enter.
+ * - Keyboard navigation: Up/Down moves selected chapter highlight, Enter jumps to selected chapter.
  * - '##' preset chapters without length limit (titles exceeding 60 characters are included).
  * - Ultra-long titles (even 10,000+ characters) are cleanly truncated to a single line with ellipsis.
  * - 0 chapters detected is a valid normal state: displays clean empty content without error or warning.
- * - Highlights the currently active chapter.
+ * - Highlights the currently active chapter and keyboard-selected chapter.
  * - Progress column shows integer percentage (e.g. 14%) matching Android TOC format.
  */
 @Composable
@@ -78,11 +112,59 @@ fun TocDialog(
         if (chapters != null && activeChapter != null) chapters.indexOf(activeChapter) else -1
     }
 
+    var selectedIndex by remember(chapters) {
+        mutableStateOf(if (activeIndex >= 0) activeIndex else 0)
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
 
     LaunchedEffect(activeIndex) {
         if (activeIndex >= 0) {
+            selectedIndex = activeIndex
             listState.scrollToItem((activeIndex - 2).coerceAtLeast(0))
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    val handleKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
+        if (event.type == KeyEventType.KeyDown) {
+            val hasChapters = !chapters.isNullOrEmpty()
+            when (resolveTocKeyAction(event.key, hasChapters)) {
+                TocDialogKeyAction.DISMISS -> {
+                    onDismiss()
+                    true
+                }
+                TocDialogKeyAction.NAVIGATE_DOWN -> {
+                    if (hasChapters) {
+                        selectedIndex = (selectedIndex + 1).coerceAtMost(chapters!!.size - 1)
+                        coroutineScope.launch { listState.animateScrollToItem(selectedIndex) }
+                    }
+                    true
+                }
+                TocDialogKeyAction.NAVIGATE_UP -> {
+                    if (hasChapters) {
+                        selectedIndex = (selectedIndex - 1).coerceAtLeast(0)
+                        coroutineScope.launch { listState.animateScrollToItem(selectedIndex) }
+                    }
+                    true
+                }
+                TocDialogKeyAction.SELECT_CHAPTER -> {
+                    if (chapters != null && selectedIndex in chapters.indices) {
+                        onChapterSelected(chapters[selectedIndex])
+                    }
+                    true
+                }
+                TocDialogKeyAction.NONE -> false
+            }
+        } else if (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Escape) {
+            true
+        } else {
+            false
         }
     }
 
@@ -98,7 +180,14 @@ fun TocDialog(
         Surface(
             modifier = Modifier
                 .width(520.dp)
-                .clickable(enabled = false) {},
+                .focusRequester(focusRequester)
+                .focusable()
+                .onPreviewKeyEvent(handleKeyEvent)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { /* swallow clicks within dialog area */ }
+                ),
             shape = RoundedCornerShape(12.dp),
             color = Color(0xFF252528),
             elevation = 16.dp,
@@ -196,6 +285,7 @@ fun TocDialog(
                         ) {
                             itemsIndexed(chapters) { index, chapter ->
                                 val isActive = chapter == activeChapter
+                                val isSelected = index == selectedIndex
                                 val percentage = if (totalCharCount > 0) {
                                     ((chapter.charOffset.toDouble() / totalCharCount) * 100).toInt()
                                 } else 0
@@ -204,15 +294,26 @@ fun TocDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(
-                                            if (isActive) Color(0xFF3A82F6).copy(alpha = 0.2f) else Color.Transparent,
+                                            when {
+                                                isSelected -> Color(0xFF3B82F6).copy(alpha = 0.25f)
+                                                isActive -> Color(0xFF3B82F6).copy(alpha = 0.12f)
+                                                else -> Color.Transparent
+                                            },
                                             RoundedCornerShape(6.dp),
                                         )
                                         .border(
-                                            width = if (isActive) 1.dp else 0.dp,
-                                            color = if (isActive) Color(0xFF3A82F6).copy(alpha = 0.6f) else Color.Transparent,
+                                            width = if (isSelected) 1.dp else if (isActive) 1.dp else 0.dp,
+                                            color = when {
+                                                isSelected -> Color(0xFF60A5FA).copy(alpha = 0.8f)
+                                                isActive -> Color(0xFF3B82F6).copy(alpha = 0.4f)
+                                                else -> Color.Transparent
+                                            },
                                             shape = RoundedCornerShape(6.dp),
                                         )
-                                        .clickable { onChapterSelected(chapter) }
+                                        .clickable {
+                                            selectedIndex = index
+                                            onChapterSelected(chapter)
+                                        }
                                         .padding(horizontal = 12.dp, vertical = 10.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
@@ -220,9 +321,13 @@ fun TocDialog(
                                     // Title with single-line ellipsis for long titles
                                     Text(
                                         text = chapter.displayTitle,
-                                        color = if (isActive) Color(0xFF60A5FA) else Color.White,
+                                        color = when {
+                                            isSelected -> Color(0xFF93C5FD)
+                                            isActive -> Color(0xFF60A5FA)
+                                            else -> Color.White
+                                        },
                                         fontSize = 14.sp,
-                                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                                        fontWeight = if (isSelected || isActive) FontWeight.Bold else FontWeight.Normal,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f).padding(end = 12.dp),
@@ -231,9 +336,13 @@ fun TocDialog(
                                     // Progress percentage (integer % format matching Android TOC)
                                     Text(
                                         text = "$percentage%",
-                                        color = if (isActive) Color(0xFF60A5FA) else Color(0xFFAAAAAA),
+                                        color = when {
+                                            isSelected -> Color(0xFF93C5FD)
+                                            isActive -> Color(0xFF60A5FA)
+                                            else -> Color(0xFFAAAAAA)
+                                        },
                                         fontSize = 12.sp,
-                                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                                        fontWeight = if (isSelected || isActive) FontWeight.Bold else FontWeight.Normal,
                                     )
                                 }
                             }
