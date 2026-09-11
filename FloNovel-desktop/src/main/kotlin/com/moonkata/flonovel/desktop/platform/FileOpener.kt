@@ -1,6 +1,7 @@
 package com.moonkata.flonovel.desktop.platform
 
 import java.awt.Desktop
+import java.nio.file.Files
 import java.nio.file.Path
 
 /**
@@ -25,10 +26,7 @@ object FileOpener {
         val absolute = file.toAbsolutePath()
         return try {
             when {
-                osName.contains("windows") -> {
-                    ProcessBuilder("explorer.exe", "/select,${absolute}").start()
-                    true
-                }
+                osName.contains("windows") -> revealOnWindows(absolute)
                 osName.contains("mac") -> {
                     ProcessBuilder("open", "-R", absolute.toString()).start()
                     true
@@ -46,6 +44,34 @@ object FileOpener {
         } catch (_: Exception) {
             false
         }
+    }
+
+    /**
+     * Windows' java.lang.ProcessBuilder builds the native command line through the system's legacy
+     * ANSI code page (`sun.jnu.encoding`, e.g. MS949 on a Korean Windows install) rather than
+     * Unicode, no matter what `file.encoding` is set to. A book title with a character outside that
+     * code page (found in this project's own library: the wave-dash "〜" in "days before goodbye")
+     * gets silently replaced with "?" before explorer.exe ever sees the path, so `/select` targets a
+     * file that doesn't exist and explorer falls back to opening its default folder instead.
+     *
+     * Process *environment variables* don't go through that conversion — Windows transmits them as
+     * UTF-16 regardless of the active code page — so the real path is passed that way instead of as
+     * a command-line argument, and a tiny VBScript (itself pure ASCII, so its own argv is safe) reads
+     * it back out and hands it to explorer.
+     */
+    private fun revealOnWindows(absolute: Path): Boolean {
+        val script = Files.createTempFile("flonovel-reveal", ".vbs")
+        script.toFile().deleteOnExit()
+        Files.writeString(
+            script,
+            "Set WshShell = CreateObject(\"WScript.Shell\")\n" +
+                "targetPath = WshShell.ExpandEnvironmentStrings(\"%FLONOVEL_REVEAL_PATH%\")\n" +
+                "WshShell.Run \"explorer.exe /select,\"\"\" & targetPath & \"\"\"\", 1, False\n",
+        )
+        val pb = ProcessBuilder("wscript.exe", script.toString())
+        pb.environment()["FLONOVEL_REVEAL_PATH"] = absolute.toString()
+        pb.start()
+        return true
     }
 
     /** Opens [file] with whatever application the OS has associated with its extension. */
