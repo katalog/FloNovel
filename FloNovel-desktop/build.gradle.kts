@@ -111,6 +111,18 @@ tasks.withType<JavaExec> {
     }
 }
 
+// Lists the chapter headings TextPreprocessor finds for every .txt under a folder, fewest first.
+// Input files are never written to.
+tasks.register<JavaExec>("preprocessReport") {
+    group = "verification"
+    description = "Lists chapter headings per file, fewest first (./gradlew preprocessReport -PinputDir=...)"
+    mainClass.set("com.moonkata.flonovel.desktop.preprocess.PreprocessReport")
+    classpath = sourceSets["main"].runtimeClasspath
+    // Novel titles are Korean; without this the report is unreadable on a CP949 console.
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8")
+    args = listOf(project.findProperty("inputDir") as? String ?: "")
+}
+
 tasks.test {
     useJUnitPlatform()
     if (dropboxAppKey.isNotEmpty()) {
