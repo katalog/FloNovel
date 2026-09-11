@@ -61,6 +61,9 @@
     <string name="library_preprocess_failed_general">전처리 중 오류가 발생한 파일이 있습니다. 원본은 안전하게 보존되었습니다.</string>
     <string name="library_failed_files_button">실패 파일 목록</string>
     <string name="library_preprocess_failed_dialog_title">전처리 실패 파일 목록 (%d건)</string>
+    <string name="library_exit_confirm_title">FloNovel을 종료할까요?</string>
+    <string name="library_exit_confirm_message">서재 최상위 화면입니다. Enter를 누르거나 종료를 클릭하면 앱이 닫힙니다.</string>
+    <string name="library_exit_confirm_button">종료</string>
     <string name="library_folder_dialog_title">홈 폴더 경로 설정</string>
     <string name="library_select_folder_button">폴더 선택...</string>
     <string name="library_dropbox_auth_dialog_title">Dropbox 계정 연동</string>

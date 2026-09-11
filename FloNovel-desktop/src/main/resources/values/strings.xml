@@ -61,6 +61,9 @@
     <string name="library_preprocess_failed_general">Errors occurred during preprocessing. Original files are safely preserved.</string>
     <string name="library_failed_files_button">Failed file list</string>
     <string name="library_preprocess_failed_dialog_title">Preprocessing failed files (%d items)</string>
+    <string name="library_exit_confirm_title">Exit FloNovel?</string>
+    <string name="library_exit_confirm_message">You're at the library's top level. Press Enter or click Exit to close the app.</string>
+    <string name="library_exit_confirm_button">Exit</string>
     <string name="library_folder_dialog_title">Set home folder path</string>
     <string name="library_select_folder_button">Choose folder...</string>
     <string name="library_dropbox_auth_dialog_title">Link Dropbox Account</string>

@@ -55,6 +55,7 @@ import com.moonkata.flonovel.desktop.library.LibraryBookItem
 import com.moonkata.flonovel.desktop.library.LibraryFolderEntry
 import com.moonkata.flonovel.desktop.library.LibraryScanner
 import com.moonkata.flonovel.desktop.library.LibrarySortOption
+import com.moonkata.flonovel.desktop.library.ReadingProgressState
 import com.moonkata.flonovel.desktop.platform.FolderPicker
 import java.nio.file.Files
 import java.nio.file.Path
@@ -70,6 +71,13 @@ data class DisplayItem(
     val folder: LibraryFolderEntry? = null,
     val book: LibraryBookItem? = null,
 )
+
+/** One color per [ReadingProgressState] so 0%, mid-read, and finished are told apart at a glance. */
+private fun progressColorFor(state: ReadingProgressState): Color = when (state) {
+    ReadingProgressState.UNREAD -> Color(0xFF6B7280)
+    ReadingProgressState.IN_PROGRESS -> Color(0xFF60A5FA)
+    ReadingProgressState.COMPLETED -> Color(0xFF4ADE80)
+}
 
 @Composable
 fun LibraryView(
@@ -96,9 +104,14 @@ fun LibraryView(
     onSortOptionChanged: ((LibrarySortOption) -> Unit)? = null,
     initialRelativePath: String = "",
     onRelativePathChanged: ((String) -> Unit)? = null,
+    // The book just closed with Esc/Back, so its row can be pre-selected and scrolled into view —
+    // otherwise every return from the reader drops the cursor back on the folder's first row,
+    // leaving no visual trace of which file you were just reading (real-usage feedback).
+    initialSelectedRelativePath: String? = null,
     directoryRevision: Long = 0L,
     isExternalDialogOpen: Boolean = false,
     onRegisterKeyDispatcher: (((KeyEvent) -> Boolean)?) -> Unit = {},
+    onExitApp: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var sortOption by remember(initialSortOption) { mutableStateOf(initialSortOption) }
@@ -106,6 +119,7 @@ fun LibraryView(
     var showFailureDialog by remember { mutableStateOf(false) }
     var showDropboxAuthDialog by remember { mutableStateOf(false) }
     var showSyncFailureDialog by remember { mutableStateOf(false) }
+    var showExitConfirmDialog by remember { mutableStateOf(false) }
     var pendingAuthAfterFolder by remember { mutableStateOf(false) }
     var folderInputText by remember { mutableStateOf(homeFolder) }
 
@@ -242,7 +256,7 @@ fun LibraryView(
     }
 
     val isAnyDialogOpen = showFolderDialog || showFailureDialog || showDropboxAuthDialog ||
-        showSyncFailureDialog || isExternalDialogOpen
+        showSyncFailureDialog || showExitConfirmDialog || isExternalDialogOpen
 
     val currentIsAnyDialogOpen by rememberUpdatedState(isAnyDialogOpen)
     val currentDisplayItems by rememberUpdatedState(displayItems)
@@ -251,6 +265,19 @@ fun LibraryView(
     LaunchedEffect(displayItems) {
         if (displayItems.isNotEmpty() && selectedIndex >= displayItems.size) {
             selectedIndex = (displayItems.size - 1).coerceAtLeast(0)
+        }
+    }
+
+    // Runs once per mount, not per displayItems recomposition — this is a "where I was" restore
+    // for the very screen that just replaced the reader, not something to re-apply on every later
+    // folder navigation within this same LibraryView instance (which would fight the user's own
+    // subsequent up/down selection).
+    LaunchedEffect(Unit) {
+        val targetRelativePath = initialSelectedRelativePath ?: return@LaunchedEffect
+        val idx = displayItems.indexOfFirst { it.type == 2 && it.book?.relativePath == targetRelativePath }
+        if (idx >= 0) {
+            selectedIndex = idx
+            listState.scrollToItem(idx)
         }
     }
 
@@ -265,11 +292,26 @@ fun LibraryView(
                     else if (showFailureDialog) showFailureDialog = false
                     else if (showDropboxAuthDialog) showDropboxAuthDialog = false
                     else if (showSyncFailureDialog) showSyncFailureDialog = false
+                    else if (showExitConfirmDialog) showExitConfirmDialog = false
+                    true
+                } else if (showExitConfirmDialog && event.type == KeyEventType.KeyDown &&
+                    (event.key == Key.Enter || event.key == Key.NumPadEnter)
+                ) {
+                    // Enter confirms the dialog's own highlighted action, matching every other
+                    // confirm/cancel dialog in this app (e.g. the Supabase secret regenerate warning).
+                    showExitConfirmDialog = false
+                    onExitApp?.invoke()
                     true
                 } else {
                     // Let keys pass through to dialog / text inputs
                     false
                 }
+            } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && currentPath.isBlank()) {
+                // At the library's top level there's no parent folder left to go up to — this is
+                // where "Esc" stops meaning "back" and starts meaning "leave the app," so it needs
+                // its own confirmation instead of silently doing nothing (the previous behavior).
+                showExitConfirmDialog = true
+                true
             } else if (event.type == KeyEventType.KeyDown && items.isNotEmpty()) {
                 when (event.key) {
                     Key.DirectionDown -> {
@@ -696,7 +738,7 @@ fun LibraryView(
                                 ) {
                                     Text(
                                         text = item.formattedProgress,
-                                        color = Color(0xFF60A5FA),
+                                        color = progressColorFor(item.progressState),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                     )
@@ -942,7 +984,7 @@ fun LibraryView(
                                         )
                                         Text(
                                             text = book.formattedProgress,
-                                            color = if (book.bookRecord != null) Color(0xFF60A5FA) else Color(0xFF6B7280),
+                                            color = progressColorFor(book.progressState),
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.width(44.dp),
@@ -1052,6 +1094,73 @@ fun LibraryView(
                                 shape = RoundedCornerShape(6.dp),
                             ) {
                                 Text(stringResource("common_save"), fontSize = 13.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Exit Confirmation Dialog — only reachable at the library's top level (see the key
+        // dispatcher above); Enter here confirms Exit the same way it confirms Save/regenerate in
+        // the other dialogs in this file, so it needs no extra explanation of its own.
+        if (showExitConfirmDialog) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .clickable { showExitConfirmDialog = false },
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .width(420.dp)
+                        .clickable(enabled = false) {},
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF232326),
+                    elevation = 16.dp,
+                ) {
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Text(
+                            text = stringResource("library_exit_confirm_title"),
+                            color = Color.White,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = stringResource("library_exit_confirm_message"),
+                            color = Color(0xFF9CA3AF),
+                            fontSize = 13.sp,
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            Button(
+                                onClick = { showExitConfirmDialog = false },
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color(0xFF374151),
+                                    contentColor = Color.White,
+                                ),
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
+                                Text(stringResource("common_cancel"), fontSize = 13.sp)
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Button(
+                                onClick = {
+                                    showExitConfirmDialog = false
+                                    onExitApp?.invoke()
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color(0xFF2563EB),
+                                    contentColor = Color.White,
+                                ),
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
+                                Text(stringResource("library_exit_confirm_button"), fontSize = 13.sp)
                             }
                         }
                     }

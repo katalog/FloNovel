@@ -65,6 +65,7 @@ import com.moonkata.flonovel.desktop.library.ResumeManager
 import com.moonkata.flonovel.desktop.library.ResumeTarget
 import com.moonkata.flonovel.desktop.library.SettingsStore
 import com.moonkata.flonovel.desktop.library.WindowSettings
+import com.moonkata.flonovel.desktop.platform.FileOpener
 import com.moonkata.flonovel.desktop.platform.WindowsTitleBar
 import com.moonkata.flonovel.desktop.platform.configDir
 import com.moonkata.flonovel.desktop.preprocess.IntakeFailure
@@ -231,6 +232,10 @@ fun main(args: Array<String>) {
         relPath.substringBeforeLast('/', "")
     }
     var currentLibraryFolder by remember { mutableStateOf(initialFolder) }
+    // The book the reader is about to hand back from, so the library can land the selection on
+    // its row instead of the folder's first row (real-usage feedback). Captured only on the
+    // "back to folder view" path, not onHome -- going home already resets the folder itself.
+    var lastClosedBookPath by remember { mutableStateOf<String?>(null) }
 
     var activeTarget by remember { mutableStateOf<ResumeTarget?>(initialResumeTarget) }
 
@@ -397,28 +402,34 @@ fun main(args: Array<String>) {
         }
     }
 
+    // Shared by the window's own close button (onCloseRequest below) and the library's top-level
+    // Esc-to-exit confirmation dialog — both need the exact same cleanup (persist window geometry,
+    // flush the sync coordinator, stop the intake pipeline, close the book store) before actually
+    // exiting, so there is exactly one place that does it.
+    val performExit: () -> Unit = {
+        val isMaximized = windowState.placement == WindowPlacement.Maximized
+        val pos = if (isMaximized) lastFloatingPos else windowState.position
+        val size = if (isMaximized) lastFloatingSize else windowState.size
+        val x = if (pos is WindowPosition.Absolute) pos.x.value.toInt() else null
+        val y = if (pos is WindowPosition.Absolute) pos.y.value.toInt() else null
+        val w = size.width.value.toInt().coerceAtLeast(400)
+        val h = size.height.value.toInt().coerceAtLeast(300)
+        val updatedWindow = WindowSettings(
+            x = x,
+            y = y,
+            width = w,
+            height = h,
+            isMaximized = isMaximized,
+        )
+        settingsStore.save(settingsStore.load().copy(window = updatedWindow))
+        readingSyncCoordinator.onBookClosed()
+        intakePipeline?.close()
+        bookStore.close()
+        exitApplication()
+    }
+
     Window(
-        onCloseRequest = {
-            val isMaximized = windowState.placement == WindowPlacement.Maximized
-            val pos = if (isMaximized) lastFloatingPos else windowState.position
-            val size = if (isMaximized) lastFloatingSize else windowState.size
-            val x = if (pos is WindowPosition.Absolute) pos.x.value.toInt() else null
-            val y = if (pos is WindowPosition.Absolute) pos.y.value.toInt() else null
-            val w = size.width.value.toInt().coerceAtLeast(400)
-            val h = size.height.value.toInt().coerceAtLeast(300)
-            val updatedWindow = WindowSettings(
-                x = x,
-                y = y,
-                width = w,
-                height = h,
-                isMaximized = isMaximized,
-            )
-            settingsStore.save(settingsStore.load().copy(window = updatedWindow))
-            readingSyncCoordinator.onBookClosed()
-            intakePipeline?.close()
-            bookStore.close()
-            exitApplication()
-        },
+        onCloseRequest = performExit,
         state = windowState,
         title = if (activeTarget != null) "${activeTarget!!.book.displayName} - FloNovel" else "FloNovel",
         icon = painterResource("icon.png"),
@@ -540,13 +551,17 @@ fun main(args: Array<String>) {
                     readingSyncCoordinator.onBookClosed()
                     bookStore.flush()
                     booksData = bookStore.load()
+                    lastClosedBookPath = currentTarget.book.path
                     activeTarget = null
                 },
+                onOpenInExplorer = { FileOpener.revealInFileManager(currentTarget.filePath) },
+                onOpenInDefaultApp = { FileOpener.openWithDefaultApp(currentTarget.filePath) },
                 onHome = {
                     readingSyncCoordinator.onBookClosed()
                     bookStore.flush()
                     booksData = bookStore.load()
                     activeTarget = null
+                    lastClosedBookPath = null
                     currentLibraryFolder = ""
                 },
                 onStartDropboxLogin = { startDropboxAuthAction() },
@@ -594,6 +609,8 @@ fun main(args: Array<String>) {
                 initialSortOption = runCatching { LibrarySortOption.valueOf(settings.librarySortOption) }.getOrDefault(LibrarySortOption.RECENT),
                 initialRelativePath = currentLibraryFolder,
                 onRelativePathChanged = { currentLibraryFolder = it },
+                initialSelectedRelativePath = lastClosedBookPath,
+                onExitApp = performExit,
                 directoryRevision = directoryRevision,
                 onSortOptionChanged = { newOption ->
                     val updatedSettings = settings.copy(librarySortOption = newOption.name)
