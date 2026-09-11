@@ -70,6 +70,7 @@ import com.moonkata.flonovel.desktop.reader.ViewportSpec
 import com.moonkata.flonovel.desktop.audio.RadioPlayer
 import com.moonkata.flonovel.desktop.text.Chapter
 import com.moonkata.flonovel.desktop.text.ChapterDetector
+import com.moonkata.flonovel.desktop.text.Search
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -924,7 +925,8 @@ fun ReaderView(
                 onStateChanged = { searchDialogState = it },
                 onResultSelected = { result ->
                     lastChapterJumpOffset = null
-                    navigator.jumpTo(result.charOffset)
+                    val targetOffset = Search.findParagraphStart(fullText, result.charOffset)
+                    navigator.jumpTo(targetOffset)
                     currentAnchor = navigator.anchor
                     onAnchorChanged?.invoke(currentAnchor)
                     showSearch = false
