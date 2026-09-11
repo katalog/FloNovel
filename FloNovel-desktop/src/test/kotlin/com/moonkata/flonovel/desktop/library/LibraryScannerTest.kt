@@ -107,6 +107,51 @@ class LibraryScannerTest {
     }
 
     @Test
+    fun progressState_reflectsWhatIsActuallyDisplayed_notTheRawFraction() {
+        val tempDir = createTempDirectory("library_progress_state_test")
+        try {
+            val unread = tempDir.resolve("unread.txt").apply { writeText("x") }
+            val midway = tempDir.resolve("midway.txt").apply { writeText("x") }
+            val almostDone = tempDir.resolve("almost_done.txt").apply { writeText("x") }
+            val done = tempDir.resolve("done.txt").apply { writeText("x") }
+
+            fun record(path: String, name: String, progress: Double) = BookRecord(
+                path = path,
+                key = RelativePath.normalize(path),
+                displayName = name,
+                sizeBytes = 1L,
+                totalCharCount = 1000,
+                detectedEncoding = "UTF-8",
+                anchor = 0,
+                progress = progress,
+                addedAt = 1000L,
+            )
+
+            val booksData = BooksData(
+                books = listOf(
+                    record("midway.txt", "midway", 0.5),
+                    // 99.9% still displays as "99%" -- it must not read as complete either.
+                    record("almost_done.txt", "almost_done", 0.999),
+                    record("done.txt", "done", 1.0),
+                ),
+            )
+
+            val scanned = LibraryScanner.scan(tempDir, booksData).associateBy { it.relativePath }
+
+            assertEquals(ReadingProgressState.UNREAD, scanned["unread.txt"]?.progressState)
+            assertEquals(ReadingProgressState.IN_PROGRESS, scanned["midway.txt"]?.progressState)
+            assertEquals(
+                ReadingProgressState.IN_PROGRESS,
+                scanned["almost_done.txt"]?.progressState,
+                "99% on screen must not be colored as complete",
+            )
+            assertEquals(ReadingProgressState.COMPLETED, scanned["done.txt"]?.progressState)
+        } finally {
+            tempDir.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
     fun sorting_nameDateSizeRecent_sortsAccurately() {
         val tempDir = createTempDirectory("library_sort_test")
         try {

@@ -4,6 +4,9 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
+/** Which of the three visually-distinguished states a book's reading progress falls into. */
+enum class ReadingProgressState { UNREAD, IN_PROGRESS, COMPLETED }
+
 /**
  * Represents a book item discovered in the library directory.
  */
@@ -16,14 +19,33 @@ data class LibraryBookItem(
     val lastModified: Long,
     val bookRecord: BookRecord?,
 ) {
+    /** 0.0 when never opened (or not yet registered at all) through 1.0 when finished. */
+    val progressFraction: Double
+        get() = bookRecord?.progress ?: 0.0
+
+    /** The truncated integer actually shown to the user (e.g. 14, not 14.28). */
+    private val progressPercentInt: Int
+        get() = (progressFraction * 100).toInt()
+
     /**
      * Integer percentage formatted (e.g. "14%"), matching Android library list specification.
      */
     val formattedProgress: String
-        get() = if (bookRecord != null) {
-            "${(bookRecord.progress * 100).toInt()}%"
-        } else {
-            "0%"
+        get() = "$progressPercentInt%"
+
+    /**
+     * Three states, not two: a book is registered (and so has a non-null [bookRecord]) the moment
+     * it's scanned into the library, well before anyone opens it — so "bookRecord present" was
+     * never actually distinguishing "read" from "unread" in practice, only "completed" was missing
+     * a color of its own. Compared against [progressPercentInt] rather than [progressFraction]
+     * directly so the color always agrees with the number on screen — e.g. 99.9% displays as "99%"
+     * and must not be colored as complete.
+     */
+    val progressState: ReadingProgressState
+        get() = when {
+            progressPercentInt >= 100 -> ReadingProgressState.COMPLETED
+            progressPercentInt > 0 -> ReadingProgressState.IN_PROGRESS
+            else -> ReadingProgressState.UNREAD
         }
 
     val formattedSize: String
