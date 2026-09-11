@@ -709,5 +709,86 @@ class KeyboardNavigationTest {
         // Prev chapter from 0 -> null (already at first chapter)
         assertNull(ChapterJumpNavigator.previousChapter(chapters, 0))
     }
+
+    // --- 15. TOC Dialog key navigation & resolution ---
+
+    @Test
+    fun tocDialog_resolveKeyAction_navigationDismissAndSelect() {
+        // Dismiss on Escape
+        assertEquals(
+            TocDialogKeyAction.DISMISS,
+            resolveTocKeyAction(Key.Escape, hasChapters = true)
+        )
+        assertEquals(
+            TocDialogKeyAction.DISMISS,
+            resolveTocKeyAction(Key.Escape, hasChapters = false)
+        )
+
+        // Direction navigation when chapters exist
+        assertEquals(
+            TocDialogKeyAction.NAVIGATE_DOWN,
+            resolveTocKeyAction(Key.DirectionDown, hasChapters = true)
+        )
+        assertEquals(
+            TocDialogKeyAction.NAVIGATE_UP,
+            resolveTocKeyAction(Key.DirectionUp, hasChapters = true)
+        )
+
+        // Direction navigation when no chapters
+        assertEquals(
+            TocDialogKeyAction.NONE,
+            resolveTocKeyAction(Key.DirectionDown, hasChapters = false)
+        )
+        assertEquals(
+            TocDialogKeyAction.NONE,
+            resolveTocKeyAction(Key.DirectionUp, hasChapters = false)
+        )
+
+        // Select chapter on Enter / NumPadEnter
+        assertEquals(
+            TocDialogKeyAction.SELECT_CHAPTER,
+            resolveTocKeyAction(Key.Enter, hasChapters = true)
+        )
+        assertEquals(
+            TocDialogKeyAction.SELECT_CHAPTER,
+            resolveTocKeyAction(Key.NumPadEnter, hasChapters = true)
+        )
+        assertEquals(
+            TocDialogKeyAction.NONE,
+            resolveTocKeyAction(Key.Enter, hasChapters = false)
+        )
+
+        // Other keys
+        assertEquals(
+            TocDialogKeyAction.NONE,
+            resolveTocKeyAction(Key.Spacebar, hasChapters = true)
+        )
+    }
+
+    // --- 16. SearchDialogState retention data model ---
+
+    @Test
+    fun searchDialogState_defaultAndCustomValues() {
+        val defaultState = SearchDialogState()
+        assertEquals("", defaultState.queryText)
+        assertNull(defaultState.executedQuery)
+        assertNull(defaultState.results)
+        assertEquals(0, defaultState.selectedIndex)
+
+        val customResults = listOf(
+            com.moonkata.flonovel.desktop.text.SearchResult(charOffset = 100, snippet = "snippet 1"),
+            com.moonkata.flonovel.desktop.text.SearchResult(charOffset = 500, snippet = "snippet 2"),
+        )
+        val state = SearchDialogState(
+            queryText = "query",
+            executedQuery = "query",
+            results = customResults,
+            selectedIndex = 1,
+        )
+        assertEquals("query", state.queryText)
+        assertEquals("query", state.executedQuery)
+        assertEquals(2, state.results?.size)
+        assertEquals(1, state.selectedIndex)
+    }
 }
 

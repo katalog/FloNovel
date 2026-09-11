@@ -379,6 +379,7 @@ fun ReaderView(
     }
     var showToc by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
+    var searchDialogState by remember(fullText) { mutableStateOf(SearchDialogState()) }
     var showRadioDialog by remember { mutableStateOf(false) }
     val radioPlaybackState by RadioPlayer.state
     var lastChapterJumpOffset by remember { mutableStateOf<Int?>(null) }
@@ -919,6 +920,8 @@ fun ReaderView(
             SearchDialog(
                 fullText = fullText,
                 readerLayout = layout,
+                initialState = searchDialogState,
+                onStateChanged = { searchDialogState = it },
                 onResultSelected = { result ->
                     lastChapterJumpOffset = null
                     navigator.jumpTo(result.charOffset)

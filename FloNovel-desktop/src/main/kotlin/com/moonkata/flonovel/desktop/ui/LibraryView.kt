@@ -56,6 +56,7 @@ import com.moonkata.flonovel.desktop.library.LibraryFolderEntry
 import com.moonkata.flonovel.desktop.library.LibraryScanner
 import com.moonkata.flonovel.desktop.library.LibrarySortOption
 import com.moonkata.flonovel.desktop.library.ReadingProgressState
+import com.moonkata.flonovel.desktop.library.RelativePath
 import com.moonkata.flonovel.desktop.platform.FolderPicker
 import java.nio.file.Files
 import java.nio.file.Path
@@ -268,16 +269,19 @@ fun LibraryView(
         }
     }
 
-    // Runs once per mount, not per displayItems recomposition — this is a "where I was" restore
-    // for the very screen that just replaced the reader, not something to re-apply on every later
-    // folder navigation within this same LibraryView instance (which would fight the user's own
-    // subsequent up/down selection).
-    LaunchedEffect(Unit) {
+    // Runs when displayItems is populated, restoring the selection to the book just closed with Esc.
+    // Guarded by restoredSelection so it runs once upon returning, without interfering with subsequent navigation.
+    var restoredSelection by remember { mutableStateOf(false) }
+    LaunchedEffect(displayItems, initialSelectedRelativePath) {
         val targetRelativePath = initialSelectedRelativePath ?: return@LaunchedEffect
-        val idx = displayItems.indexOfFirst { it.type == 2 && it.book?.relativePath == targetRelativePath }
-        if (idx >= 0) {
-            selectedIndex = idx
-            listState.scrollToItem(idx)
+        if (!restoredSelection && displayItems.isNotEmpty()) {
+            val targetKey = RelativePath.normalize(targetRelativePath)
+            val idx = displayItems.indexOfFirst { it.type == 2 && it.book?.key == targetKey }
+            if (idx >= 0) {
+                selectedIndex = idx
+                listState.scrollToItem(idx)
+                restoredSelection = true
+            }
         }
     }
 

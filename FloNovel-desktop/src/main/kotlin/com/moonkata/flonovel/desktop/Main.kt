@@ -551,6 +551,8 @@ fun main(args: Array<String>) {
                     readingSyncCoordinator.onBookClosed()
                     bookStore.flush()
                     booksData = bookStore.load()
+                    val normPath = currentTarget.book.path.replace('\\', '/')
+                    currentLibraryFolder = normPath.substringBeforeLast('/', "")
                     lastClosedBookPath = currentTarget.book.path
                     activeTarget = null
                 },

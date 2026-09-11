@@ -46,9 +46,11 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,6 +93,16 @@ fun resolveSearchKeyAction(
 }
 
 /**
+ * Preserved search state across dialog opens within the same book session.
+ */
+data class SearchDialogState(
+    val queryText: String = "",
+    val executedQuery: String? = null,
+    val results: List<SearchResult>? = null,
+    val selectedIndex: Int = 0,
+)
+
+/**
  * Search Dialog Overlay for reader text.
  *
  * Strict Requirements:
@@ -98,6 +110,7 @@ fun resolveSearchKeyAction(
  *   Typing in the input field does NOT execute search (explicit contract).
  * - No upper limit on search result count.
  * - Keyboard navigation: Down/Up to move selection, Enter to jump, Esc to dismiss.
+ * - Preserves previous query and search results when reopened so user can navigate directly.
  */
 @Composable
 fun SearchDialog(
@@ -105,17 +118,53 @@ fun SearchDialog(
     onResultSelected: (SearchResult) -> Unit,
     onDismiss: () -> Unit,
     readerLayout: ReaderLayout? = null,
+    initialState: SearchDialogState = SearchDialogState(),
+    onStateChanged: ((SearchDialogState) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    var queryText by remember { mutableStateOf("") }
-    var executedQuery by remember { mutableStateOf<String?>(null) }
-    var results by remember { mutableStateOf<List<SearchResult>?>(null) }
+    var textFieldValue by remember(initialState) {
+        mutableStateOf(
+            TextFieldValue(
+                text = initialState.queryText,
+                selection = TextRange(0, initialState.queryText.length),
+            )
+        )
+    }
+    var queryText by remember(initialState) { mutableStateOf(initialState.queryText) }
+    var executedQuery by remember(initialState) { mutableStateOf(initialState.executedQuery) }
+    var results by remember(initialState) { mutableStateOf(initialState.results) }
     var isSearching by remember { mutableStateOf(false) }
-    var selectedResultIndex by remember { mutableStateOf(0) }
+    var selectedResultIndex by remember(initialState) {
+        val count = initialState.results?.size ?: 0
+        mutableStateOf(if (count > 0) initialState.selectedIndex.coerceIn(0, count - 1) else 0)
+    }
 
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
+
+    fun notifyStateChanged(
+        newQuery: String = queryText,
+        newExecutedQuery: String? = executedQuery,
+        newResults: List<SearchResult>? = results,
+        newIndex: Int = selectedResultIndex,
+    ) {
+        onStateChanged?.invoke(
+            SearchDialogState(
+                queryText = newQuery,
+                executedQuery = newExecutedQuery,
+                results = newResults,
+                selectedIndex = newIndex,
+            )
+        )
+    }
+
+    // Scroll to restored selected item on open if results exist
+    LaunchedEffect(Unit) {
+        if (selectedResultIndex > 0) {
+            listState.scrollToItem((selectedResultIndex - 2).coerceAtLeast(0))
+        }
+    }
 
     fun executeSearch() {
         val trimmed = queryText.trim()
@@ -123,12 +172,14 @@ fun SearchDialog(
         isSearching = true
         executedQuery = trimmed
         selectedResultIndex = 0
+        notifyStateChanged(newQuery = queryText, newExecutedQuery = trimmed, newIndex = 0)
         coroutineScope.launch {
             val searchResults = withContext(Dispatchers.Default) {
                 Search.search(fullText, trimmed)
             }
             results = searchResults
             isSearching = false
+            notifyStateChanged(newQuery = queryText, newExecutedQuery = trimmed, newResults = searchResults, newIndex = 0)
             if (searchResults.isNotEmpty()) {
                 listState.scrollToItem(0)
             }
@@ -147,6 +198,7 @@ fun SearchDialog(
                 SearchDialogKeyAction.NAVIGATE_DOWN -> {
                     if (hasResults) {
                         selectedResultIndex = (selectedResultIndex + 1).coerceAtMost(results!!.size - 1)
+                        notifyStateChanged(newIndex = selectedResultIndex)
                         coroutineScope.launch { listState.animateScrollToItem(selectedResultIndex) }
                     }
                     true
@@ -154,6 +206,7 @@ fun SearchDialog(
                 SearchDialogKeyAction.NAVIGATE_UP -> {
                     if (hasResults) {
                         selectedResultIndex = (selectedResultIndex - 1).coerceAtLeast(0)
+                        notifyStateChanged(newIndex = selectedResultIndex)
                         coroutineScope.launch { listState.animateScrollToItem(selectedResultIndex) }
                     }
                     true
@@ -164,6 +217,7 @@ fun SearchDialog(
                 }
                 SearchDialogKeyAction.SELECT_RESULT -> {
                     if (hasResults && selectedResultIndex in results!!.indices) {
+                        notifyStateChanged(newIndex = selectedResultIndex)
                         onResultSelected(results!![selectedResultIndex])
                     }
                     true
@@ -242,7 +296,7 @@ fun SearchDialog(
                             .border(1.dp, Color(0xFF444448), RoundedCornerShape(6.dp))
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                     ) {
-                        if (queryText.isEmpty()) {
+                        if (textFieldValue.text.isEmpty()) {
                             Text(
                                 text = stringResource("search_placeholder"),
                                 color = Color(0xFF777777),
@@ -250,8 +304,12 @@ fun SearchDialog(
                             )
                         }
                         BasicTextField(
-                            value = queryText,
-                            onValueChange = { queryText = it },
+                            value = textFieldValue,
+                            onValueChange = {
+                                textFieldValue = it
+                                queryText = it.text
+                                notifyStateChanged(newQuery = it.text)
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .focusRequester(focusRequester)
@@ -391,6 +449,7 @@ fun SearchDialog(
                                         )
                                         .clickable {
                                             selectedResultIndex = index
+                                            notifyStateChanged(newIndex = index)
                                             onResultSelected(item)
                                         }
                                         .padding(horizontal = 12.dp, vertical = 10.dp),
