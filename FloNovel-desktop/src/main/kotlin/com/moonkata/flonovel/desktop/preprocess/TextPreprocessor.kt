@@ -26,7 +26,31 @@ object TextPreprocessor {
     private val reHangul = Pattern.compile("\\p{IsHangul}").toRegex()
     private val reHan = Pattern.compile("\\p{IsHan}").toRegex()
     private val reSpaces = Regex("""\s+""")
-    private val reHeading = Regex("""[제第]?\s*(\d+)\s*[장화회章話回]""")
+    /**
+     * Chapter-heading shapes to check a line against. A single pattern is not enough: real files use
+     * several genuinely different conventions, sometimes more than one within the same file.
+     *
+     * - cjk marker: "제45화", "第184章". The old pattern only covered 장/화 (and their Hanja) -- it
+     *   silently missed 회/回 ("제1회"), which several real files use as their only marker.
+     * - hash: "#42 Title" -- a bare "#" is not this app's own "## " marker.
+     * - latin: "Chapter 12", "Episode 5".
+     *
+     * Two patterns were tried and dropped after checking them against the corpus, because either one
+     * turned into a false-positive generator rather than a real second convention:
+     * - "N. Title" (bare number + dot) matched 510 ordinary prose lines in a single file (numbered
+     *   lists, timestamps, anything that happens to start with a digit and a period).
+     * - Widening the CJK marker to also accept 편/권/절 (and their Hanja 篇/卷/節) looked like a small
+     *   step from 회/回, but those three are common standalone Korean/Chinese words on their own
+     *   ("한 편의 이야기", "책 한 권") and added 200-500 false headings to files that do not use them
+     *   as chapter markers at all, against single-digit gains on files that might have.
+     *
+     * A line counts as a heading if ANY pattern matches; there is no scoring between them.
+     */
+    private val reHeadingPatterns = listOf(
+        Regex("""[제第]?\s*(\d+)\s*[장화회章話回]"""),
+        Regex("""(?<!#)#(?!#)\s*(\d+)"""),
+        Regex("""(?:chapter|episode|ep)\s*[.:#]?\s*(\d+)""", RegexOption.IGNORE_CASE),
+    )
     private val reThreeOrMoreNewlines = Regex("""\n{3,}""")
 
     const val MAX_FILE_NAME_LENGTH = 50
@@ -67,7 +91,8 @@ object TextPreprocessor {
 
     /**
      * Normalizes chapter headings according to go-text-pretty contract:
-     * - Searches for [reHeading] match anywhere in each line (partial match, no length limit).
+     * - Searches every pattern in [reHeadingPatterns] for a match anywhere in each line (partial
+     *   match, no length limit); any single match is enough.
      * - If matched and the trimmed line does not already start with "##", prepends "## ".
      * - Idempotent: lines already starting with "##" are left unmodified.
      *
@@ -77,7 +102,7 @@ object TextPreprocessor {
         val lines = content.split('\n')
         val updated = ArrayList<String>(lines.size)
         for (line in lines) {
-            if (reHeading.containsMatchIn(line)) {
+            if (reHeadingPatterns.any { it.containsMatchIn(line) }) {
                 val trimmed = line.trimStart(' ', '\t')
                 if (!trimmed.startsWith("##")) {
                     updated.add("## $trimmed")
