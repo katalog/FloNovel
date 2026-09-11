@@ -57,6 +57,8 @@ import com.moonkata.flonovel.android.R
 import com.moonkata.flonovel.android.model.FolderEntry
 import com.moonkata.flonovel.android.model.FolderSortOption
 import com.moonkata.flonovel.android.ui.reader.QuickSettingsSheet
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -70,10 +72,20 @@ fun LibraryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val resumeCandidate by viewModel.resumeCandidate.collectAsState()
+    val dropboxState by viewModel.dropboxState.collectAsState()
     val pickFolder = rememberFolderPickerLauncher(onFolderSelected = viewModel::onRootFolderSelected)
     var showDropboxSync by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var isPullRefreshing by remember { mutableStateOf(false) }
+    var showUnlinkedNotice by remember { mutableStateOf(false) }
+
+    val isDropboxLinked = uiState.settings.dropboxRefreshToken.isNotBlank()
+    val isRefreshing = dropboxState.isSyncing || isPullRefreshing
+
+    LaunchedEffect(uiState.isLoading) {
+        if (!uiState.isLoading) isPullRefreshing = false
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.openBookEvents.collect { bookId -> onOpenBook(bookId) }
@@ -149,7 +161,7 @@ fun LibraryScreen(
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
-            if (uiState.isLoading) {
+            if (uiState.isLoading && !isPullRefreshing) {
                 LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
             }
             if (uiState.rootUri == null) {
@@ -160,23 +172,50 @@ fun LibraryScreen(
                     ),
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                 )
-            } else if (uiState.entries.isEmpty() && !uiState.isLoading) {
-                Text(
-                    stringResource(R.string.library_no_txt_zip_files),
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                )
             } else {
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(uiState.entries, key = { entryKey(it) }) { entry ->
-                        EntryRow(
-                            entry = entry,
-                            progress = (entry as? FolderEntry.TextFile)?.let { uiState.progressByStoredUri[it.source.toStoredString()] },
-                            onClick = { viewModel.navigateInto(entry) },
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        if (isDropboxLinked) {
+                            viewModel.syncFromDropbox()
+                        } else {
+                            isPullRefreshing = true
+                            viewModel.refreshLibrary()
+                            showUnlinkedNotice = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    if (uiState.entries.isEmpty() && !uiState.isLoading) {
+                        Text(
+                            stringResource(R.string.library_no_txt_zip_files),
+                            modifier = Modifier.align(Alignment.Center).padding(24.dp),
                         )
-                        HorizontalDivider()
+                    } else {
+                        LazyColumn(Modifier.fillMaxSize()) {
+                            items(uiState.entries, key = { entryKey(it) }) { entry ->
+                                EntryRow(
+                                    entry = entry,
+                                    progress = (entry as? FolderEntry.TextFile)?.let { uiState.progressByStoredUri[it.source.toStoredString()] },
+                                    onClick = { viewModel.navigateInto(entry) },
+                                )
+                                HorizontalDivider()
+                            }
+                        }
                     }
                 }
             }
+
+            SyncStatusFloatingBadge(
+                state = dropboxState,
+                showUnlinkedNotice = showUnlinkedNotice,
+                onOpenSyncSheet = { showDropboxSync = true },
+                onDismissResult = { viewModel.dismissDropboxResult() },
+                onDismissUnlinkedNotice = { showUnlinkedNotice = false },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding(),
+            )
         }
     }
 
