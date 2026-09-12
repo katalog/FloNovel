@@ -64,6 +64,7 @@ import com.moonkata.flonovel.desktop.font.FontManager
 import com.moonkata.flonovel.desktop.library.KeymapSettings
 import com.moonkata.flonovel.desktop.library.ViewSettings
 import com.moonkata.flonovel.desktop.reader.ChapterJumpNavigator
+import com.moonkata.flonovel.desktop.reader.EyeStrainScheduler
 import com.moonkata.flonovel.desktop.reader.PaneMode
 import com.moonkata.flonovel.desktop.reader.ReaderNavigator
 import com.moonkata.flonovel.desktop.reader.ViewportSpec
@@ -412,6 +413,24 @@ fun ReaderView(
         }
     }
 
+    // 20-20-20 eye strain reminder: ticks once per second while enabled, and forces
+    // a blocking break overlay once EyeStrainScheduler crosses the active interval.
+    val eyeStrainScheduler = remember { EyeStrainScheduler() }
+    var eyeStrainState by remember { mutableStateOf<EyeStrainScheduler.State>(eyeStrainScheduler.state) }
+    LaunchedEffect(viewSettings.eyeStrainReminderEnabled) {
+        if (viewSettings.eyeStrainReminderEnabled) {
+            while (true) {
+                delay(1000L)
+                eyeStrainScheduler.tick(1000L)
+                eyeStrainState = eyeStrainScheduler.state
+            }
+        } else {
+            eyeStrainScheduler.reset()
+            eyeStrainState = eyeStrainScheduler.state
+        }
+    }
+    val isOnEyeStrainBreak = eyeStrainState is EyeStrainScheduler.State.OnBreak
+
     var detectedChapters by remember { mutableStateOf<List<Chapter>?>(null) }
     LaunchedEffect(fullText) {
         withContext(Dispatchers.Default) {
@@ -520,6 +539,7 @@ fun ReaderView(
         showToc,
         showSearch,
         showRadioDialog,
+        isOnEyeStrainBreak,
         remoteSyncNotice,
         viewSettings,
         keymap,
@@ -529,7 +549,10 @@ fun ReaderView(
         navigator,
     ) {
         val dispatcher: (KeyEvent) -> Boolean = { keyEvent ->
-            if (showSettings || showToc || showSearch || showRadioDialog) {
+            if (isOnEyeStrainBreak) {
+                // Swallow everything, including Escape: the break is not user-skippable.
+                true
+            } else if (showSettings || showToc || showSearch || showRadioDialog) {
                 if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape) {
                     if (showSearch) showSearch = false
                     else if (showToc) showToc = false
@@ -1062,6 +1085,44 @@ fun ReaderView(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // Eye strain break overlay (20-20-20 rule): covers the entire reader, not
+        // user-dismissable, disappears automatically when EyeStrainScheduler resumes.
+        val breakState = eyeStrainState
+        if (breakState is EyeStrainScheduler.State.OnBreak) {
+            val remainingSeconds = ((breakState.remainingMs + 999L) / 1000L).toInt().coerceAtLeast(0)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.foundation.layout.Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = remainingSeconds.toString(),
+                        color = Color.White,
+                        fontSize = 64.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource("reader_eye_strain_break_title"),
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource("reader_eye_strain_break_desc"),
+                        color = Color(0xFFAAAAAA),
+                        fontSize = 13.sp,
+                    )
                 }
             }
         }

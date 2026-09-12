@@ -126,6 +126,10 @@
     <string name="settings_max_line_width">Max line width</string>
     <string name="settings_chapter_left_align_title">Start chapter at left pane</string>
     <string name="settings_chapter_left_align_desc">In 2-pane mode, always start a new chapter in the left pane (default off)</string>
+    <string name="settings_eye_strain_title">Eye strain reminder (20-20-20)</string>
+    <string name="settings_eye_strain_desc">Every 20 minutes, block the screen for a 20-second break (default off)</string>
+    <string name="reader_eye_strain_break_title">Time to rest your eyes</string>
+    <string name="reader_eye_strain_break_desc">Look at something 20 feet away. Returning to the reader automatically.</string>
     <string name="settings_sync_title">Synchronization</string>
     <string name="settings_dropbox_link_title">Dropbox link</string>
     <string name="settings_dropbox_linked">Connected (/Apps/FloNovel/)</string>

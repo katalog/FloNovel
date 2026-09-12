@@ -909,6 +909,35 @@ fun SettingsDialog(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
+
+                    // 13. Eye strain reminder (20-20-20 rule, optional, defaults to false)
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                Text(text = stringResource("settings_eye_strain_title"), color = Color(0xFFCCCCCC), fontSize = 13.sp)
+                                Text(text = stringResource("settings_eye_strain_desc"), color = Color(0xFF888888), fontSize = 11.sp)
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                ThemeButton(
+                                    name = stringResource("common_off"),
+                                    selected = !currentSettings.eyeStrainReminderEnabled,
+                                    onClick = { onSettingsChanged(currentSettings.copy(eyeStrainReminderEnabled = false)) },
+                                    modifier = Modifier.width(60.dp),
+                                )
+                                ThemeButton(
+                                    name = stringResource("common_on"),
+                                    selected = currentSettings.eyeStrainReminderEnabled,
+                                    onClick = { onSettingsChanged(currentSettings.copy(eyeStrainReminderEnabled = true)) },
+                                    modifier = Modifier.width(60.dp),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 } else if (currentTab == SettingsTab.SHORTCUTS) {
                     item {
                         SettingSectionTitle(stringResource("settings_shortcuts_title"))
