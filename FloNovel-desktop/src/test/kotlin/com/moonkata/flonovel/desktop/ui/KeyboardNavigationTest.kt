@@ -23,7 +23,6 @@ import kotlin.test.assertTrue
  *   No upper limit on search results count.
  * - Chapter jump on book with 0 chapters: fall back to normal page turn (never do nothing).
  * - Chapter jump remembers last jump target to prevent getting stuck on same point.
- * - Home / End jumps to start / end of book.
  * - U14 scenario: complete reading flow without a mouse.
  */
 class KeyboardNavigationTest {
@@ -153,10 +152,14 @@ class KeyboardNavigationTest {
         assertEquals(200, targetPrev, "Previous jump must go to 200")
     }
 
-    // --- 5. Home and End keys jump to book start and end ---
+    // --- 5. Physical Home/End keys are not bound to any action ---
 
     @Test
-    fun homeAndEndKeys_jumpToStartAndEnd() {
+    fun physicalHomeAndEndKeys_areNotHandled() {
+        // The hardcoded physical Home/End -> jump-to-start/end binding was removed
+        // (it silently conflicted with keymap.home's F1 default). Until a
+        // configurable keymap entry is added for these, the keys must fall
+        // through unhandled rather than triggering any action.
         val navigator = ReaderNavigator(
             totalLength = 5000,
             textFitter = { from, _, _ -> from + 200 },
@@ -165,35 +168,23 @@ class KeyboardNavigationTest {
         )
 
         var homeCalled = false
-        var endCalled = false
-
-        // Home key
         val handledHome = handleKeyAction(
             key = Key.Home,
             navigator = navigator,
             advanceRatio = 0.5f,
-            onHome = {
-                navigator.jumpTo(0)
-                homeCalled = true
-            },
+            onHome = { homeCalled = true },
         )
-        assertTrue(handledHome)
-        assertTrue(homeCalled)
-        assertEquals(0, navigator.anchor)
+        assertTrue(!handledHome)
+        assertTrue(!homeCalled)
+        assertEquals(1200, navigator.anchor)
 
-        // End key
         val handledEnd = handleKeyAction(
             key = Key.MoveEnd,
             navigator = navigator,
             advanceRatio = 0.5f,
-            onEnd = {
-                navigator.jumpTo(navigator.totalLength)
-                endCalled = true
-            },
         )
-        assertTrue(handledEnd)
-        assertTrue(endCalled)
-        assertEquals(5000, navigator.anchor)
+        assertTrue(!handledEnd)
+        assertEquals(1200, navigator.anchor)
     }
 
     // --- 6. U14 Scenario: Complete reading flow without mouse ---
@@ -213,7 +204,6 @@ class KeyboardNavigationTest {
         var nextChapterJumpCalled = false
         var prevChapterJumpCalled = false
         var homeCalled = false
-        var endCalled = false
 
         // 1. Advance via '>' (Period) - default next page
         assertTrue(handleKeyAction(Key.Period, navigator = navigator, advanceRatio = 0.5f))
@@ -338,7 +328,7 @@ class KeyboardNavigationTest {
         )
         assertTrue(settingsOpened)
 
-        // 11. Home via F1 (default home shortcut) & Physical Home
+        // 11. Home via F1 (default home shortcut)
         assertTrue(
             handleKeyAction(
                 key = Key.F1,
@@ -348,28 +338,6 @@ class KeyboardNavigationTest {
             )
         )
         assertTrue(homeCalled)
-
-        homeCalled = false
-        assertTrue(
-            handleKeyAction(
-                key = Key.Home,
-                navigator = navigator,
-                advanceRatio = 0.5f,
-                onHome = { homeCalled = true },
-            )
-        )
-        assertTrue(homeCalled)
-
-        // 12. Physical End
-        assertTrue(
-            handleKeyAction(
-                key = Key.MoveEnd,
-                navigator = navigator,
-                advanceRatio = 0.5f,
-                onEnd = { endCalled = true },
-            )
-        )
-        assertTrue(endCalled)
     }
 
     @Test

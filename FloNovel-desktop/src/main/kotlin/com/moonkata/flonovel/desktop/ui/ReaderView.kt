@@ -141,7 +141,6 @@ fun resolveFontFamily(fontFamilyName: String): FontFamily {
 /**
  * Dispatches a reading navigation action for a given [key] and modifier:
  * - Chapter Jump: Ctrl+PageDown, Ctrl+DirectionRight, ']' (next); Ctrl+PageUp, Ctrl+DirectionLeft, '[' (previous)
- * - Home / End: jump to start / end of book
  * - Search: Ctrl+F, '/'
  * - Regular navigation: PageDown, PageUp, DirectionRight, DirectionLeft, Period (>), Comma (<), Spacebar
  * - Dialogs: F2 (Settings), F3/T (TOC)
@@ -164,7 +163,6 @@ fun handleKeyAction(
     onNextChapterJump: (() -> Unit)? = null,
     onPreviousChapterJump: (() -> Unit)? = null,
     onHome: (() -> Unit)? = null,
-    onEnd: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
     onOpenInDefaultApp: (() -> Unit)? = null,
@@ -232,16 +230,6 @@ fun handleKeyAction(
         return true
     }
 
-    // 7. Physical Home / End keys (jump to start / end of text)
-    if (key == Key.MoveHome || key == Key.Home) {
-        onHome?.invoke()
-        return true
-    }
-    if (key == Key.MoveEnd) {
-        onEnd?.invoke()
-        return true
-    }
-
     // 8. Regular page navigation: Next Page ('>' / '.' by default, or DirectionRight, or Spacebar without Shift)
     if (KeymapHelper.matches(keymap.nextPage, key, codePoint) ||
         (!isCtrlPressed && (key == Key.DirectionRight || (key == Key.Spacebar && !isShiftPressed)))
@@ -279,7 +267,6 @@ fun handleReaderKeyEvent(
     onNextChapterJump: (() -> Unit)? = null,
     onPreviousChapterJump: (() -> Unit)? = null,
     onHome: (() -> Unit)? = null,
-    onEnd: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
     onOpenInDefaultApp: (() -> Unit)? = null,
@@ -311,7 +298,6 @@ fun handleReaderKeyEvent(
         onNextChapterJump = onNextChapterJump,
         onPreviousChapterJump = onPreviousChapterJump,
         onHome = onHome,
-        onEnd = onEnd,
         onBack = onBack,
         onOpenInExplorer = onOpenInExplorer,
         onOpenInDefaultApp = onOpenInDefaultApp,
@@ -525,13 +511,6 @@ fun ReaderView(
         onAnchorChanged?.invoke(currentAnchor)
     }
 
-    fun performEnd() {
-        lastChapterJumpOffset = null
-        navigator.jumpTo(fullText.length)
-        currentAnchor = navigator.anchor
-        onAnchorChanged?.invoke(currentAnchor)
-    }
-
     // Window-level key event dispatcher registration:
     // Guarantees shortcuts always work regardless of focus, but passes through keys when a dialog is open.
     DisposableEffect(
@@ -594,7 +573,6 @@ fun ReaderView(
                     onNextChapterJump = { performNextChapterJump() },
                     onPreviousChapterJump = { performPreviousChapterJump() },
                     onHome = { onHome?.invoke() ?: performHome() },
-                    onEnd = { performEnd() },
                     onBack = {
                         onBackToLibrary?.invoke()
                     },
