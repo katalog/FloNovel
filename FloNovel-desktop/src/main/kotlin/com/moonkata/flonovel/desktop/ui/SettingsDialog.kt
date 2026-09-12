@@ -1240,126 +1240,6 @@ fun SettingsDialog(
                 }
                 }
 
-                if (showRegenConfirmDialog) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.75f))
-                            .clickable { showRegenConfirmDialog = false },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .width(400.dp)
-                                .clickable(enabled = false) {},
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFF221515),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444)),
-                        ) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Text(
-                                    text = stringResource("settings_supabase_regenerate_warning_title"),
-                                    color = Color(0xFFFCA5A5),
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Text(
-                                    text = stringResource("settings_supabase_regenerate_warning_desc"),
-                                    color = Color(0xFFE5E7EB),
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp,
-                                )
-                                Spacer(modifier = Modifier.height(18.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Button(
-                                        onClick = { showRegenConfirmDialog = false },
-                                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF374151), contentColor = Color.White),
-                                        shape = RoundedCornerShape(6.dp),
-                                    ) {
-                                        Text(stringResource("common_cancel"), fontSize = 12.sp)
-                                    }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Button(
-                                        onClick = {
-                                            showRegenConfirmDialog = false
-                                            onRegenerateSecret?.invoke()
-                                        },
-                                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFDC2626), contentColor = Color.White),
-                                        shape = RoundedCornerShape(6.dp),
-                                    ) {
-                                        Text(stringResource("settings_supabase_regenerate_confirm"), fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (showForcePushConfirmDialog) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.75f))
-                            .clickable { showForcePushConfirmDialog = false },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .width(400.dp)
-                                .clickable(enabled = false) {},
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFF221515),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFB45309)),
-                        ) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Text(
-                                    text = stringResource("settings_supabase_force_push_confirm_title"),
-                                    color = Color(0xFFFCD34D),
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Text(
-                                    text = stringResource("settings_supabase_force_push_confirm_desc"),
-                                    color = Color(0xFFE5E7EB),
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp,
-                                )
-                                Spacer(modifier = Modifier.height(18.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Button(
-                                        onClick = { showForcePushConfirmDialog = false },
-                                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF374151), contentColor = Color.White),
-                                        shape = RoundedCornerShape(6.dp),
-                                    ) {
-                                        Text(stringResource("common_cancel"), fontSize = 12.sp)
-                                    }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Button(
-                                        onClick = {
-                                            showForcePushConfirmDialog = false
-                                            onForcePushCurrentPosition?.invoke()
-                                        },
-                                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFB45309), contentColor = Color.White),
-                                        shape = RoundedCornerShape(6.dp),
-                                    ) {
-                                        Text(stringResource("settings_supabase_force_push_confirm_button"), fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(16.dp))
                 Divider(color = Color(0xFF3E3E42))
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1381,6 +1261,132 @@ fun SettingsDialog(
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF3A82F6), contentColor = Color.White),
                     ) {
                         Text(stringResource("common_done"), fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+
+        // These confirmation dialogs must be direct children of the outer
+        // fillMaxSize() Box, not nested inside the fixed-width Surface above.
+        // Nested there, their own fillMaxSize() Box is measured against the
+        // Surface's wrap-content Column instead of the whole screen, so
+        // instead of a centered overlay it renders as an oversized block at
+        // the bottom of the settings content.
+        if (showRegenConfirmDialog) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.75f))
+                    .clickable { showRegenConfirmDialog = false },
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .width(400.dp)
+                        .clickable(enabled = false) {},
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF221515),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444)),
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = stringResource("settings_supabase_regenerate_warning_title"),
+                            color = Color(0xFFFCA5A5),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = stringResource("settings_supabase_regenerate_warning_desc"),
+                            color = Color(0xFFE5E7EB),
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Button(
+                                onClick = { showRegenConfirmDialog = false },
+                                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF374151), contentColor = Color.White),
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
+                                Text(stringResource("common_cancel"), fontSize = 12.sp)
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Button(
+                                onClick = {
+                                    showRegenConfirmDialog = false
+                                    onRegenerateSecret?.invoke()
+                                },
+                                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFDC2626), contentColor = Color.White),
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
+                                Text(stringResource("settings_supabase_regenerate_confirm"), fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showForcePushConfirmDialog) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.75f))
+                    .clickable { showForcePushConfirmDialog = false },
+                contentAlignment = Alignment.Center,
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .width(400.dp)
+                        .clickable(enabled = false) {},
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF221515),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFB45309)),
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = stringResource("settings_supabase_force_push_confirm_title"),
+                            color = Color(0xFFFCD34D),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = stringResource("settings_supabase_force_push_confirm_desc"),
+                            color = Color(0xFFE5E7EB),
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Button(
+                                onClick = { showForcePushConfirmDialog = false },
+                                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF374151), contentColor = Color.White),
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
+                                Text(stringResource("common_cancel"), fontSize = 12.sp)
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Button(
+                                onClick = {
+                                    showForcePushConfirmDialog = false
+                                    onForcePushCurrentPosition?.invoke()
+                                },
+                                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFB45309), contentColor = Color.White),
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
+                                Text(stringResource("settings_supabase_force_push_confirm_button"), fontSize = 12.sp)
+                            }
+                        }
                     }
                 }
             }
