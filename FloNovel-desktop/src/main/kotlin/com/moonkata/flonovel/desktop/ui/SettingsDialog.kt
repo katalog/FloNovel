@@ -566,7 +566,7 @@ fun SettingsDialog(
                                                             .padding(horizontal = 10.dp, vertical = 6.dp),
                                                     ) {
                                                         Text(
-                                                            text = stringResource("settings_font_custom_refresh"),
+                                                            text = stringResource("settings_font_folder_refresh"),
                                                             color = Color(0xFFE5E7EB),
                                                             fontSize = 12.sp,
                                                         )
@@ -688,6 +688,34 @@ fun SettingsDialog(
                                     modifier = Modifier.weight(1f),
                                 )
                             }
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                    }
+
+                    // 3-2. Live Typography Preview Box (directly below Font & Weight)
+                    item {
+                        SettingSectionTitle(stringResource("settings_preview_title"))
+                        val themeColors = ReaderColors.forName(currentSettings.theme)
+                        val previewStyle = TextStyle(
+                            color = themeColors.text,
+                            fontSize = currentSettings.fontSizeSp.sp,
+                            lineHeight = (currentSettings.fontSizeSp * currentSettings.lineHeightMultiplier).sp,
+                            letterSpacing = currentSettings.letterSpacing.sp,
+                            fontWeight = FontWeight(currentSettings.fontWeight),
+                            fontFamily = resolveFontFamily(currentSettings.fontFamily),
+                            lineBreak = ReaderTextLayout.READER_LINE_BREAK,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(themeColors.background, RoundedCornerShape(6.dp))
+                                .border(1.dp, Color(0xFF4A4A50), RoundedCornerShape(6.dp))
+                                .padding(14.dp),
+                        ) {
+                            Text(
+                                text = stringResource("settings_preview_sample_text"),
+                                style = previewStyle,
+                            )
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -901,34 +929,6 @@ fun SettingsDialog(
                                     modifier = Modifier.width(60.dp),
                                 )
                             }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // 13. Live Preview Box
-                    item {
-                        SettingSectionTitle(stringResource("settings_preview_title"))
-                        val themeColors = ReaderColors.forName(currentSettings.theme)
-                        val previewStyle = TextStyle(
-                            color = themeColors.text,
-                            fontSize = currentSettings.fontSizeSp.sp,
-                            lineHeight = (currentSettings.fontSizeSp * currentSettings.lineHeightMultiplier).sp,
-                            letterSpacing = currentSettings.letterSpacing.sp,
-                            fontWeight = FontWeight(currentSettings.fontWeight),
-                            fontFamily = resolveFontFamily(currentSettings.fontFamily),
-                            lineBreak = ReaderTextLayout.READER_LINE_BREAK,
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(themeColors.background, RoundedCornerShape(6.dp))
-                                .border(1.dp, Color(0xFF4A4A50), RoundedCornerShape(6.dp))
-                                .padding(14.dp),
-                        ) {
-                            Text(
-                                text = stringResource("settings_preview_sample_text"),
-                                style = previewStyle,
-                            )
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }

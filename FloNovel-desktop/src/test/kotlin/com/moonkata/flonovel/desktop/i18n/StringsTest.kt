@@ -101,4 +101,60 @@ class StringsTest {
             Strings.setLocale(originalLocale)
         }
     }
+
+    @Test
+    fun testFontCustomizationStringsParityAndSwitching() {
+        val originalLocale = Strings.currentLocale
+        try {
+            val fontKeys = listOf(
+                "settings_font_weight_title",
+                "settings_font_weight_300",
+                "settings_font_weight_350",
+                "settings_font_weight_400",
+                "settings_font_weight_500",
+                "settings_font_weight_700",
+                "settings_font_tab_recommended",
+                "settings_font_tab_custom",
+                "settings_font_tab_system",
+                "settings_font_folder_open",
+                "settings_font_folder_refresh",
+                "settings_font_folder_hint",
+                "settings_font_search_hint",
+                "settings_font_custom_empty",
+                "settings_font_category_serif",
+                "settings_font_category_sans",
+                "settings_font_category_latin",
+                "settings_preview_title",
+                "settings_preview_sample_text",
+            )
+
+            // Test Korean
+            Strings.applyLanguage("KO")
+            for (key in fontKeys) {
+                val value = Strings.get(key)
+                assertFalse(value.startsWith("!"), "Key '$key' missing in Korean: $value")
+                assertTrue(value.isNotBlank(), "Key '$key' blank in Korean")
+            }
+            assertEquals("폰트 굵기 (Weight)", Strings.get("settings_font_weight_title"))
+            assertEquals("추천 글꼴", Strings.get("settings_font_tab_recommended"))
+            assertTrue(Strings.get("settings_preview_sample_text").contains("The quick brown fox"))
+            assertTrue(Strings.get("settings_preview_sample_text").contains("1234567890"))
+            assertTrue(Strings.get("settings_preview_sample_text").contains("달빛이"))
+
+            // Test English
+            Strings.applyLanguage("EN")
+            for (key in fontKeys) {
+                val value = Strings.get(key)
+                assertFalse(value.startsWith("!"), "Key '$key' missing in English: $value")
+                assertTrue(value.isNotBlank(), "Key '$key' blank in English")
+            }
+            assertEquals("Font Weight", Strings.get("settings_font_weight_title"))
+            assertEquals("Recommended", Strings.get("settings_font_tab_recommended"))
+            assertTrue(Strings.get("settings_preview_sample_text").contains("The quick brown fox"))
+            assertTrue(Strings.get("settings_preview_sample_text").contains("1234567890"))
+            assertTrue(Strings.get("settings_preview_sample_text").contains("달빛이"))
+        } finally {
+            Strings.setLocale(originalLocale)
+        }
+    }
 }
