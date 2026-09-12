@@ -128,6 +128,43 @@ class ReadingPositionSyncClientTest {
     }
 
     @Test
+    fun s10_delete_sends_delete_request_scoped_to_relative_path() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        val client = createClient()
+        val result = client.delete("Fantasy/Novel1.txt")
+
+        assertTrue(result, "204 response should mean successful delete")
+        val request = server.takeRequest()
+        assertEquals("DELETE", request.method)
+        assertEquals(apiKey, request.getHeader("apikey"))
+        assertEquals(secret, request.getHeader("x-flonovel-secret"))
+        assertNull(request.getHeader("Authorization"), "Authorization header must NEVER be set")
+        assertTrue(request.path?.contains("relative_path=eq.Fantasy%2FNovel1.txt") == true, "delete must scope to the relative_path")
+    }
+
+    @Test
+    fun s11_delete_failure_does_not_throw_and_records_error() = runBlocking {
+        // Use an isolated server so shutting it down here doesn't collide with
+        // the shared `server`'s own shutdown in tearDown() (double-shutdown of
+        // the same MockWebServer crashes the test worker silently).
+        val deadServer = MockWebServer()
+        deadServer.start()
+        val client = ReadingPositionSyncClient(
+            baseUrl = deadServer.url("").toString(),
+            publishableKey = apiKey,
+            sharedSecret = secret,
+        )
+        deadServer.shutdown()
+
+        val result = client.delete("novels/novel.txt")
+
+        assertFalse(result, "Delete should return false on network error without throwing")
+        assertNotNull(client.lastSyncError, "Sync error should be recorded")
+        Unit
+    }
+
+    @Test
     fun s9_unverified_secret_prevents_requests_from_being_sent() = runBlocking {
         val tempFile = Files.createTempFile("test_credentials", ".json")
         try {

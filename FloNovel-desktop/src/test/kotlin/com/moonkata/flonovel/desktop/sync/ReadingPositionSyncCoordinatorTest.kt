@@ -128,4 +128,70 @@ class ReadingPositionSyncCoordinatorTest {
         coordinator.triggerFetch(force = false)?.join()
         assertEquals(2, server.requestCount, "A4: Request should be sent after cooldown has passed")
     }
+
+    @Test
+    fun f1_forcePush_deletes_then_inserts_to_bypass_max_wins_clamp() = runBlocking {
+        // DELETE succeeds, then upsert (POST) succeeds
+        server.enqueue(MockResponse().setResponseCode(204))
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{}"))
+
+        val coordinator = createCoordinator()
+        coordinator.currentAnchor = 250
+        coordinator.currentBookKey = "novel.txt"
+        coordinator.currentEncoding = "UTF-8"
+
+        val outcome = coordinator.forcePush()
+
+        assertEquals(2, server.requestCount, "F1: forcePush must send exactly DELETE then POST")
+        val deleteRequest = server.takeRequest()
+        assertEquals("DELETE", deleteRequest.method)
+        val insertRequest = server.takeRequest()
+        assertEquals("POST", insertRequest.method)
+
+        assertEquals(ForcePushOutcome.Success(250), outcome)
+        assertEquals(250, coordinator.lastPushedOffset, "F1: lastPushedOffset must reflect the force-pushed value")
+    }
+
+    @Test
+    fun f2_forcePush_returns_noBookOpen_when_no_book_is_open() = runBlocking {
+        val coordinator = createCoordinator()
+
+        val outcome = coordinator.forcePush()
+
+        assertEquals(ForcePushOutcome.NoBookOpen, outcome)
+        assertEquals(0, server.requestCount, "F2: No request should be sent when no book is open")
+    }
+
+    @Test
+    fun f3_forcePush_returns_syncNotAvailable_when_secret_unverified() = runBlocking {
+        credentialsStore.save(
+            Credentials(
+                cachedSupabaseSecret = "secret_valid_123",
+                verifiedSupabaseSecret = null, // unverified
+            )
+        )
+        val coordinator = createCoordinator()
+        coordinator.currentBookKey = "novel.txt"
+        coordinator.currentAnchor = 100
+
+        val outcome = coordinator.forcePush()
+
+        assertEquals(ForcePushOutcome.SyncNotAvailable, outcome)
+        assertEquals(0, server.requestCount, "F3: No request should be sent when secret is unverified")
+    }
+
+    @Test
+    fun f4_forcePush_reports_failure_when_delete_fails() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(500).setBody("boom"))
+
+        val coordinator = createCoordinator()
+        coordinator.currentAnchor = 100
+        coordinator.currentBookKey = "novel.txt"
+
+        val outcome = coordinator.forcePush()
+
+        assertEquals(1, server.requestCount, "F4: upsert must not be attempted when delete fails")
+        assert(outcome is ForcePushOutcome.Failure) { "F4: Failure must be surfaced when delete fails" }
+        assertNull(coordinator.lastPushedOffset, "F4: lastPushedOffset must not be updated on failure")
+    }
 }

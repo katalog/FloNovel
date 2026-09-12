@@ -98,6 +98,31 @@ class ReadingPositionSyncClient(
         }
     }
 
+    /**
+     * Deletes the row for relativePath. Used only for an explicit user-triggered
+     * force-push: the server trigger clamps char_offset to greatest(new, old) on
+     * UPDATE, so a normal upsert can never lower a bad remote value. Deleting first
+     * makes the follow-up upsert a fresh INSERT, which the clamp does not apply to.
+     */
+    suspend fun delete(relativePath: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val encoded = URLEncoder.encode(relativePath, "UTF-8")
+            val url = java.net.URI.create("$restBase?relative_path=eq.$encoded").toURL()
+            val connection = openConnection(url, "DELETE")
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                val err = connection.errorStream?.bufferedReader()?.readText()
+                lastSyncError = "HTTP $code" + (if (!err.isNullOrBlank()) ": $err" else "")
+                false
+            } else {
+                connection.inputStream.use { it.readBytes() }
+                true
+            }
+        }.onFailure {
+            lastSyncError = "${it.javaClass.simpleName}: ${it.message}"
+        }.getOrDefault(false)
+    }
+
     suspend fun testConnection(): Boolean = withContext(Dispatchers.IO) {
         lastTestConnectionError = if (baseUrl.isBlank() || publishableKey.isBlank()) {
             "SUPABASE_URL / PUBLISHABLE_KEY is empty"
