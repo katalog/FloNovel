@@ -252,5 +252,38 @@ class SettingsInvarianceTest {
         assertEquals(targetProgress, navigator.progress())
         assertEquals(targetAnchor, newState.layout.primaryPane.startOffset)
     }
+
+    @Test
+    fun u6_changingFontWeight_strictlyPreservesAnchorAndProgress() {
+        val text = makeSampleText(150)
+        val measurer = createTextMeasurer()
+        val initialStyle = TextStyle(fontSize = 18.sp, lineHeight = 26.sp, fontWeight = androidx.compose.ui.text.font.FontWeight(400))
+        val initialFitter = ComposeTextFitter(text, measurer, initialStyle)
+
+        val spec = ViewportSpec(widthPx = 600, heightPx = 500, paneMode = PaneMode.ONE)
+        val navigator = ReaderNavigator(text.length, initialFitter, spec, initialAnchor = 500)
+
+        val targetAnchor = navigator.anchor
+        val targetProgress = navigator.progress()
+
+        // Changing font weight to 700 (Bold)
+        val boldStyle = TextStyle(fontSize = 18.sp, lineHeight = 26.sp, fontWeight = androidx.compose.ui.text.font.FontWeight(700))
+        val boldFitter = ComposeTextFitter(text, measurer, boldStyle)
+        val newState = navigator.onLayoutKeyChanged(spec, boldFitter)
+
+        // CRITICAL INVARIANT: Anchor and progress MUST NOT CHANGE
+        assertEquals(targetAnchor, navigator.anchor, "Anchor must NEVER change when font weight changes")
+        assertEquals(targetAnchor, newState.anchor)
+        assertEquals(targetProgress, navigator.progress(), "Raw progress ratio must remain identical")
+        assertEquals(targetAnchor, newState.layout.primaryPane.startOffset)
+    }
+
+    @Test
+    fun viewSettings_fontWeightSerializationRoundTrip() {
+        val settings = ViewSettings(fontWeight = 500)
+        val json = settings.toJsonObject()
+        val restored = ViewSettings.fromJsonObject(json)
+        assertEquals(500, restored.fontWeight)
+    }
 }
 

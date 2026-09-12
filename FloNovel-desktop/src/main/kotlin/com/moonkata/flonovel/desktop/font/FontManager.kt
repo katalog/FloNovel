@@ -33,6 +33,13 @@ data class FontState(
     val status: FontStatus,
 )
 
+data class CustomFont(
+    val displayName: String,
+    val familyName: String,
+    val fileName: String,
+    val filePath: Path,
+)
+
 /**
  * Resolves catalog entries against what is actually available.
  *
@@ -45,8 +52,85 @@ data class FontState(
  */
 object FontManager {
 
-    /** configDir()/fonts — where Group A downloads land. */
+    /** configDir()/fonts — where Group A downloads land and user custom fonts reside. */
     fun fontsDir(): Path = configDir().resolve("fonts")
+
+    /**
+     * Opens the fonts folder in the OS file manager (Explorer, Finder, etc.).
+     */
+    fun openFontsFolder(fontsDir: Path = fontsDir()): Boolean {
+        return try {
+            Files.createDirectories(fontsDir)
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                Desktop.getDesktop().open(fontsDir.toFile())
+                true
+            } else {
+                false
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
+     * Scans [fontsDir] for custom font files (.ttf, .otf) not part of the standard catalog.
+     */
+    fun customFonts(fontsDir: Path = fontsDir()): List<CustomFont> {
+        if (!Files.isDirectory(fontsDir)) return emptyList()
+        val catalogFileNames = FontCatalog.fonts.map { it.fileName.lowercase() }.toSet()
+        val results = mutableListOf<CustomFont>()
+        try {
+            Files.list(fontsDir).use { stream ->
+                stream.filter { file ->
+                    val name = file.fileName.toString().lowercase()
+                    (name.endsWith(".ttf") || name.endsWith(".otf")) && !name.endsWith(".part")
+                }.forEach { file ->
+                    val fileName = file.fileName.toString()
+                    if (fileName.lowercase() !in catalogFileNames && Files.size(file) > 0) {
+                        var familyName = fileName.substringBeforeLast('.')
+                        try {
+                            val skiaTypeface = org.jetbrains.skia.FontMgr.default.makeFromFile(file.toString(), 0)
+                            if (skiaTypeface != null && skiaTypeface.familyName.isNotBlank()) {
+                                familyName = skiaTypeface.familyName
+                            }
+                        } catch (_: Throwable) {}
+                        results.add(
+                            CustomFont(
+                                displayName = familyName,
+                                familyName = familyName,
+                                fileName = fileName,
+                                filePath = file,
+                            )
+                        )
+                    }
+                }
+            }
+        } catch (_: Throwable) {}
+        return results.sortedBy { it.displayName.lowercase() }
+    }
+
+    /**
+     * Finds a font file on disk matching [familyName] (catalog downloaded font or custom font).
+     */
+    fun findFontFile(familyName: String, fontsDir: Path = fontsDir()): Path? {
+        val trimmed = familyName.trim()
+        if (trimmed.isBlank() || !Files.isDirectory(fontsDir)) return null
+
+        // 1. Catalog font matching
+        val catalogEntry = FontCatalog.fonts.firstOrNull { it.familyName.equals(trimmed, ignoreCase = true) }
+        if (catalogEntry != null && catalogEntry.fileName.isNotBlank()) {
+            val file = fontsDir.resolve(catalogEntry.fileName)
+            if (Files.isRegularFile(file) && Files.size(file) > 0) return file
+        }
+
+        // 2. Custom font matching
+        val custom = customFonts(fontsDir).firstOrNull {
+            it.familyName.equals(trimmed, ignoreCase = true) ||
+            it.fileName.equals(trimmed, ignoreCase = true) ||
+            it.fileName.substringBeforeLast('.').equals(trimmed, ignoreCase = true)
+        }
+        return custom?.filePath
+    }
 
     /**
      * Family names the OS knows about. Passed in so tests can supply a fixed

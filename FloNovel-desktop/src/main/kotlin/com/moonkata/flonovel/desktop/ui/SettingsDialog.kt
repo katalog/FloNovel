@@ -47,6 +47,11 @@ import kotlin.math.roundToInt
 import com.moonkata.flonovel.desktop.font.FontManager
 import com.moonkata.flonovel.desktop.font.FontState
 import com.moonkata.flonovel.desktop.font.FontStatus
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
+import com.moonkata.flonovel.desktop.font.FontCategory
+import com.moonkata.flonovel.desktop.font.CustomFont
 import com.moonkata.flonovel.desktop.library.KeymapSettings
 import com.moonkata.flonovel.desktop.library.ViewSettings
 import java.awt.GraphicsEnvironment
@@ -75,27 +80,16 @@ fun getAvailableSystemFonts(): List<String> {
     return listOf("system") + sorted
 }
 
-/**
- * Settings dialog overlay for FloNovel.
- *
- * Requirements (T-09):
- * - Font family, font size, theme 6 types (WARM_IVORY, SEPIA_CREAM, DARK_NAVY, SOFT_GRAY, COOL_LIGHT, SOFT_DARK_BROWN),
- *   line height multiplier, letter spacing, margins (horizontal, top, bottom).
- * - Changes are reflected immediately upon adjustment.
- * - Changing settings MUST NEVER modify the reading position anchor or progress percentage.
- *
- * Fonts (T-32): a curated catalog of 13 entries, not every family the OS reports.
- * Each entry is one of three kinds — see [com.moonkata.flonovel.desktop.font.FontSource]:
- *   Download      → we fetch it ourselves ("받기" / "Download")
- *   OfficialPage  → vendor has no direct URL; we open their page ("사이트 열기" / "Open site")
- *   SystemOnly    → bundled with the OS; never downloadable
- * Only installed fonts are selectable: picking one we cannot render would
- * silently fall back to the default and look like a bug.
- */
 enum class SettingsTab {
     VIEW,
     SHORTCUTS,
     SYNC,
+}
+
+enum class FontPickerTab {
+    RECOMMENDED, // 추천 글꼴
+    CUSTOM,      // 사용자 글꼴
+    SYSTEM,      // 시스템 글꼴
 }
 
 @Composable
@@ -125,6 +119,12 @@ fun SettingsDialog(
 ) {
     var currentTab by remember { mutableStateOf(initialTab) }
     var fontDropdownOpen by remember { mutableStateOf(false) }
+    var fontPickerTab by remember { mutableStateOf(FontPickerTab.RECOMMENDED) }
+    var fontCategoryFilter by remember { mutableStateOf<FontCategory?>(null) }
+    var systemFontSearchQuery by remember { mutableStateOf("") }
+    var customFontsTick by remember { mutableStateOf(0) }
+    val customFonts = remember(customFontsTick, fontDropdownOpen) { FontManager.customFonts() }
+    val allSystemFonts = remember { getAvailableSystemFonts().filter { it != "system" } }
     var showRegenConfirmDialog by remember { mutableStateOf(false) }
     var recordingAction by remember { mutableStateOf<String?>(null) }
     val focusRequester = remember { FocusRequester() }
@@ -350,7 +350,7 @@ fun SettingsDialog(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    // 3. Font Family Selection — curated catalog, not every system font.
+                    // 3. Font Family Selection — curated catalog, custom fonts, system fonts.
                     item {
                         SettingSectionTitle(stringResource("settings_font_family_title"))
                         Box(
@@ -380,86 +380,313 @@ fun SettingsDialog(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = 300.dp),
+                                    .heightIn(max = 340.dp),
                                 shape = RoundedCornerShape(6.dp),
                                 color = Color(0xFF2C2C30),
                                 elevation = 8.dp,
                             ) {
-                                LazyColumn {
-                                    // "System default" stays available as an escape hatch.
-                                    item {
-                                        FontRow(
-                                            label = stringResource("common_system_default"),
-                                            statusText = "",
-                                            statusColor = Color(0xFF888888),
-                                            selected = currentSettings.fontFamily.isBlank(),
-                                            note = "",
-                                            actionLabel = null,
-                                            onSelect = {
-                                                onSettingsChanged(currentSettings.copy(fontFamily = ""))
-                                                fontDropdownOpen = false
-                                            },
-                                            onAction = null,
-                                        )
+                                Column {
+                                    // 3 Tabs: Recommended, Custom, System
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Color(0xFF232326))
+                                            .padding(4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        listOf(
+                                            FontPickerTab.RECOMMENDED to stringResource("settings_font_tab_recommended"),
+                                            FontPickerTab.CUSTOM to stringResource("settings_font_tab_custom"),
+                                            FontPickerTab.SYSTEM to stringResource("settings_font_tab_system"),
+                                        ).forEach { (tab, title) ->
+                                            val isTabSelected = fontPickerTab == tab
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .background(
+                                                        if (isTabSelected) Color(0xFF3B82F6) else Color.Transparent,
+                                                        RoundedCornerShape(4.dp),
+                                                    )
+                                                    .clickable { fontPickerTab = tab }
+                                                    .padding(vertical = 6.dp),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Text(
+                                                    text = title,
+                                                    color = if (isTabSelected) Color.White else Color(0xFF9CA3AF),
+                                                    fontSize = 12.sp,
+                                                    fontWeight = if (isTabSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                                )
+                                            }
+                                        }
                                     }
 
-                                    items(fontStates) { state ->
-                                        val font = state.font
-                                        val busy = downloadingFamily == font.familyName
-                                        val installed = state.status == FontStatus.INSTALLED
-                                        FontRow(
-                                            label = font.displayName,
-                                            statusText = when {
-                                                busy -> stringResource("settings_font_status_downloading", (downloadProgress * 100).toInt())
-                                                installed -> stringResource("settings_font_status_installed")
-                                                state.status == FontStatus.DOWNLOADABLE -> stringResource("settings_font_status_downloadable")
-                                                state.status == FontStatus.MANUAL_INSTALL -> stringResource("settings_font_status_manual_install")
-                                                else -> stringResource("settings_font_status_not_found")
-                                            },
-                                            statusColor = when {
-                                                busy -> Color(0xFF5B9BD5)
-                                                installed -> Color(0xFF6BBF6B)
-                                                state.status == FontStatus.UNAVAILABLE -> Color(0xFF777777)
-                                                else -> Color(0xFFAAAAAA)
-                                            },
-                                            selected = currentSettings.fontFamily.equals(font.familyName, ignoreCase = true),
-                                            note = if (installed) "" else font.note,
-                                            actionLabel = when {
-                                                busy -> null
-                                                installed -> null
-                                                state.status == FontStatus.DOWNLOADABLE -> stringResource("settings_font_action_download")
-                                                state.status == FontStatus.MANUAL_INSTALL -> stringResource("settings_font_action_open_site")
-                                                else -> null
-                                            },
-                                            // Only installed fonts are selectable — picking one we
-                                            // cannot render would silently fall back to the default.
-                                            onSelect = if (installed) {
-                                                {
-                                                    onSettingsChanged(currentSettings.copy(fontFamily = font.familyName))
-                                                    fontDropdownOpen = false
+                                    when (fontPickerTab) {
+                                        FontPickerTab.RECOMMENDED -> {
+                                            // Category filter chips
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            ) {
+                                                listOf(
+                                                    null to stringResource("common_all"),
+                                                    FontCategory.SERIF to stringResource("settings_font_category_serif"),
+                                                    FontCategory.SANS to stringResource("settings_font_category_sans"),
+                                                    FontCategory.LATIN to stringResource("settings_font_category_latin"),
+                                                ).forEach { (cat, label) ->
+                                                    val isCatSelected = fontCategoryFilter == cat
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .background(
+                                                                if (isCatSelected) Color(0xFF4B5563) else Color(0xFF1F2937),
+                                                                RoundedCornerShape(4.dp),
+                                                            )
+                                                            .clickable { fontCategoryFilter = cat }
+                                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    ) {
+                                                        Text(
+                                                            text = label,
+                                                            color = if (isCatSelected) Color.White else Color(0xFF9CA3AF),
+                                                            fontSize = 11.sp,
+                                                        )
+                                                    }
                                                 }
-                                            } else {
-                                                null
-                                            },
-                                            onAction = when (state.status) {
-                                                FontStatus.DOWNLOADABLE -> ({ onDownloadFont?.invoke(font) })
-                                                FontStatus.MANUAL_INSTALL -> ({ FontManager.openOfficialPage(font) })
-                                                else -> null
-                                            },
-                                        )
-                                    }
+                                            }
+                                            Divider(color = Color(0xFF3E3E42))
 
-                                    if (fontError != null) {
-                                        item {
-                                            Text(
-                                                text = fontError,
-                                                color = Color(0xFFE57373),
-                                                fontSize = 12.sp,
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                            )
+                                            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
+                                                if (fontCategoryFilter == null) {
+                                                    item {
+                                                        FontRow(
+                                                            label = stringResource("common_system_default"),
+                                                            statusText = "",
+                                                            statusColor = Color(0xFF888888),
+                                                            selected = currentSettings.fontFamily.isBlank(),
+                                                            note = "",
+                                                            actionLabel = null,
+                                                            categoryTag = null,
+                                                            onSelect = {
+                                                                onSettingsChanged(currentSettings.copy(fontFamily = ""))
+                                                                fontDropdownOpen = false
+                                                            },
+                                                            onAction = null,
+                                                        )
+                                                    }
+                                                }
+
+                                                val filteredStates = fontStates.filter {
+                                                    fontCategoryFilter == null || it.font.category == fontCategoryFilter
+                                                }
+                                                items(filteredStates) { state ->
+                                                    val font = state.font
+                                                    val busy = downloadingFamily == font.familyName
+                                                    val installed = state.status == FontStatus.INSTALLED
+                                                    val catTag = when (font.category) {
+                                                        FontCategory.SERIF -> stringResource("settings_font_category_serif")
+                                                        FontCategory.SANS -> stringResource("settings_font_category_sans")
+                                                        FontCategory.LATIN -> stringResource("settings_font_category_latin")
+                                                    }
+                                                    FontRow(
+                                                        label = font.displayName,
+                                                        statusText = when {
+                                                            busy -> stringResource("settings_font_status_downloading", (downloadProgress * 100).toInt())
+                                                            installed -> stringResource("settings_font_status_installed")
+                                                            state.status == FontStatus.DOWNLOADABLE -> stringResource("settings_font_status_downloadable")
+                                                            state.status == FontStatus.MANUAL_INSTALL -> stringResource("settings_font_status_manual_install")
+                                                            else -> stringResource("settings_font_status_not_found")
+                                                        },
+                                                        statusColor = when {
+                                                            busy -> Color(0xFF5B9BD5)
+                                                            installed -> Color(0xFF6BBF6B)
+                                                            state.status == FontStatus.UNAVAILABLE -> Color(0xFF777777)
+                                                            else -> Color(0xFFAAAAAA)
+                                                        },
+                                                        selected = currentSettings.fontFamily.equals(font.familyName, ignoreCase = true),
+                                                        note = if (installed) "" else font.note,
+                                                        actionLabel = when {
+                                                            busy -> null
+                                                            installed -> null
+                                                            state.status == FontStatus.DOWNLOADABLE -> stringResource("settings_font_action_download")
+                                                            state.status == FontStatus.MANUAL_INSTALL -> stringResource("settings_font_action_open_site")
+                                                            else -> null
+                                                        },
+                                                        categoryTag = catTag,
+                                                        onSelect = if (installed) {
+                                                            {
+                                                                onSettingsChanged(currentSettings.copy(fontFamily = font.familyName))
+                                                                fontDropdownOpen = false
+                                                            }
+                                                        } else null,
+                                                        onAction = when (state.status) {
+                                                            FontStatus.DOWNLOADABLE -> ({ onDownloadFont?.invoke(font) })
+                                                            FontStatus.MANUAL_INSTALL -> ({ FontManager.openOfficialPage(font) })
+                                                            else -> null
+                                                        },
+                                                    )
+                                                }
+
+                                                if (fontError != null) {
+                                                    item {
+                                                        Text(
+                                                            text = fontError,
+                                                            color = Color(0xFFE57373),
+                                                            fontSize = 12.sp,
+                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        FontPickerTab.CUSTOM -> {
+                                            Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .background(Color(0xFF0284C7), RoundedCornerShape(4.dp))
+                                                            .clickable { FontManager.openFontsFolder() }
+                                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                    ) {
+                                                        Text(
+                                                            text = stringResource("settings_font_folder_open"),
+                                                            color = Color.White,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Medium,
+                                                        )
+                                                    }
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .background(Color(0xFF374151), RoundedCornerShape(4.dp))
+                                                            .clickable { customFontsTick++ }
+                                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                                    ) {
+                                                        Text(
+                                                            text = stringResource("settings_font_custom_refresh"),
+                                                            color = Color(0xFFE5E7EB),
+                                                            fontSize = 12.sp,
+                                                        )
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Text(
+                                                    text = stringResource("settings_font_folder_hint"),
+                                                    color = Color(0xFF9CA3AF),
+                                                    fontSize = 11.sp,
+                                                )
+                                            }
+                                            Divider(color = Color(0xFF3E3E42))
+                                            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
+                                                if (customFonts.isEmpty()) {
+                                                    item {
+                                                        Text(
+                                                            text = stringResource("settings_font_custom_empty"),
+                                                            color = Color(0xFF6B7280),
+                                                            fontSize = 12.sp,
+                                                            modifier = Modifier.padding(16.dp),
+                                                        )
+                                                    }
+                                                } else {
+                                                    items(customFonts) { cf ->
+                                                        FontRow(
+                                                            label = cf.familyName,
+                                                            statusText = cf.fileName,
+                                                            statusColor = Color(0xFF888888),
+                                                            selected = currentSettings.fontFamily.equals(cf.familyName, ignoreCase = true),
+                                                            note = "",
+                                                            actionLabel = null,
+                                                            categoryTag = null,
+                                                            onSelect = {
+                                                                onSettingsChanged(currentSettings.copy(fontFamily = cf.familyName))
+                                                                fontDropdownOpen = false
+                                                            },
+                                                            onAction = null,
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        FontPickerTab.SYSTEM -> {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(8.dp)
+                                                    .background(Color(0xFF1F2937), RoundedCornerShape(4.dp))
+                                                    .border(1.dp, Color(0xFF374151), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            ) {
+                                                if (systemFontSearchQuery.isEmpty()) {
+                                                    Text(
+                                                        text = stringResource("settings_font_search_hint"),
+                                                        color = Color(0xFF6B7280),
+                                                        fontSize = 12.sp,
+                                                    )
+                                                }
+                                                BasicTextField(
+                                                    value = systemFontSearchQuery,
+                                                    onValueChange = { systemFontSearchQuery = it },
+                                                    textStyle = TextStyle(color = Color.White, fontSize = 12.sp),
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    singleLine = true,
+                                                )
+                                            }
+                                            Divider(color = Color(0xFF3E3E42))
+                                            val filteredSystemFonts = remember(allSystemFonts, systemFontSearchQuery) {
+                                                val query = systemFontSearchQuery.trim()
+                                                if (query.isEmpty()) allSystemFonts
+                                                else allSystemFonts.filter { it.contains(query, ignoreCase = true) }
+                                            }
+                                            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
+                                                items(filteredSystemFonts) { sysFont ->
+                                                    FontRow(
+                                                        label = sysFont,
+                                                        statusText = "",
+                                                        statusColor = Color.Transparent,
+                                                        selected = currentSettings.fontFamily.equals(sysFont, ignoreCase = true),
+                                                        note = "",
+                                                        actionLabel = null,
+                                                        categoryTag = null,
+                                                        onSelect = {
+                                                            onSettingsChanged(currentSettings.copy(fontFamily = sysFont))
+                                                            fontDropdownOpen = false
+                                                        },
+                                                        onAction = null,
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    // 3-1. Font Weight (300, 350, 400, 500, 700)
+                    item {
+                        SettingSectionTitle(stringResource("settings_font_weight_title"))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            listOf(
+                                300 to stringResource("settings_font_weight_300"),
+                                350 to stringResource("settings_font_weight_350"),
+                                400 to stringResource("settings_font_weight_400"),
+                                500 to stringResource("settings_font_weight_500"),
+                                700 to stringResource("settings_font_weight_700"),
+                            ).forEach { (weight, label) ->
+                                val selected = currentSettings.fontWeight == weight
+                                ThemeButton(
+                                    name = label,
+                                    selected = selected,
+                                    onClick = { onSettingsChanged(currentSettings.copy(fontWeight = weight)) },
+                                    modifier = Modifier.weight(1f),
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
@@ -674,6 +901,34 @@ fun SettingsDialog(
                                     modifier = Modifier.width(60.dp),
                                 )
                             }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    // 13. Live Preview Box
+                    item {
+                        SettingSectionTitle(stringResource("settings_preview_title"))
+                        val themeColors = ReaderColors.forName(currentSettings.theme)
+                        val previewStyle = TextStyle(
+                            color = themeColors.text,
+                            fontSize = currentSettings.fontSizeSp.sp,
+                            lineHeight = (currentSettings.fontSizeSp * currentSettings.lineHeightMultiplier).sp,
+                            letterSpacing = currentSettings.letterSpacing.sp,
+                            fontWeight = FontWeight(currentSettings.fontWeight),
+                            fontFamily = resolveFontFamily(currentSettings.fontFamily),
+                            lineBreak = ReaderTextLayout.READER_LINE_BREAK,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(themeColors.background, RoundedCornerShape(6.dp))
+                                .border(1.dp, Color(0xFF4A4A50), RoundedCornerShape(6.dp))
+                                .padding(14.dp),
+                        ) {
+                            Text(
+                                text = stringResource("settings_preview_sample_text"),
+                                style = previewStyle,
+                            )
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -1151,6 +1406,7 @@ private fun FontRow(
     selected: Boolean,
     note: String,
     actionLabel: String?,
+    categoryTag: String? = null,
     onSelect: (() -> Unit)?,
     onAction: (() -> Unit)?,
 ) {
@@ -1166,15 +1422,30 @@ private fun FontRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = label,
-                color = when {
-                    selected -> Color(0xFF5B9BD5)
-                    onSelect != null -> Color.White
-                    else -> Color(0xFF999999)
-                },
-                fontSize = 13.sp,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f, fill = false),
+            ) {
+                Text(
+                    text = label,
+                    color = when {
+                        selected -> Color(0xFF5B9BD5)
+                        onSelect != null -> Color.White
+                        else -> Color(0xFF999999)
+                    },
+                    fontSize = 13.sp,
+                )
+                if (!categoryTag.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF3F3F46), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 5.dp, vertical = 2.dp),
+                    ) {
+                        Text(text = categoryTag, color = Color(0xFFD4D4D8), fontSize = 10.sp)
+                    }
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (statusText.isNotBlank()) {
                     Text(text = statusText, color = statusColor, fontSize = 11.sp)

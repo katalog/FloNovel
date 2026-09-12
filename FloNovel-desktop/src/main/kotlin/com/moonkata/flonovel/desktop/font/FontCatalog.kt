@@ -40,12 +40,19 @@ sealed class FontSource {
  * so a partial file is never treated as installed. Empty for fonts we never
  * write to disk (Group B and C).
  */
+enum class FontCategory {
+    SERIF, // 바탕체 / 명조
+    SANS,  // 고딕체
+    LATIN, // 영문 / 기타
+}
+
 data class CatalogFont(
     val displayName: String,
     val familyName: String,
     val fileName: String,
     val source: FontSource,
     val license: String,
+    val category: FontCategory = FontCategory.SERIF,
     /** Why a font is not directly downloadable. Shown in the UI. */
     val note: String = "",
 )
@@ -53,31 +60,15 @@ data class CatalogFont(
 /**
  * The curated font list shown in Settings — 13 entries in three groups.
  *
- * ── Group A — direct download (6) ──────────────────────────────────────────
- * Every URL below was verified on 2026-09-08 by fetching the leading bytes and
- * checking the file magic (00010000 = TTF, 4F54544F = OTF, 504B0304 = ZIP),
- * with a deliberately invalid URL as a control to confirm what failure looks
- * like. URLs live here alone so a future breakage is a one-place edit.
+ * ── Group A — direct download (7) ──────────────────────────────────────────
+ * Direct URLs verified to fetch font bytes (TTF/OTF/ZIP).
  *
- * ⚠️ Do NOT use `https://fonts.google.com/download?family=X`. That is the web
- * page, not a download endpoint: it returns 200 with `text/html` for ANY family
- * name, including ones that do not exist. An earlier revision of this file used
- * it for six fonts and would have silently saved 193 KB of HTML as `.ttf`. The
- * correct source for Google Fonts files is the `google/fonts` repository.
- *
- * ── Group C — official page only (4) ──────────────────────────────────────
- * Naver (나눔바른고딕 · 마루부리), the Korean Publishers Association
- * (KoPubWorld 바탕체) and RIDI (리디바탕) distribute through web pages or
- * sign-up forms with no stable direct URL. Both `google/fonts` and the `naver`
- * GitHub organisation were searched on 2026-09-08 — none of the four is there.
- *
- * Third-party mirrors (e.g. `fonts-archive` repos) are deliberately NOT used: they
- * are personal repositories rather than vendor distribution, and can disappear
- * or serve altered files.
+ * ── Group C — official page only (3) ──────────────────────────────────────
+ * Naver (나눔바른고딕), the Korean Publishers Association (KoPubWorld 바탕체)
+ * and RIDI (리디바탕).
  *
  * ── Group B — system-only (3) ─────────────────────────────────────────────
- * Georgia / Palatino Linotype / MS Gothic ship with Windows or macOS under
- * commercial licenses. Shown when installed, otherwise reported as unavailable.
+ * Georgia / Palatino Linotype / MS Gothic.
  */
 object FontCatalog {
 
@@ -101,6 +92,10 @@ object FontCatalog {
     private const val CHARIS_SIL_URL =
         "https://software.sil.org/downloads/r/charis/CharisSIL-6.200.zip"
 
+    /** Naver MaruBuri official GitHub release. ZIP → MaruBuri-Regular.ttf */
+    private const val MARU_BURI_URL =
+        "https://github.com/naver/maruburi/releases/download/v1.004/MaruBuri-v1.004.zip"
+
     // ── Group C pages — manual install ─────────────────────────────────────
 
     private const val NAVER_FONT_PAGE = "https://hangeul.naver.com/font"
@@ -120,6 +115,7 @@ object FontCatalog {
                 zipEntryPattern = "public/static/Pretendard-Regular.otf",
             ),
             license = "OFL 1.1",
+            category = FontCategory.SANS,
         ),
 
         CatalogFont(
@@ -128,6 +124,7 @@ object FontCatalog {
             fileName = "NotoSansKR-Variable.ttf",
             source = FontSource.Download(url = NOTO_SANS_KR_URL),
             license = "OFL 1.1",
+            category = FontCategory.SANS,
         ),
 
         CatalogFont(
@@ -136,6 +133,7 @@ object FontCatalog {
             fileName = "NanumGothic-Regular.ttf",
             source = FontSource.Download(url = NANUM_GOTHIC_URL),
             license = "OFL 1.1",
+            category = FontCategory.SANS,
         ),
 
         CatalogFont(
@@ -144,6 +142,19 @@ object FontCatalog {
             fileName = "KoPubBatang-Regular.ttf",
             source = FontSource.Download(url = KOPUB_BATANG_URL),
             license = "OFL 1.1 (google/fonts 동봉 OFL.txt)",
+            category = FontCategory.SERIF,
+        ),
+
+        CatalogFont(
+            displayName = "마루부리 (MaruBuri)",
+            familyName = "MaruBuri",
+            fileName = "MaruBuri-Regular.ttf",
+            source = FontSource.Download(
+                url = MARU_BURI_URL,
+                zipEntryPattern = "MaruBuri-Regular.ttf",
+            ),
+            license = "네이버 마루부리 라이선스 (OFL)",
+            category = FontCategory.SERIF,
         ),
 
         CatalogFont(
@@ -152,6 +163,7 @@ object FontCatalog {
             fileName = "EBGaramond-Variable.ttf",
             source = FontSource.Download(url = EB_GARAMOND_URL),
             license = "OFL 1.1",
+            category = FontCategory.LATIN,
         ),
 
         CatalogFont(
@@ -163,11 +175,10 @@ object FontCatalog {
                 zipEntryPattern = "CharisSIL-Regular.ttf",
             ),
             license = "OFL 1.1",
+            category = FontCategory.LATIN,
         ),
 
         // ── Group C — official page only ───────────────────────────────────
-        // No stable direct URL. We open the vendor page; the user installs the
-        // font and the app detects it on the next check.
 
         CatalogFont(
             displayName = "나눔바른고딕",
@@ -175,15 +186,7 @@ object FontCatalog {
             fileName = "",
             source = FontSource.OfficialPage(NAVER_FONT_PAGE),
             license = "네이버 나눔글꼴 라이선스",
-            note = "네이버가 웹페이지로만 배포합니다. 내려받아 설치하면 앱이 인식합니다.",
-        ),
-
-        CatalogFont(
-            displayName = "마루부리 (MaruBuri)",
-            familyName = "MaruBuri",
-            fileName = "",
-            source = FontSource.OfficialPage(NAVER_FONT_PAGE),
-            license = "네이버 마루부리 라이선스",
+            category = FontCategory.SANS,
             note = "네이버가 웹페이지로만 배포합니다. 내려받아 설치하면 앱이 인식합니다.",
         ),
 
@@ -193,6 +196,7 @@ object FontCatalog {
             fileName = "",
             source = FontSource.OfficialPage(KOPUS_FONT_PAGE),
             license = "대한출판문화협회",
+            category = FontCategory.SERIF,
             note = "신청 양식을 거쳐야 내려받을 수 있습니다. 설치하면 앱이 인식합니다.",
         ),
 
@@ -202,6 +206,7 @@ object FontCatalog {
             fileName = "",
             source = FontSource.OfficialPage(RIDI_FONT_PAGE),
             license = "RIDI 자체 약관 (OFL 아님)",
+            category = FontCategory.SERIF,
             note = "직접 내려받는 주소가 없고 재배포 조건이 확인되지 않아 자동 설치를 지원하지 않습니다.",
         ),
 
@@ -214,6 +219,7 @@ object FontCatalog {
             fileName = "",
             source = FontSource.SystemOnly,
             license = "상용 (Monotype) — 재배포 불가",
+            category = FontCategory.LATIN,
             note = "Windows·macOS 기본 포함 폰트입니다.",
         ),
 
@@ -223,6 +229,7 @@ object FontCatalog {
             fileName = "",
             source = FontSource.SystemOnly,
             license = "상용 (Monotype) — 재배포 불가",
+            category = FontCategory.LATIN,
             note = "Windows 기본 포함 폰트입니다. macOS 에서는 'Palatino'.",
         ),
 
@@ -232,6 +239,7 @@ object FontCatalog {
             fileName = "",
             source = FontSource.SystemOnly,
             license = "상용 (Ricoh) — 재배포 불가",
+            category = FontCategory.SANS,
             note = "Windows 기본 포함 폰트입니다.",
         ),
     )

@@ -110,23 +110,19 @@ fun resolveFontFamily(fontFamilyName: String): FontFamily {
         return FontFamily.Default
     }
 
-    // (1) A font we downloaded. Matching on the catalog family name keeps the
-    // stored setting identical whether the font came from us or from the OS.
+    // (1) A font file on disk (downloaded catalog font or user custom font)
     try {
-        val entry = FontCatalog.fonts.firstOrNull { it.familyName.equals(trimmed, ignoreCase = true) }
-        if (entry != null) {
-            val file = FontManager.downloadedFile(entry)
-            if (file != null) {
-                val loaded = FontMgr.default.makeFromFile(file.toString(), 0)
-                if (loaded != null) return FontFamily(Typeface(loaded))
-            }
+        val file = FontManager.findFontFile(trimmed)
+        if (file != null) {
+            val loaded = FontMgr.default.makeFromFile(file.toString(), 0)
+            if (loaded != null) return FontFamily(Typeface(loaded))
         }
     } catch (e: Throwable) {
-        System.err.println("Failed to load downloaded font '$trimmed': ${e.message}")
+        System.err.println("Failed to load font file for '$trimmed': ${e.message}")
         // fall through to the system lookup
     }
 
-    // (2) A family the OS provides.
+    // (2) A family the OS provides (Windows installed fonts).
     return try {
         val skiaTypeface = FontMgr.default.matchFamilyStyle(trimmed, FontStyle.NORMAL)
         if (skiaTypeface != null) {
@@ -433,6 +429,7 @@ fun ReaderView(
         viewSettings.lineHeightMultiplier,
         viewSettings.letterSpacing,
         viewSettings.emptyLineSpacingRatio,
+        viewSettings.fontWeight,
         resolvedFontFamily,
         colors.text,
     ) {

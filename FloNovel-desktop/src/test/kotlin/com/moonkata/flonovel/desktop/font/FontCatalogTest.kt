@@ -207,4 +207,32 @@ class FontCatalogTest {
         val dir = Files.createTempDirectory("fonts-none")
         assertEquals(FontCatalog.fonts.size, FontManager.states(emptySet(), dir).size)
     }
+
+    @Test
+    fun maruBuriIsDownloadableGroupA() {
+        val maruBuri = FontCatalog.fonts.firstOrNull { it.familyName == "MaruBuri" }
+        assertNotNull(maruBuri, "MaruBuri must be present in FontCatalog")
+        assertTrue(maruBuri.source is FontSource.Download, "MaruBuri must be in Group A (Download)")
+        val download = maruBuri.source as FontSource.Download
+        assertEquals("MaruBuri-Regular.ttf", maruBuri.fileName)
+        assertEquals("MaruBuri-Regular.ttf", download.zipEntryPattern)
+        assertTrue(download.url.startsWith("https://github.com/naver/maruburi/releases/download/"))
+        assertEquals(FontCategory.SERIF, maruBuri.category)
+    }
+
+    @Test
+    fun everyFontHasCategory() {
+        FontCatalog.fonts.forEach { font ->
+            assertNotNull(font.category, "${font.displayName} must have a valid FontCategory")
+        }
+    }
+
+    @Test
+    fun categoryDistributionHasSerifSansAndLatin() {
+        val categories = FontCatalog.fonts.map { it.category }.toSet()
+        assertTrue(categories.contains(FontCategory.SERIF), "Catalog must contain SERIF fonts")
+        assertTrue(categories.contains(FontCategory.SANS), "Catalog must contain SANS fonts")
+        assertTrue(categories.contains(FontCategory.LATIN), "Catalog must contain LATIN fonts")
+    }
 }
+

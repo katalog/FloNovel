@@ -20,6 +20,7 @@ data class ViewSettings(
     val alignChapterToLeftPane: Boolean = false,
     val uiScale: Float = 1.0f,
     val emptyLineSpacingRatio: Float = 1.0f,
+    val fontWeight: Int = 400,
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -39,6 +40,7 @@ data class ViewSettings(
         obj.put("alignChapterToLeftPane", alignChapterToLeftPane)
         obj.put("uiScale", uiScale)
         obj.put("emptyLineSpacingRatio", emptyLineSpacingRatio)
+        obj.put("fontWeight", fontWeight)
         return obj
     }
 
@@ -62,6 +64,7 @@ data class ViewSettings(
                 alignChapterToLeftPane = obj.optBoolean("alignChapterToLeftPane", false),
                 uiScale = obj.optDouble("uiScale", 1.0).toFloat(),
                 emptyLineSpacingRatio = obj.optDouble("emptyLineSpacingRatio", 1.0).toFloat(),
+                fontWeight = obj.optInt("fontWeight", 400),
             )
         }
     }
