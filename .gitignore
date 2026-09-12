@@ -33,3 +33,7 @@ keystore.properties
 /.work/
 desk*.bat
 and*.bat
+chapter-marker-ref.bat
+FloNovel-desktop/chapter-marker-ref.bat
+FloNovel-desktop/marker-check.ps1
+FloNovel-desktop/markers-result.txt
