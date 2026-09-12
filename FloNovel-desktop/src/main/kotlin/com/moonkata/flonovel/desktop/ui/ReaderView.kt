@@ -428,7 +428,6 @@ fun ReaderView(
         viewSettings.fontSizeSp,
         viewSettings.lineHeightMultiplier,
         viewSettings.letterSpacing,
-        viewSettings.emptyLineSpacingRatio,
         viewSettings.fontWeight,
         resolvedFontFamily,
         colors.text,
@@ -609,8 +608,8 @@ fun ReaderView(
         val contentHeightPx = (totalHeightPx - topMarginPx - bottomMarginPx).coerceAtLeast(1)
         val gutterPx = with(density) { viewSettings.gutter.dp.roundToPx() }
 
-        val fitter = remember(fullText, textMeasurer, style, viewSettings.emptyLineSpacingRatio) {
-            ComposeTextFitter(fullText, textMeasurer, style, viewSettings.emptyLineSpacingRatio)
+        val fitter = remember(fullText, textMeasurer, style) {
+            ComposeTextFitter(fullText, textMeasurer, style)
         }
 
         // Layout specification for 1-pane or 2-pane
@@ -668,14 +667,12 @@ fun ReaderView(
                     }
                 }
 
-                val displayText = remember(pageText, primaryPane.startOffset, activeChapterOffsets, colors.chapterHighlight, viewSettings.fontSizeSp, viewSettings.emptyLineSpacingRatio) {
+                val displayText = remember(pageText, primaryPane.startOffset, activeChapterOffsets, colors.chapterHighlight) {
                     ReaderTextLayout.buildAnnotatedText(
                         rawText = pageText,
                         baseOffset = primaryPane.startOffset,
                         chapterOffsets = activeChapterOffsets,
                         chapterHighlightColor = colors.chapterHighlight,
-                        fontSizeSp = viewSettings.fontSizeSp,
-                        emptyLineSpacingRatio = viewSettings.emptyLineSpacingRatio,
                     )
                 }
 
@@ -702,15 +699,13 @@ fun ReaderView(
                     }
                 }
 
-                val leftDisplay = remember(leftText, leftSpan.startOffset, activeChapterOffsets, colors.chapterHighlight, viewSettings.fontSizeSp, viewSettings.emptyLineSpacingRatio) {
+                val leftDisplay = remember(leftText, leftSpan.startOffset, activeChapterOffsets, colors.chapterHighlight) {
                     if (leftText.isNotEmpty()) {
                         ReaderTextLayout.buildAnnotatedText(
                             rawText = leftText,
                             baseOffset = leftSpan.startOffset,
                             chapterOffsets = activeChapterOffsets,
                             chapterHighlightColor = colors.chapterHighlight,
-                            fontSizeSp = viewSettings.fontSizeSp,
-                            emptyLineSpacingRatio = viewSettings.emptyLineSpacingRatio,
                         )
                     } else {
                         AnnotatedString("")
@@ -725,15 +720,13 @@ fun ReaderView(
                     }
                 }
 
-                val rightDisplay = remember(rightText, rightSpan?.startOffset, activeChapterOffsets, colors.chapterHighlight, viewSettings.fontSizeSp, viewSettings.emptyLineSpacingRatio) {
+                val rightDisplay = remember(rightText, rightSpan?.startOffset, activeChapterOffsets, colors.chapterHighlight) {
                     if (rightSpan != null && rightText.isNotEmpty()) {
                         ReaderTextLayout.buildAnnotatedText(
                             rawText = rightText,
                             baseOffset = rightSpan.startOffset,
                             chapterOffsets = activeChapterOffsets,
                             chapterHighlightColor = colors.chapterHighlight,
-                            fontSizeSp = viewSettings.fontSizeSp,
-                            emptyLineSpacingRatio = viewSettings.emptyLineSpacingRatio,
                         )
                     } else {
                         AnnotatedString("")

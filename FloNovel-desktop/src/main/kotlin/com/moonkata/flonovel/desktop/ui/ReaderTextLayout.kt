@@ -8,7 +8,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.moonkata.flonovel.desktop.library.ViewSettings
 
@@ -30,10 +29,11 @@ object ReaderTextLayout {
     /**
      * Resolves the base [TextStyle] for reader measurement and rendering.
      *
-     * Line height is ALWAYS explicitly computed as (fontSizeSp * lineHeightMultiplier).sp
-     * regardless of emptyLineSpacingRatio. Previously, emptyLineSpacingRatio < 1.0f
-     * set lineHeight to Unspecified, which fatally disabled lineHeightMultiplier in the
-     * actual reader view for any user who configured empty line spacing.
+     * Line height is explicitly computed as (fontSizeSp * lineHeightMultiplier).sp. A separate
+     * "empty line spacing" ratio was tried here and rolled back: shrinking only blank lines
+     * requires this lineHeight to be Unspecified (Compose clamps every line, blank or not, to
+     * whatever height is set), which cancels lineHeightMultiplier for the whole document. The two
+     * settings could not coexist under this API, so only the one that controls every line stayed.
      */
     fun resolveTextStyle(
         viewSettings: ViewSettings,
@@ -117,8 +117,7 @@ object ReaderTextLayout {
     }
 
     /**
-     * Builds an [AnnotatedString] that applies word-joiner line breaking, chapter highlighting,
-     * and empty line scaling.
+     * Builds an [AnnotatedString] that applies word-joiner line breaking and chapter highlighting.
      *
      * Used by BOTH [ComposeTextFitter] (measurement) and [ReaderView] (rendering) to guarantee
      * 100% pixel-perfect matching.
@@ -128,57 +127,27 @@ object ReaderTextLayout {
         baseOffset: Int = 0,
         chapterOffsets: Set<Int> = emptySet(),
         chapterHighlightColor: Color = Color.Transparent,
-        fontSizeSp: Float = 20.0f,
-        emptyLineSpacingRatio: Float = 1.0f,
-        lineHeightMultiplier: Float = 1.6f,
     ): AnnotatedString {
         if (rawText.isEmpty()) return AnnotatedString("")
 
         val hasChapters = chapterOffsets.isNotEmpty() && chapterHighlightColor != Color.Transparent
-        val hasEmptyLineScaling = emptyLineSpacingRatio < 0.999f
 
         val processedText = addWordJoiners(rawText)
 
-        if (!hasChapters && !hasEmptyLineScaling) {
+        if (!hasChapters) {
             return AnnotatedString(processedText)
         }
-
-        val emptyFontSize = (fontSizeSp * emptyLineSpacingRatio).coerceAtLeast(3f).sp
 
         return buildAnnotatedString {
             append(processedText)
 
-            // 1. Chapter highlighting (background color ONLY, no bold to prevent glyph width shifts)
-            if (hasChapters) {
-                for (offset in chapterOffsets) {
-                    val rawLocal = offset - baseOffset
-                    if (rawLocal < 0 || rawLocal >= rawText.length) continue
-                    val processedLocal = mapRawOffsetToProcessed(rawText, rawLocal)
-                    val end = processedText.indexOf('\n', processedLocal).let { if (it == -1) processedText.length else it }
-                    addStyle(SpanStyle(background = chapterHighlightColor), processedLocal, end)
-                }
-            }
-
-            // 2. Empty line scaling
-            if (hasEmptyLineScaling) {
-                var idx = 0
-                while (idx < processedText.length) {
-                    val nl = processedText.indexOf('\n', idx)
-                    if (nl == -1) break
-
-                    var nextNl = nl + 1
-                    while (nextNl < processedText.length && (processedText[nextNl] == ' ' || processedText[nextNl] == '\t' || processedText[nextNl] == '\r')) {
-                        nextNl++
-                    }
-
-                    if (nextNl < processedText.length && processedText[nextNl] == '\n') {
-                        // Empty line found between nl+1 and nextNl+1 inclusive
-                        addStyle(SpanStyle(fontSize = emptyFontSize), nl + 1, nextNl + 1)
-                        idx = nextNl + 1
-                    } else {
-                        idx = nl + 1
-                    }
-                }
+            // Chapter highlighting (background color ONLY, no bold to prevent glyph width shifts)
+            for (offset in chapterOffsets) {
+                val rawLocal = offset - baseOffset
+                if (rawLocal < 0 || rawLocal >= rawText.length) continue
+                val processedLocal = mapRawOffsetToProcessed(rawText, rawLocal)
+                val end = processedText.indexOf('\n', processedLocal).let { if (it == -1) processedText.length else it }
+                addStyle(SpanStyle(background = chapterHighlightColor), processedLocal, end)
             }
         }
     }

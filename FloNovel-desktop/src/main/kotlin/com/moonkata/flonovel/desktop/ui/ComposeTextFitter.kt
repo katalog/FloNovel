@@ -18,7 +18,6 @@ class ComposeTextFitter(
     val fullText: String,
     val textMeasurer: TextMeasurer,
     val style: TextStyle,
-    val emptyLineSpacingRatio: Float = 1.0f,
 ) : TextFitter {
 
     override fun fitForward(from: Int, widthPx: Int, heightPx: Int): Int {
@@ -29,11 +28,7 @@ class ComposeTextFitter(
 
         // Estimated initial chunk to avoid measuring entire novel texts at once
         val fontSizeVal = if (style.fontSize.value > 0f) style.fontSize.value else 16f
-        val lineHeightVal = if (style.lineHeight.value > 0f) {
-            style.lineHeight.value
-        } else {
-            fontSizeVal * 1.5f * emptyLineSpacingRatio.coerceIn(0.5f, 1.0f)
-        }
+        val lineHeightVal = if (style.lineHeight.value > 0f) style.lineHeight.value else fontSizeVal * 1.5f
         val approxCharsPerLine = (widthPx / (fontSizeVal * 0.6f)).toInt().coerceAtLeast(10)
         val approxLines = (heightPx / lineHeightVal).toInt().coerceAtLeast(1)
         var chunk = (approxCharsPerLine * approxLines * 2).coerceAtLeast(500)
@@ -42,11 +37,7 @@ class ComposeTextFitter(
 
         while (true) {
             val candidateText = fullText.substring(from, candidateEnd)
-            val candidateAnnotated = ReaderTextLayout.buildAnnotatedText(
-                rawText = candidateText,
-                fontSizeSp = fontSizeVal,
-                emptyLineSpacingRatio = emptyLineSpacingRatio,
-            )
+            val candidateAnnotated = ReaderTextLayout.buildAnnotatedText(rawText = candidateText)
             val layout = textMeasurer.measure(
                 text = candidateAnnotated,
                 style = style,

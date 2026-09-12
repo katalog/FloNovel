@@ -110,7 +110,6 @@ class StorageRoundTripTest {
                     maxLineWidth = 1000,
                     alignChapterToLeftPane = false,
                     uiScale = 1.3f,
-                    emptyLineSpacingRatio = 0.8f,
                 ),
                 chapter = ChapterSettings(
                     enabledPresets = listOf("hash", "num_dot"),
@@ -147,7 +146,6 @@ class StorageRoundTripTest {
             assertEquals("NanumGothic", reloaded.view.fontFamily)
             assertEquals("DARK", reloaded.view.theme)
             assertEquals(1.3f, reloaded.view.uiScale)
-            assertEquals(0.8f, reloaded.view.emptyLineSpacingRatio)
             assertEquals(listOf("hash", "num_dot"), reloaded.chapter.enabledPresets)
             assertEquals(listOf("^제\\s*\\d+\\s*막"), reloaded.chapter.customPatterns)
             assertEquals(5, reloaded.chapter.jumpDivisions)
