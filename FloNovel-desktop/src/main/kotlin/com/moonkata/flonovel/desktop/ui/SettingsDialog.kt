@@ -110,6 +110,9 @@ fun SettingsDialog(
     onStartDropboxLogin: (() -> Unit)? = null,
     onRegenerateSecret: (() -> Unit)? = null,
     onTestSupabaseConnection: (() -> Unit)? = null,
+    onForcePushCurrentPosition: (() -> Unit)? = null,
+    forcePushInProgress: Boolean = false,
+    forcePushResultMessage: String? = null,
     fontStates: List<FontState> = emptyList(),
     downloadingFamily: String? = null,
     downloadProgress: Float = 0f,
@@ -126,6 +129,7 @@ fun SettingsDialog(
     val customFonts = remember(customFontsTick, fontDropdownOpen) { FontManager.customFonts() }
     val allSystemFonts = remember { getAvailableSystemFonts().filter { it != "system" } }
     var showRegenConfirmDialog by remember { mutableStateOf(false) }
+    var showForcePushConfirmDialog by remember { mutableStateOf(false) }
     var recordingAction by remember { mutableStateOf<String?>(null) }
     val focusRequester = remember { FocusRequester() }
 
@@ -1188,6 +1192,47 @@ fun SettingsDialog(
                                         }
                                     }
                                 }
+
+                                if (onForcePushCurrentPosition != null && isSupabaseVerified) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Divider(color = Color(0xFF2A2A2E))
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                            Text(stringResource("settings_supabase_force_push_title"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                            Text(
+                                                text = stringResource("settings_supabase_force_push_desc"),
+                                                color = Color(0xFF9CA3AF),
+                                                fontSize = 11.sp,
+                                            )
+                                            if (!forcePushResultMessage.isNullOrBlank()) {
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = forcePushResultMessage,
+                                                    color = Color(0xFF9CA3AF),
+                                                    fontSize = 11.sp,
+                                                )
+                                            }
+                                        }
+                                        Button(
+                                            onClick = { showForcePushConfirmDialog = true },
+                                            enabled = !forcePushInProgress,
+                                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFB45309), contentColor = Color.White),
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        ) {
+                                            Text(
+                                                if (forcePushInProgress) stringResource("settings_supabase_force_push_in_progress") else stringResource("settings_supabase_force_push_button"),
+                                                fontSize = 11.sp,
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(12.dp))
@@ -1248,6 +1293,66 @@ fun SettingsDialog(
                                         shape = RoundedCornerShape(6.dp),
                                     ) {
                                         Text(stringResource("settings_supabase_regenerate_confirm"), fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (showForcePushConfirmDialog) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.75f))
+                            .clickable { showForcePushConfirmDialog = false },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .width(400.dp)
+                                .clickable(enabled = false) {},
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF221515),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFB45309)),
+                        ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text(
+                                    text = stringResource("settings_supabase_force_push_confirm_title"),
+                                    color = Color(0xFFFCD34D),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = stringResource("settings_supabase_force_push_confirm_desc"),
+                                    color = Color(0xFFE5E7EB),
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp,
+                                )
+                                Spacer(modifier = Modifier.height(18.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Button(
+                                        onClick = { showForcePushConfirmDialog = false },
+                                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF374151), contentColor = Color.White),
+                                        shape = RoundedCornerShape(6.dp),
+                                    ) {
+                                        Text(stringResource("common_cancel"), fontSize = 12.sp)
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Button(
+                                        onClick = {
+                                            showForcePushConfirmDialog = false
+                                            onForcePushCurrentPosition?.invoke()
+                                        },
+                                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFB45309), contentColor = Color.White),
+                                        shape = RoundedCornerShape(6.dp),
+                                    ) {
+                                        Text(stringResource("settings_supabase_force_push_confirm_button"), fontSize = 12.sp)
                                     }
                                 }
                             }

@@ -78,6 +78,7 @@ import com.moonkata.flonovel.desktop.sync.DropboxClient
 import com.moonkata.flonovel.desktop.sync.DropboxConfig
 import com.moonkata.flonovel.desktop.sync.DropboxOAuth
 import com.moonkata.flonovel.desktop.sync.DropboxSyncEngine
+import com.moonkata.flonovel.desktop.sync.ForcePushOutcome
 import com.moonkata.flonovel.desktop.sync.InitialUploadProgress
 import com.moonkata.flonovel.desktop.sync.ReadingPositionSyncClient
 import com.moonkata.flonovel.desktop.sync.ReadingPositionSyncCoordinator
@@ -125,6 +126,8 @@ fun main(args: Array<String>) {
         }
     }
     var lastSupabaseTestError by remember { mutableStateOf<String?>(null) }
+    var forcePushInProgress by remember { mutableStateOf(false) }
+    var forcePushResultMessage by remember { mutableStateOf<String?>(null) }
 
     var settings by remember {
         val loaded = settingsStore.load()
@@ -595,6 +598,25 @@ fun main(args: Array<String>) {
                         }
                     }
                 },
+                onForcePushCurrentPosition = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        forcePushInProgress = true
+                        forcePushResultMessage = null
+                        when (val outcome = readingSyncCoordinator.forcePush()) {
+                            is ForcePushOutcome.Success ->
+                                forcePushResultMessage = Strings.get("settings_supabase_force_push_success", outcome.charOffset)
+                            is ForcePushOutcome.Failure ->
+                                forcePushResultMessage = Strings.get("settings_supabase_force_push_error", outcome.message)
+                            ForcePushOutcome.NoBookOpen ->
+                                forcePushResultMessage = Strings.get("settings_supabase_force_push_no_book")
+                            ForcePushOutcome.SyncNotAvailable ->
+                                forcePushResultMessage = Strings.get("settings_supabase_sync_no_secret")
+                        }
+                        forcePushInProgress = false
+                    }
+                },
+                forcePushInProgress = forcePushInProgress,
+                forcePushResultMessage = forcePushResultMessage,
                 onRegisterKeyDispatcher = { windowKeyDispatcher = it },
             )
         } else {
