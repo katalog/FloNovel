@@ -126,6 +126,10 @@
     <string name="settings_max_line_width">최대 폭 제한</string>
     <string name="settings_chapter_left_align_title">챕터 시작 좌측 정렬</string>
     <string name="settings_chapter_left_align_desc">2-pane 모드에서 새 챕터를 좌측 pane 시작에 배치 (기본 꺼짐)</string>
+    <string name="settings_eye_strain_title">눈 피로 감소 (20-20-20)</string>
+    <string name="settings_eye_strain_desc">20분마다 화면을 20초간 가리고 휴식을 권장합니다 (기본 꺼짐)</string>
+    <string name="reader_eye_strain_break_title">눈을 쉬어주세요</string>
+    <string name="reader_eye_strain_break_desc">6m(20피트) 정도 떨어진 곳을 바라보세요. 잠시 후 자동으로 뷰어로 돌아갑니다.</string>
     <string name="settings_sync_title">동기화 (Synchronization)</string>
     <string name="settings_dropbox_link_title">Dropbox 연동</string>
     <string name="settings_dropbox_linked">연결됨 (/Apps/FloNovel/)</string>

@@ -20,6 +20,7 @@ data class ViewSettings(
     val alignChapterToLeftPane: Boolean = false,
     val uiScale: Float = 1.0f,
     val fontWeight: Int = 400,
+    val eyeStrainReminderEnabled: Boolean = false,
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -39,6 +40,7 @@ data class ViewSettings(
         obj.put("alignChapterToLeftPane", alignChapterToLeftPane)
         obj.put("uiScale", uiScale)
         obj.put("fontWeight", fontWeight)
+        obj.put("eyeStrainReminderEnabled", eyeStrainReminderEnabled)
         return obj
     }
 
@@ -62,6 +64,7 @@ data class ViewSettings(
                 alignChapterToLeftPane = obj.optBoolean("alignChapterToLeftPane", false),
                 uiScale = obj.optDouble("uiScale", 1.0).toFloat(),
                 fontWeight = obj.optInt("fontWeight", 400),
+                eyeStrainReminderEnabled = obj.optBoolean("eyeStrainReminderEnabled", false),
             )
         }
     }
