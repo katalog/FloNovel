@@ -30,11 +30,10 @@ object ReaderTextLayout {
     /**
      * Resolves the base [TextStyle] for reader measurement and rendering.
      *
-     * When [emptyLineSpacingRatio] == 1.0f (default 100%), strictly preserves the original
-     * lineHeightMultiplier behavior for 100% regression invariance.
-     * When [emptyLineSpacingRatio] < 1.0f, sets lineHeight to [TextUnit.Unspecified] so that
-     * empty lines can be scaled down via [SpanStyle] font-size without being clamped
-     * to the global line height by Skia.
+     * Line height is ALWAYS explicitly computed as (fontSizeSp * lineHeightMultiplier).sp
+     * regardless of emptyLineSpacingRatio. Previously, emptyLineSpacingRatio < 1.0f
+     * set lineHeight to Unspecified, which fatally disabled lineHeightMultiplier in the
+     * actual reader view for any user who configured empty line spacing.
      */
     fun resolveTextStyle(
         viewSettings: ViewSettings,
@@ -43,11 +42,7 @@ object ReaderTextLayout {
     ): TextStyle {
         val fontSize = viewSettings.fontSizeSp.sp
         val letterSpacing = viewSettings.letterSpacing.sp
-        val lineHeight = if (viewSettings.emptyLineSpacingRatio >= 1.0f) {
-            (viewSettings.fontSizeSp * viewSettings.lineHeightMultiplier).sp
-        } else {
-            TextUnit.Unspecified
-        }
+        val lineHeight = (viewSettings.fontSizeSp * viewSettings.lineHeightMultiplier).sp
 
         return TextStyle(
             color = textColor,
@@ -57,6 +52,10 @@ object ReaderTextLayout {
             fontFamily = fontFamily,
             fontWeight = FontWeight(viewSettings.fontWeight),
             lineBreak = READER_LINE_BREAK,
+            lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.None,
+            ),
         )
     }
 
@@ -131,6 +130,7 @@ object ReaderTextLayout {
         chapterHighlightColor: Color = Color.Transparent,
         fontSizeSp: Float = 20.0f,
         emptyLineSpacingRatio: Float = 1.0f,
+        lineHeightMultiplier: Float = 1.6f,
     ): AnnotatedString {
         if (rawText.isEmpty()) return AnnotatedString("")
 

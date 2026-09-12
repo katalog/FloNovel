@@ -29,7 +29,7 @@ class EmptyLineSpacingTest {
     }
 
     @Test
-    fun testResolveTextStyleWhenReduced() {
+    fun testResolveTextStylePreservesLineHeightEvenWhenEmptySpacingReduced() {
         val settings = ViewSettings(
             fontSizeSp = 20f,
             lineHeightMultiplier = 1.5f,
@@ -37,7 +37,7 @@ class EmptyLineSpacingTest {
         )
         val style = ReaderTextLayout.resolveTextStyle(settings, FontFamily.Default)
         assertEquals(20.sp, style.fontSize)
-        assertEquals(TextUnit.Unspecified, style.lineHeight)
+        assertEquals(30.sp, style.lineHeight, "Line height MUST be preserved even when emptyLineSpacingRatio < 1.0f")
     }
 
     @Test
@@ -55,12 +55,6 @@ class EmptyLineSpacingTest {
     @Test
     fun testBuildAnnotatedTextAddsSpansToEmptyLinesWhenReduced() {
         val text = "Line 1\n\nLine 2\n\nLine 3"
-        // In "Line 1\n\nLine 2\n\nLine 3":
-        // Line 1: 0..6 (6 is first \n)
-        // empty 1: 7 is second \n (range 7..8)
-        // Line 2: 8..14 (14 is third \n)
-        // empty 2: 15 is fourth \n (range 15..16)
-        // Line 3: 16..22
         val annotated = ReaderTextLayout.buildAnnotatedText(
             rawText = text,
             fontSizeSp = 20f,
@@ -83,7 +77,7 @@ class EmptyLineSpacingTest {
     }
 
     @Test
-    fun testMeasuredLineHeightsActuallyDecrease() {
+    fun testMeasuredLineHeightsActuallyDecreaseWhenFontMetricsDriveHeight() {
         val measurer = androidx.compose.ui.text.TextMeasurer(
             defaultFontFamilyResolver = createFontFamilyResolver(),
             defaultDensity = Density(1f),
@@ -91,20 +85,16 @@ class EmptyLineSpacingTest {
         )
         val text = "Sentence 1\n\nSentence 2\n\nSentence 3"
 
-        // 1. Measure with 100% spacing (default)
-        val settings100 = ViewSettings(fontSizeSp = 20f, lineHeightMultiplier = 1.5f, emptyLineSpacingRatio = 1.0f)
-        val style100 = ReaderTextLayout.resolveTextStyle(settings100, FontFamily.Default)
+        // Measure without global line-height clamping to verify SpanStyle scaling behavior
+        val baseStyle = TextStyle(fontSize = 20.sp)
         val annotated100 = ReaderTextLayout.buildAnnotatedText(text, fontSizeSp = 20f, emptyLineSpacingRatio = 1.0f)
-        val layout100 = measurer.measure(annotated100, style100, constraints = Constraints(maxWidth = 500))
+        val layout100 = measurer.measure(annotated100, baseStyle, constraints = Constraints(maxWidth = 500))
 
         assertEquals(5, layout100.lineCount)
         val emptyLine1Height100 = layout100.getLineBottom(1) - layout100.getLineTop(1)
 
-        // 2. Measure with 50% spacing
-        val settings50 = ViewSettings(fontSizeSp = 20f, lineHeightMultiplier = 1.5f, emptyLineSpacingRatio = 0.5f)
-        val style50 = ReaderTextLayout.resolveTextStyle(settings50, FontFamily.Default)
         val annotated50 = ReaderTextLayout.buildAnnotatedText(text, fontSizeSp = 20f, emptyLineSpacingRatio = 0.5f)
-        val layout50 = measurer.measure(annotated50, style50, constraints = Constraints(maxWidth = 500))
+        val layout50 = measurer.measure(annotated50, baseStyle, constraints = Constraints(maxWidth = 500))
 
         assertEquals(5, layout50.lineCount)
         val emptyLine1Height50 = layout50.getLineBottom(1) - layout50.getLineTop(1)
@@ -114,7 +104,6 @@ class EmptyLineSpacingTest {
             emptyLine1Height50 < emptyLine1Height100,
             "Expected empty line height at 50% ($emptyLine1Height50) to be smaller than at 100% ($emptyLine1Height100)"
         )
-        // Total height of the entire block should also be smaller
         assertTrue(
             layout50.size.height < layout100.size.height,
             "Expected total block height at 50% (${layout50.size.height}) to be smaller than at 100% (${layout100.size.height})"
@@ -135,13 +124,9 @@ class EmptyLineSpacingTest {
             }
         }
 
-        val settings100 = ViewSettings(fontSizeSp = 20f, lineHeightMultiplier = 1.5f, emptyLineSpacingRatio = 1.0f)
-        val style100 = ReaderTextLayout.resolveTextStyle(settings100, FontFamily.Default)
-        val fitter100 = ComposeTextFitter(text, measurer, style100, emptyLineSpacingRatio = 1.0f)
-
-        val settings50 = ViewSettings(fontSizeSp = 20f, lineHeightMultiplier = 1.5f, emptyLineSpacingRatio = 0.5f)
-        val style50 = ReaderTextLayout.resolveTextStyle(settings50, FontFamily.Default)
-        val fitter50 = ComposeTextFitter(text, measurer, style50, emptyLineSpacingRatio = 0.5f)
+        val baseStyle = TextStyle(fontSize = 20.sp)
+        val fitter100 = ComposeTextFitter(text, measurer, baseStyle, emptyLineSpacingRatio = 1.0f)
+        val fitter50 = ComposeTextFitter(text, measurer, baseStyle, emptyLineSpacingRatio = 0.5f)
 
         val fixedHeightPx = 300
         val end100 = fitter100.fitForward(from = 0, widthPx = 500, heightPx = fixedHeightPx)
