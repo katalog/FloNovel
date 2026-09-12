@@ -673,16 +673,10 @@ fun SettingsDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            listOf(
-                                300 to stringResource("settings_font_weight_300"),
-                                350 to stringResource("settings_font_weight_350"),
-                                400 to stringResource("settings_font_weight_400"),
-                                500 to stringResource("settings_font_weight_500"),
-                                700 to stringResource("settings_font_weight_700"),
-                            ).forEach { (weight, label) ->
+                            listOf(300, 350, 400, 500, 700).forEach { weight ->
                                 val selected = currentSettings.fontWeight == weight
                                 ThemeButton(
-                                    name = label,
+                                    name = weight.toString(),
                                     selected = selected,
                                     onClick = { onSettingsChanged(currentSettings.copy(fontWeight = weight)) },
                                     modifier = Modifier.weight(1f),
@@ -704,6 +698,10 @@ fun SettingsDialog(
                             fontWeight = FontWeight(currentSettings.fontWeight),
                             fontFamily = resolveFontFamily(currentSettings.fontFamily),
                             lineBreak = ReaderTextLayout.READER_LINE_BREAK,
+                            lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                                alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                                trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.None,
+                            ),
                         )
                         Box(
                             modifier = Modifier

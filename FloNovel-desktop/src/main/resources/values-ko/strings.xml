@@ -115,7 +115,7 @@
     <string name="settings_font_category_sans">고딕</string>
     <string name="settings_font_category_latin">영문</string>
     <string name="settings_preview_title">실시간 미리보기</string>
-    <string name="settings_preview_sample_text">The quick brown fox jumps over the lazy dog. (1234567890)\n달빛이 내려앉은 밤하늘 아래, 우리는 책장을 넘기며 새로운 세계로 나아간다.</string>
+    <string name="settings_preview_sample_text">The quick brown fox jumps over the lazy dog. (1234567890)\n달빛이 내려앉은 고요한 밤하늘 아래, 우리는 책장을 넘기며 미지의 세계로 끝없는 여행을 떠난다.\n바람이 불어오고 시간의 물결이 흘러가도, 한 줄의 문장은 영원히 마음에 남아 따뜻한 위로와 깊은 울림을 전해준다.</string>
     <string name="settings_font_size">글자 크기</string>
     <string name="settings_line_height">줄간격</string>
     <string name="settings_empty_line_spacing">빈 줄 간격</string>
