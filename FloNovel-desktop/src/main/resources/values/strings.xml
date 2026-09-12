@@ -150,6 +150,16 @@
     <string name="settings_supabase_regenerate_warning_title">⚠️ Regenerate Supabase Secret</string>
     <string name="settings_supabase_regenerate_warning_desc">Access to existing remote records will be lost. Are you sure you want to generate a new secret?</string>
     <string name="settings_supabase_regenerate_confirm">Confirm regenerate</string>
+    <string name="settings_supabase_force_push_title">Force upload current position</string>
+    <string name="settings_supabase_force_push_desc">Overwrites the remote position with this file\'s current position, bypassing normal conflict rules. Use only when a wrong position got stuck in the cloud.</string>
+    <string name="settings_supabase_force_push_button">Force upload</string>
+    <string name="settings_supabase_force_push_in_progress">Uploading…</string>
+    <string name="settings_supabase_force_push_confirm_title">⚠️ Force upload current position</string>
+    <string name="settings_supabase_force_push_confirm_desc">This deletes the remote record for this file and replaces it with the current position, even if another device saved a more recent position. This cannot be undone. Continue?</string>
+    <string name="settings_supabase_force_push_confirm_button">Force upload</string>
+    <string name="settings_supabase_force_push_success">Uploaded (position %d)</string>
+    <string name="settings_supabase_force_push_error">Upload failed: %s</string>
+    <string name="settings_supabase_force_push_no_book">No book is open</string>
     <string name="settings_reset_defaults">Reset defaults</string>
 
     <!-- Search Dialog -->
