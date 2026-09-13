@@ -933,14 +933,6 @@ fun LibraryView(
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                             )
-                                            Text(
-                                                text = folder.relativePath,
-                                                color = Color(0xFF6B7280),
-                                                fontSize = 12.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.padding(top = 2.dp),
-                                            )
                                         }
                                     }
                                     Text(
@@ -968,14 +960,6 @@ fun LibraryView(
                                                 fontWeight = FontWeight.Medium,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
-                                            )
-                                            Text(
-                                                text = book.relativePath,
-                                                color = Color(0xFF6B7280),
-                                                fontSize = 12.sp,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.padding(top = 2.dp),
                                             )
                                             if (book.hasLowChapterDensity(minChaptersPerMb)) {
                                                 Text(
