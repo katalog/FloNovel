@@ -22,6 +22,7 @@ class KeymapSettingsTest {
         assertEquals("F2", keymap.search)
         assertEquals("F3", keymap.toc)
         assertEquals("F4", keymap.settings)
+        assertEquals("P", keymap.autoPageTurn)
     }
 
     @Test
