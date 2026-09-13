@@ -125,6 +125,7 @@ class ReadingPositionSyncClientTest {
         // Upsert should not throw
         client.upsert("novels/novel.txt", 100, "UTF-8")
         assertNotNull(client.lastSyncError)
+        Unit
     }
 
     @Test
