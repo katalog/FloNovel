@@ -126,7 +126,7 @@
     <string name="settings_pane_ratio_title">좌우 pane 폭 비율</string>
     <string name="settings_max_line_width">최대 폭 제한</string>
     <string name="settings_min_chapters_per_mb">챕터 마커 부족 기준</string>
-    <string name="settings_min_chapters_per_mb_value">MB당 %d개</string>
+    <string name="settings_min_chapters_per_mb_value">%d / MB</string>
     <string name="settings_chapter_left_align_title">챕터 시작 좌측 정렬</string>
     <string name="settings_chapter_left_align_desc">2-pane 모드에서 새 챕터를 좌측 pane 시작에 배치 (기본 꺼짐)</string>
     <string name="settings_eye_strain_title">눈 피로 감소 (20-20-20)</string>
