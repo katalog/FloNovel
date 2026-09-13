@@ -1,6 +1,9 @@
 package com.moonkata.flonovel.desktop.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -35,9 +38,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import com.moonkata.flonovel.desktop.i18n.Strings
 import com.moonkata.flonovel.desktop.i18n.stringResource
 import androidx.compose.ui.input.key.Key
@@ -474,6 +479,25 @@ fun ReaderView(
         currentAnchor = navigator.anchor
     }
 
+    // Page-turn slide animation (1-pane only): remembers the anchor we're turning FROM so
+    // the page being left and the page being arrived at can be stacked and slid past each
+    // other by exactly the pixel amount advance()/retreat() just moved by. Left null for
+    // anything that isn't a contiguous page turn (TOC/search/chapter jump, remote sync
+    // accept) — those keep snapping instantly, since there is no adjacent page to slide in
+    // from. beginPageTurnSlide() must be called BEFORE currentAnchor is updated, since it
+    // reads currentAnchor as the "from" position.
+    var slideFromAnchor by remember { mutableStateOf<Int?>(null) }
+    var slideForward by remember { mutableStateOf(true) }
+    val slideOffsetPx = remember { Animatable(0f) }
+
+    fun beginPageTurnSlide(forward: Boolean) {
+        if (!viewSettings.pageTurnAnimationEnabled || viewSettings.paneMode.equals("TWO", ignoreCase = true)) {
+            return
+        }
+        slideFromAnchor = currentAnchor
+        slideForward = forward
+    }
+
     // Auto page-turn: waits a fixed interval after each page is shown, then advances the
     // same way a spacebar/arrow press would. Restarts whenever the page (currentAnchor)
     // changes, whether from the timer itself, a manual jump, TOC, or search.
@@ -503,6 +527,7 @@ fun ReaderView(
             autoPageTurnScheduler.tick(AUTO_PAGE_TURN_TICK_MS)
             autoPageTurnRemainingRatio = autoPageTurnScheduler.remainingRatio
             if (autoPageTurnScheduler.isReadyToTurn) {
+                beginPageTurnSlide(forward = true)
                 navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
                 currentAnchor = navigator.anchor
                 onAnchorChanged?.invoke(currentAnchor)
@@ -524,6 +549,7 @@ fun ReaderView(
         if (chapters.isNullOrEmpty()) {
             toastMessage = Strings.get("reader_no_chapter_toast")
             lastChapterJumpOffset = null
+            beginPageTurnSlide(forward = true)
             navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
             currentAnchor = navigator.anchor
             onAnchorChanged?.invoke(currentAnchor)
@@ -536,6 +562,7 @@ fun ReaderView(
             navigator.jumpTo(target)
         } else {
             lastChapterJumpOffset = null
+            beginPageTurnSlide(forward = true)
             navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
         }
         currentAnchor = navigator.anchor
@@ -547,6 +574,7 @@ fun ReaderView(
         if (chapters.isNullOrEmpty()) {
             toastMessage = Strings.get("reader_no_chapter_toast")
             lastChapterJumpOffset = null
+            beginPageTurnSlide(forward = false)
             navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
             currentAnchor = navigator.anchor
             onAnchorChanged?.invoke(currentAnchor)
@@ -559,6 +587,7 @@ fun ReaderView(
             navigator.jumpTo(target)
         } else {
             lastChapterJumpOffset = null
+            beginPageTurnSlide(forward = false)
             navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
         }
         currentAnchor = navigator.anchor
@@ -625,6 +654,9 @@ fun ReaderView(
                     advanceRatio = viewSettings.advanceRatio,
                     onAnchorChanged = { newAnchor ->
                         lastChapterJumpOffset = null
+                        if (newAnchor != currentAnchor) {
+                            beginPageTurnSlide(forward = newAnchor > currentAnchor)
+                        }
                         currentAnchor = newAnchor
                         onAnchorChanged?.invoke(newAnchor)
                     },
@@ -742,14 +774,89 @@ fun ReaderView(
                     )
                 }
 
-                Box(
-                    modifier = contentModifier,
-                    contentAlignment = Alignment.TopStart,
-                ) {
-                    Text(
-                        text = displayText,
-                        style = style,
-                    )
+                val activeSlideFromAnchor = slideFromAnchor
+                if (activeSlideFromAnchor != null && activeSlideFromAnchor != currentAnchor) {
+                    // Half-page slide: the page being left and the page being arrived at are
+                    // stacked in the same box, offset by exactly the pixel distance
+                    // advance()/retreat() just moved the anchor by. Because that distance IS
+                    // "half of what's visible" (or whatever advanceRatio is configured to),
+                    // the tail of the old page is pixel-identical to the head of the new one,
+                    // so the two slide past each other with no seam.
+                    val previousLayout = remember(activeSlideFromAnchor, spec, viewSettings.alignChapterToLeftPane, activeChapterOffsets) {
+                        navigator.layoutFor(
+                            anchor = activeSlideFromAnchor,
+                            spec = spec,
+                            alignChapterToLeftPane = viewSettings.alignChapterToLeftPane,
+                            chapterOffsets = activeChapterOffsets,
+                        )
+                    }
+                    val previousPane = previousLayout.primaryPane
+                    val previousPageText = remember(fullText, previousPane.startOffset, previousPane.endOffset) {
+                        if (previousPane.startOffset < fullText.length) {
+                            fullText.substring(previousPane.startOffset, minOf(previousPane.endOffset, fullText.length))
+                        } else {
+                            ""
+                        }
+                    }
+                    val previousDisplayText = remember(previousPageText, previousPane.startOffset, activeChapterOffsets, colors.chapterHighlight) {
+                        ReaderTextLayout.buildAnnotatedText(
+                            rawText = previousPageText,
+                            baseOffset = previousPane.startOffset,
+                            chapterOffsets = activeChapterOffsets,
+                            chapterHighlightColor = colors.chapterHighlight,
+                        )
+                    }
+
+                    val slidePixels = contentHeightPx * viewSettings.advanceRatio.coerceIn(0.1f, 1.0f)
+                    val turnedForward = slideForward
+
+                    LaunchedEffect(activeSlideFromAnchor, currentAnchor, turnedForward, slidePixels, viewSettings.pageTurnAnimationSpeedMs) {
+                        slideOffsetPx.snapTo(0f)
+                        slideOffsetPx.animateTo(
+                            targetValue = if (turnedForward) -slidePixels else slidePixels,
+                            animationSpec = tween(durationMillis = viewSettings.pageTurnAnimationSpeedMs, easing = FastOutSlowInEasing),
+                        )
+                        slideFromAnchor = null
+                    }
+
+                    Box(
+                        modifier = contentModifier.clipToBounds(),
+                        contentAlignment = Alignment.TopStart,
+                    ) {
+                        // The old and new page always overlap by (1 - advanceRatio) of the
+                        // viewport height while sliding — that's what makes the tail of one
+                        // line up with the head of the other. Text has no opaque background,
+                        // so without one here the overlap shows both pages' text blended
+                        // together instead of the new page cleanly covering the old one.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer { translationY = slideOffsetPx.value }
+                                .background(colors.background),
+                        ) {
+                            Text(text = previousDisplayText, style = style)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    translationY = slideOffsetPx.value + (if (turnedForward) slidePixels else -slidePixels)
+                                }
+                                .background(colors.background),
+                        ) {
+                            Text(text = displayText, style = style)
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = contentModifier,
+                        contentAlignment = Alignment.TopStart,
+                    ) {
+                        Text(
+                            text = displayText,
+                            style = style,
+                        )
+                    }
                 }
             }
 

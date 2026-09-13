@@ -1032,6 +1032,53 @@ fun SettingsDialog(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
+
+                    // 15. Page turn animation (1-pane only, defaults to on / normal speed)
+                    item {
+                        Text(text = stringResource("settings_page_turn_animation_title"), color = Color(0xFFCCCCCC), fontSize = 13.sp)
+                        Text(text = stringResource("settings_page_turn_animation_desc"), color = Color(0xFF888888), fontSize = 11.sp)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            // Full label text describes the option (unlike the short on/off
+                            // toggles above), so each button gets equal weighted width
+                            // instead of a fixed dp guess that clips or wraps the text.
+                            ThemeButton(
+                                name = stringResource("settings_page_turn_animation_off"),
+                                selected = !currentSettings.pageTurnAnimationEnabled,
+                                onClick = { onSettingsChanged(currentSettings.copy(pageTurnAnimationEnabled = false)) },
+                                modifier = Modifier.weight(1f),
+                            )
+                            ThemeButton(
+                                name = stringResource("settings_page_turn_animation_on"),
+                                selected = currentSettings.pageTurnAnimationEnabled,
+                                onClick = { onSettingsChanged(currentSettings.copy(pageTurnAnimationEnabled = true)) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            listOf(
+                                180 to stringResource("settings_page_turn_animation_speed_fast"),
+                                300 to stringResource("settings_page_turn_animation_speed_normal"),
+                                480 to stringResource("settings_page_turn_animation_speed_slow"),
+                            ).forEach { (speedMs, label) ->
+                                val selected = currentSettings.pageTurnAnimationSpeedMs == speedMs
+                                ThemeButton(
+                                    name = label,
+                                    selected = selected,
+                                    onClick = { onSettingsChanged(currentSettings.copy(pageTurnAnimationSpeedMs = speedMs)) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 } else if (currentTab == SettingsTab.SHORTCUTS) {
                     item {
                         SettingSectionTitle(stringResource("settings_shortcuts_title"))

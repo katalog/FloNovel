@@ -142,6 +142,13 @@
     <string name="settings_auto_page_turn_custom_title">Custom interval</string>
     <string name="settings_auto_page_turn_custom_value">%ds</string>
     <string name="reader_auto_page_turn_end_toast">Reached the end of the book. Auto page-turn stopped.</string>
+    <string name="settings_page_turn_animation_title">Page turn animation</string>
+    <string name="settings_page_turn_animation_desc">1-pane only: slides the page by half its height instead of switching instantly (default on)</string>
+    <string name="settings_page_turn_animation_off">Instant</string>
+    <string name="settings_page_turn_animation_on">Half slide</string>
+    <string name="settings_page_turn_animation_speed_fast">Fast</string>
+    <string name="settings_page_turn_animation_speed_normal">Normal</string>
+    <string name="settings_page_turn_animation_speed_slow">Slow</string>
     <string name="settings_sync_title">Synchronization</string>
     <string name="settings_dropbox_link_title">Dropbox link</string>
     <string name="settings_dropbox_linked">Connected (/Apps/FloNovel/)</string>
