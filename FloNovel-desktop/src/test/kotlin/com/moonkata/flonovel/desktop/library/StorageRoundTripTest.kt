@@ -115,6 +115,7 @@ class StorageRoundTripTest {
                     enabledPresets = listOf("hash", "num_dot"),
                     customPatterns = listOf("^제\\s*\\d+\\s*막"),
                     jumpDivisions = 5,
+                    minChaptersPerMb = 15,
                 ),
                 sync = SyncSettings(
                     dropboxLinked = true,
@@ -149,6 +150,7 @@ class StorageRoundTripTest {
             assertEquals(listOf("hash", "num_dot"), reloaded.chapter.enabledPresets)
             assertEquals(listOf("^제\\s*\\d+\\s*막"), reloaded.chapter.customPatterns)
             assertEquals(5, reloaded.chapter.jumpDivisions)
+            assertEquals(15, reloaded.chapter.minChaptersPerMb)
             assertTrue(reloaded.sync.dropboxLinked)
             assertEquals("cursor_abc_123", reloaded.sync.lastCursor)
             assertEquals("novels/소설1.txt", reloaded.lastOpenedBookKey)

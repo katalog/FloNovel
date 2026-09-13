@@ -41,6 +41,7 @@
     <string name="library_dropbox_space_shortage_title">Dropbox low storage (Over 2GB limit)</string>
     <string name="library_dropbox_space_shortage_desc">Failed to upload %d files due to insufficient Dropbox storage space.</string>
     <string name="library_recent_books">Recent books</string>
+    <string name="library_low_chapter_density">Few chapter markers detected</string>
     <string name="library_unread">Unread</string>
     <string name="library_percent_read">%.1f%%</string>
     <string name="library_sort_recent">Recent</string>
@@ -124,6 +125,8 @@
     <string name="settings_gutter">Pane gutter</string>
     <string name="settings_pane_ratio_title">Left/right pane ratio</string>
     <string name="settings_max_line_width">Max line width</string>
+    <string name="settings_min_chapters_per_mb">Low chapter density threshold</string>
+    <string name="settings_min_chapters_per_mb_value">%d / MB</string>
     <string name="settings_chapter_left_align_title">Start chapter at left pane</string>
     <string name="settings_chapter_left_align_desc">In 2-pane mode, always start a new chapter in the left pane (default off)</string>
     <string name="settings_eye_strain_title">Eye strain reminder (20-20-20)</string>

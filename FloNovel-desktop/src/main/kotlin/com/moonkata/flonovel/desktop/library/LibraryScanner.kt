@@ -59,6 +59,20 @@ data class LibraryBookItem(
                 "%.1f MB".format(kb / 1024.0)
             }
         }
+
+    /**
+     * True when the cached chapter count is below [minChaptersPerMb] per megabyte of file size —
+     * a signal that chapter detection likely missed this book's marker style entirely, rather than
+     * the book genuinely having few chapters. `chapterCount < 0` means not yet computed (record
+     * predates this field, or the file is still queued for preprocessing) and is never flagged.
+     */
+    fun hasLowChapterDensity(minChaptersPerMb: Int): Boolean {
+        val count = bookRecord?.chapterCount ?: return false
+        if (count < 0) return false
+        val mb = sizeBytes / 1_048_576.0
+        if (mb <= 0.0) return false
+        return (count / mb) < minChaptersPerMb
+    }
 }
 
 /**

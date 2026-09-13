@@ -201,6 +201,9 @@ class IntakePipelineTest {
             progress = 0.0,
             addedAt = System.currentTimeMillis(),
             preprocessedAt = System.currentTimeMillis(),
+            // Already has a computed chapterCount, i.e. fully migrated -- otherwise reconcile()
+            // would (correctly) re-enqueue it too, per i11_reconciliationBackfillsChapterCountOnLegacyRecords.
+            chapterCount = 1,
         )
         bookStore.addOrUpdate(record3)
         bookStore.flush()
@@ -226,6 +229,60 @@ class IntakePipelineTest {
 
             assertNotNull(bookStore.findByKey(com.moonkata.flonovel.desktop.library.RelativePath.normalize("Fantasy/Korean/novel1.txt")))
             assertNotNull(bookStore.findByKey(com.moonkata.flonovel.desktop.library.RelativePath.normalize("Fantasy/Korean/novel2.txt")))
+        } finally {
+            pipeline.close()
+        }
+    }
+
+    // --- I11: Reconciliation backfills chapterCount on pre-existing records WITHOUT touching
+    //          preprocessedAt/uploadedAt -- otherwise Dropbox's checkIfUploadNeeded would read the
+    //          preprocessedAt bump as "content changed locally" and re-upload every legacy book. ---
+    @Test
+    fun i11_reconciliationBackfillsChapterCountWithoutTriggeringReupload() {
+        val novelFile = homeFolder.resolve("legacy_novel.txt")
+        Files.writeString(novelFile, "Story\n\n## 제1화\ncontent", StandardCharsets.UTF_8)
+
+        // Simulate a record written before chapterCount existed AND already uploaded to Dropbox:
+        // unchanged size/mtime, so the size/preprocessedAt staleness check alone would never
+        // re-enqueue this file -- only the missing chapterCount should trigger anything.
+        // preprocessedAt must be at or after the file's actual on-disk mtime, or the ordinary
+        // size/mtime staleness check (unrelated to chapterCount) would legitimately re-enqueue it.
+        val originalPreprocessedAt = Files.getLastModifiedTime(novelFile).toMillis() + 1000L
+        val legacyRecord = BookRecord(
+            path = novelFile.toAbsolutePath().toString(),
+            key = "legacy_novel.txt",
+            displayName = "legacy_novel",
+            sizeBytes = Files.size(novelFile),
+            totalCharCount = 30,
+            detectedEncoding = "UTF-8",
+            anchor = 0,
+            progress = 0.0,
+            preprocessedAt = originalPreprocessedAt,
+            uploadedAt = originalPreprocessedAt + 1000L,
+            uploadedSize = Files.size(novelFile),
+            chapterCount = -1,
+        )
+        bookStore.addOrUpdate(legacyRecord)
+        bookStore.flush()
+
+        val pipeline = IntakePipeline(
+            homeFolder = homeFolder,
+            bookStore = bookStore,
+            checkIntervalMs = 50L,
+            stableChecksRequired = 1,
+        )
+
+        try {
+            // Backfill happens synchronously inside reconcile(), not via the intake queue, so it
+            // must not be counted as an enqueued (re-preprocessed) file.
+            val enqueuedCount = pipeline.reconcile()
+            assertEquals(0, enqueuedCount, "chapterCount-only backfill must not go through the intake queue")
+
+            val migrated = bookStore.findByKey("legacy_novel.txt")
+            assertNotNull(migrated)
+            assertEquals(1, migrated.chapterCount)
+            assertEquals(originalPreprocessedAt, migrated.preprocessedAt, "Backfill must not touch preprocessedAt")
+            assertEquals(legacyRecord.uploadedAt, migrated.uploadedAt, "Backfill must not touch uploadedAt (would trigger a needless re-upload)")
         } finally {
             pipeline.close()
         }
@@ -300,6 +357,42 @@ class IntakePipelineTest {
             val registered = bookStore.findByKey("safety_test.txt")
             assertNotNull(registered)
             assertTrue(pipeline.failedFiles.none { it.path == novelFile.toAbsolutePath() })
+        } finally {
+            pipeline.close()
+        }
+    }
+
+    // --- I10: chapterCount is computed on first preprocess and recomputed on external edit ---
+    @Test
+    fun i10_chapterCountComputedOnPreprocessAndRecomputedOnModify() {
+        val novelFile = homeFolder.resolve("chapter_count_novel.txt")
+        Files.writeString(novelFile, "제1화 시작\nSome content", StandardCharsets.UTF_8)
+
+        val pipeline = IntakePipeline(
+            homeFolder = homeFolder,
+            bookStore = bookStore,
+            checkIntervalMs = 50L,
+            stableChecksRequired = 1,
+        )
+
+        try {
+            // "제1화 시작" is normalized into a "## " heading by preprocessing, matching the
+            // default hash preset -- so the freshly-registered record must already carry chapterCount = 1.
+            val initial = pipeline.processSingleFile(novelFile)
+            assertNotNull(initial)
+            assertEquals(1, initial.chapterCount, "Chapter count must be computed during initial preprocess")
+
+            // External editor appends two more chapter headings after preprocessing already ran.
+            Thread.sleep(50L)
+            Files.writeString(
+                novelFile,
+                Files.readString(novelFile, StandardCharsets.UTF_8) + "\n\n## 제2화\ncontent\n\n## 제3화\nmore",
+                StandardCharsets.UTF_8,
+            )
+
+            val updated = pipeline.processSingleFile(novelFile, isModifyEvent = true)
+            assertNotNull(updated)
+            assertEquals(3, updated.chapterCount, "Chapter count must be recomputed after an external edit")
         } finally {
             pipeline.close()
         }

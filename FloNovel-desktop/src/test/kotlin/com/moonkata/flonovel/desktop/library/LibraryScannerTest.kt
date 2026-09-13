@@ -261,5 +261,57 @@ class LibraryScannerTest {
             tempDir.toFile().deleteRecursively()
         }
     }
+
+    private fun itemWithChapterCount(sizeBytes: Long, chapterCount: Int): LibraryBookItem {
+        val record = BookRecord(
+            path = "novel.txt",
+            key = "novel.txt",
+            displayName = "novel",
+            sizeBytes = sizeBytes,
+            totalCharCount = 1000,
+            detectedEncoding = "UTF-8",
+            anchor = 0,
+            progress = 0.0,
+            chapterCount = chapterCount,
+        )
+        return LibraryBookItem(
+            file = File("novel.txt"),
+            relativePath = "novel.txt",
+            key = "novel.txt",
+            displayName = "novel",
+            sizeBytes = sizeBytes,
+            lastModified = 0L,
+            bookRecord = record,
+        )
+    }
+
+    @Test
+    fun hasLowChapterDensity_flagsBooksBelowThresholdPerMb() {
+        // 1 MB file with only 3 chapters is well below a 10-per-MB threshold.
+        val item = itemWithChapterCount(sizeBytes = 1_048_576L, chapterCount = 3)
+        assertTrue(item.hasLowChapterDensity(minChaptersPerMb = 10))
+    }
+
+    @Test
+    fun hasLowChapterDensity_doesNotFlagBooksAtOrAboveThreshold() {
+        // Exactly 10 chapters per MB should not be flagged (threshold is a strict "below").
+        val item = itemWithChapterCount(sizeBytes = 1_048_576L, chapterCount = 10)
+        assertFalse(item.hasLowChapterDensity(minChaptersPerMb = 10))
+    }
+
+    @Test
+    fun hasLowChapterDensity_neverFlagsUncomputedChapterCount() {
+        // chapterCount == -1 means "not yet computed" (record predates the field, or the file
+        // is still queued for preprocessing) -- must never be treated as "zero chapters".
+        val item = itemWithChapterCount(sizeBytes = 1_048_576L, chapterCount = -1)
+        assertFalse(item.hasLowChapterDensity(minChaptersPerMb = 10))
+    }
+
+    @Test
+    fun hasLowChapterDensity_scalesThresholdWithFileSize() {
+        // A 3 MB file needs 30 chapters to clear a 10-per-MB threshold; 20 is below it.
+        val item = itemWithChapterCount(sizeBytes = 3 * 1_048_576L, chapterCount = 20)
+        assertTrue(item.hasLowChapterDensity(minChaptersPerMb = 10))
+    }
 }
 

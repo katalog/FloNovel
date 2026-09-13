@@ -4,6 +4,7 @@ import com.moonkata.flonovel.desktop.library.BookRecord
 import com.moonkata.flonovel.desktop.library.BookStore
 import com.moonkata.flonovel.desktop.library.LibraryScanner
 import com.moonkata.flonovel.desktop.library.RelativePath
+import com.moonkata.flonovel.desktop.text.ChapterDetector
 import com.moonkata.flonovel.desktop.text.TextLoader
 import java.io.IOException
 import java.nio.file.FileSystems
@@ -98,6 +99,10 @@ class IntakePipeline(
      * - Found in folder but not in bookStore (or preprocessedAt is null) -> enqueued for intake.
      * - Content modified on disk while app was closed -> enqueued for update.
      * - Discovers files added or deleted while the app was closed.
+     * - A record missing only chapterCount (predates that field, content otherwise unchanged) is
+     *   backfilled directly, NOT through the intake queue: going through the normal update path
+     *   would bump preprocessedAt, which Dropbox's checkIfUploadNeeded reads as "content changed
+     *   locally" and would re-upload every pre-existing book on the next sync for no reason.
      */
     fun reconcile(): Int {
         if (!Files.exists(homeFolder)) return 0
@@ -116,10 +121,27 @@ class IntakePipeline(
                 if (currentSize != record.sizeBytes || lastMod > record.preprocessedAt) {
                     enqueue(item.file.toPath(), isModify = true)
                     enqueuedCount++
+                } else if (record.chapterCount < 0) {
+                    backfillChapterCount(item.file.toPath(), record)
                 }
             }
         }
         return enqueuedCount
+    }
+
+    /**
+     * Computes and stores chapterCount for a record whose content is otherwise unchanged.
+     * Deliberately does not touch preprocessedAt/sizeBytes/totalCharCount/uploadedAt so this
+     * never looks like a content change to sync (see [reconcile]).
+     */
+    private fun backfillChapterCount(path: Path, record: BookRecord) {
+        val count = try {
+            ChapterDetector.detect(TextLoader.load(path).text).size
+        } catch (_: Exception) {
+            return
+        }
+        bookStore.addOrUpdate(record.copy(chapterCount = count))
+        bookStore.flush()
     }
 
     @Volatile
@@ -356,9 +378,12 @@ class IntakePipeline(
                     val lastMod = try { Files.getLastModifiedTime(abs).toMillis() } catch (_: Exception) { 0L }
                     val newPreprocessedAt = maxOf(now, lastMod)
 
+                    val newChapterCount = ChapterDetector.detect(loaded.text).size
+
                     val updatedRecord = existing.copy(
                         sizeBytes = actualSize,
                         totalCharCount = newCharCount,
+                        chapterCount = newChapterCount,
                         detectedEncoding = loaded.charset.name(),
                         anchor = updatedAnchor,
                         progress = updatedProgress,
@@ -413,12 +438,19 @@ class IntakePipeline(
         }
         val finalKey = RelativePath.normalize(finalRel)
 
+        val chapterCount = try {
+            ChapterDetector.detect(TextLoader.load(preprocessResult.finalPath).text).size
+        } catch (_: Exception) {
+            -1
+        }
+
         val record = BookRecord(
             path = finalRel,
             key = finalKey,
             displayName = preprocessResult.finalPath.fileName.toString().removeSuffix(".txt"),
             sizeBytes = Files.size(preprocessResult.finalPath),
             totalCharCount = preprocessResult.charCountAfter,
+            chapterCount = chapterCount,
             detectedEncoding = "UTF-8",
             anchor = existing?.anchor ?: 0,
             progress = existing?.progress ?: 0.0,

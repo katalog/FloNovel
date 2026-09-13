@@ -17,6 +17,9 @@ data class BookRecord(
     val preprocessedAt: Long? = null,
     val uploadedAt: Long? = null,
     val uploadedSize: Long? = null,
+    // -1 means not yet computed (e.g. record predates this field); recomputed on the
+    // next preprocess/reconcile pass alongside totalCharCount.
+    val chapterCount: Int = -1,
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -25,6 +28,7 @@ data class BookRecord(
         obj.put("displayName", displayName)
         obj.put("sizeBytes", sizeBytes)
         obj.put("totalCharCount", totalCharCount)
+        obj.put("chapterCount", chapterCount)
         obj.put("detectedEncoding", detectedEncoding)
         obj.put("anchor", anchor)
         obj.put("progress", progress)
@@ -45,6 +49,7 @@ data class BookRecord(
                 displayName = if (obj.has("displayName") && !obj.isNull("displayName")) obj.getString("displayName") else pathStr.substringAfterLast('/'),
                 sizeBytes = obj.optLong("sizeBytes", 0L),
                 totalCharCount = obj.optInt("totalCharCount", 0),
+                chapterCount = obj.optInt("chapterCount", -1),
                 detectedEncoding = obj.optString("detectedEncoding", "UTF-8"),
                 anchor = obj.optInt("anchor", 0),
                 progress = obj.optDouble("progress", 0.0),
