@@ -23,6 +23,8 @@ data class ViewSettings(
     val eyeStrainReminderEnabled: Boolean = false,
     val autoPageTurnEnabled: Boolean = false,
     val autoPageTurnIntervalSeconds: Int = 10,
+    val pageTurnAnimationEnabled: Boolean = true,
+    val pageTurnAnimationSpeedMs: Int = 300,
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -45,6 +47,8 @@ data class ViewSettings(
         obj.put("eyeStrainReminderEnabled", eyeStrainReminderEnabled)
         obj.put("autoPageTurnEnabled", autoPageTurnEnabled)
         obj.put("autoPageTurnIntervalSeconds", autoPageTurnIntervalSeconds)
+        obj.put("pageTurnAnimationEnabled", pageTurnAnimationEnabled)
+        obj.put("pageTurnAnimationSpeedMs", pageTurnAnimationSpeedMs)
         return obj
     }
 
@@ -71,6 +75,8 @@ data class ViewSettings(
                 eyeStrainReminderEnabled = obj.optBoolean("eyeStrainReminderEnabled", false),
                 autoPageTurnEnabled = obj.optBoolean("autoPageTurnEnabled", false),
                 autoPageTurnIntervalSeconds = obj.optInt("autoPageTurnIntervalSeconds", 10),
+                pageTurnAnimationEnabled = obj.optBoolean("pageTurnAnimationEnabled", true),
+                pageTurnAnimationSpeedMs = obj.optInt("pageTurnAnimationSpeedMs", 300),
             )
         }
     }

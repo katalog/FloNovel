@@ -142,6 +142,13 @@
     <string name="settings_auto_page_turn_custom_title">직접입력</string>
     <string name="settings_auto_page_turn_custom_value">%d초</string>
     <string name="reader_auto_page_turn_end_toast">책의 끝에 도달하여 자동 페이지 넘기기를 정지했습니다.</string>
+    <string name="settings_page_turn_animation_title">페이지 전환 애니메이션</string>
+    <string name="settings_page_turn_animation_desc">1-pane 전용: 즉시 전환 대신 화면 절반 높이만큼 슬라이드합니다 (기본 켜짐)</string>
+    <string name="settings_page_turn_animation_off">즉시 전환</string>
+    <string name="settings_page_turn_animation_on">절반 슬라이드</string>
+    <string name="settings_page_turn_animation_speed_fast">빠르게</string>
+    <string name="settings_page_turn_animation_speed_normal">보통</string>
+    <string name="settings_page_turn_animation_speed_slow">느리게</string>
     <string name="settings_sync_title">동기화 (Synchronization)</string>
     <string name="settings_dropbox_link_title">Dropbox 연동</string>
     <string name="settings_dropbox_linked">연결됨 (/Apps/FloNovel/)</string>
