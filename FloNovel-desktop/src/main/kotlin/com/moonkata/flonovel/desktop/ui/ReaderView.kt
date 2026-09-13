@@ -474,6 +474,43 @@ fun ReaderView(
         currentAnchor = navigator.anchor
     }
 
+    // Auto page-turn: waits a fixed interval after each page is shown, then advances the
+    // same way a spacebar/arrow press would. Restarts whenever the page (currentAnchor)
+    // changes, whether from the timer itself, a manual jump, TOC, or search.
+    val autoPageTurnScheduler = remember(viewSettings.autoPageTurnIntervalSeconds) {
+        AutoPageTurnScheduler(intervalSeconds = viewSettings.autoPageTurnIntervalSeconds)
+    }
+    var autoPageTurnRemainingRatio by remember { mutableStateOf(1f) }
+
+    LaunchedEffect(viewSettings.autoPageTurnEnabled, currentAnchor, isOnEyeStrainBreak, autoPageTurnScheduler) {
+        if (!viewSettings.autoPageTurnEnabled) {
+            return@LaunchedEffect
+        }
+        if (currentAnchor >= fullText.length) {
+            // Nothing left to turn to: switch the setting off and say why, rather than
+            // leaving a "playing" icon that silently does nothing at the end of the book.
+            toastMessage = Strings.get("reader_auto_page_turn_end_toast")
+            onViewSettingsChanged?.invoke(viewSettings.copy(autoPageTurnEnabled = false))
+            return@LaunchedEffect
+        }
+        if (isOnEyeStrainBreak) {
+            return@LaunchedEffect
+        }
+        autoPageTurnScheduler.startPage()
+        autoPageTurnRemainingRatio = 1f
+        while (true) {
+            delay(AUTO_PAGE_TURN_TICK_MS)
+            autoPageTurnScheduler.tick(AUTO_PAGE_TURN_TICK_MS)
+            autoPageTurnRemainingRatio = autoPageTurnScheduler.remainingRatio
+            if (autoPageTurnScheduler.isReadyToTurn) {
+                navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+                currentAnchor = navigator.anchor
+                onAnchorChanged?.invoke(currentAnchor)
+                break
+            }
+        }
+    }
+
     fun acceptRemoteSync(offset: Int) {
         lastChapterJumpOffset = null
         navigator.jumpTo(offset)
@@ -674,48 +711,6 @@ fun ReaderView(
 
         val progressText = remember(currentAnchor, fullText.length) {
             ProgressFormatter.format(navigator.progress(currentAnchor, fullText.length))
-        }
-
-        // Auto page-turn: the wait is proportional to how many characters THIS turn will
-        // actually reveal (navigator.previewAdvanceCharCount), not everything currently
-        // visible — under the default 50% ratio/pane overlap, only about half of what's on
-        // screen is new, so sizing the wait off the full visible span would make every speed
-        // preset feel roughly twice as slow as labeled. See AutoPageTurnScheduler.
-        val autoPageTurnCharCount = remember(currentAnchor, spec, fitter, viewSettings.advanceRatio) {
-            navigator.previewAdvanceCharCount(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
-        }
-        val autoPageTurnScheduler = remember(viewSettings.autoPageTurnCharsPerMinute) {
-            AutoPageTurnScheduler(charsPerMinute = viewSettings.autoPageTurnCharsPerMinute)
-        }
-        var autoPageTurnRemainingRatio by remember { mutableStateOf(1f) }
-
-        LaunchedEffect(viewSettings.autoPageTurnEnabled, currentAnchor, autoPageTurnCharCount, isOnEyeStrainBreak, autoPageTurnScheduler) {
-            if (!viewSettings.autoPageTurnEnabled) {
-                return@LaunchedEffect
-            }
-            if (currentAnchor >= fullText.length) {
-                // Nothing left to turn to: switch the setting off and say why, rather than
-                // leaving a "playing" icon that silently does nothing at the end of the book.
-                toastMessage = Strings.get("reader_auto_page_turn_end_toast")
-                onViewSettingsChanged?.invoke(viewSettings.copy(autoPageTurnEnabled = false))
-                return@LaunchedEffect
-            }
-            if (isOnEyeStrainBreak) {
-                return@LaunchedEffect
-            }
-            autoPageTurnScheduler.startPage(autoPageTurnCharCount)
-            autoPageTurnRemainingRatio = 1f
-            while (true) {
-                delay(AUTO_PAGE_TURN_TICK_MS)
-                autoPageTurnScheduler.tick(AUTO_PAGE_TURN_TICK_MS)
-                autoPageTurnRemainingRatio = autoPageTurnScheduler.remainingRatio
-                if (autoPageTurnScheduler.isReadyToTurn) {
-                    navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
-                    currentAnchor = navigator.anchor
-                    onAnchorChanged?.invoke(currentAnchor)
-                    break
-                }
-            }
         }
 
         val contentModifier = Modifier

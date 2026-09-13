@@ -1001,20 +1001,35 @@ fun SettingsDialog(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             listOf(
-                                300 to stringResource("settings_auto_page_turn_speed_slow"),
-                                600 to stringResource("settings_auto_page_turn_speed_normal"),
-                                900 to stringResource("settings_auto_page_turn_speed_fast"),
-                                1200 to stringResource("settings_auto_page_turn_speed_very_fast"),
-                            ).forEach { (charsPerMinute, label) ->
-                                val selected = currentSettings.autoPageTurnCharsPerMinute == charsPerMinute
+                                20 to stringResource("settings_auto_page_turn_speed_slow"),
+                                15 to stringResource("settings_auto_page_turn_speed_normal"),
+                                10 to stringResource("settings_auto_page_turn_speed_fast"),
+                                5 to stringResource("settings_auto_page_turn_speed_very_fast"),
+                            ).forEach { (seconds, label) ->
+                                val selected = currentSettings.autoPageTurnIntervalSeconds == seconds
                                 ThemeButton(
                                     name = label,
                                     selected = selected,
-                                    onClick = { onSettingsChanged(currentSettings.copy(autoPageTurnCharsPerMinute = charsPerMinute)) },
+                                    onClick = { onSettingsChanged(currentSettings.copy(autoPageTurnIntervalSeconds = seconds)) },
                                     modifier = Modifier.weight(1f),
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        NumericSettingRow(
+                            title = stringResource("settings_auto_page_turn_custom_title"),
+                            valueDisplay = stringResource("settings_auto_page_turn_custom_value", currentSettings.autoPageTurnIntervalSeconds),
+                            onDecrease = {
+                                if (currentSettings.autoPageTurnIntervalSeconds > 1) {
+                                    onSettingsChanged(currentSettings.copy(autoPageTurnIntervalSeconds = currentSettings.autoPageTurnIntervalSeconds - 1))
+                                }
+                            },
+                            onIncrease = {
+                                if (currentSettings.autoPageTurnIntervalSeconds < 300) {
+                                    onSettingsChanged(currentSettings.copy(autoPageTurnIntervalSeconds = currentSettings.autoPageTurnIntervalSeconds + 1))
+                                }
+                            },
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 } else if (currentTab == SettingsTab.SHORTCUTS) {

@@ -22,7 +22,7 @@ data class ViewSettings(
     val fontWeight: Int = 400,
     val eyeStrainReminderEnabled: Boolean = false,
     val autoPageTurnEnabled: Boolean = false,
-    val autoPageTurnCharsPerMinute: Int = 600,
+    val autoPageTurnIntervalSeconds: Int = 10,
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -44,7 +44,7 @@ data class ViewSettings(
         obj.put("fontWeight", fontWeight)
         obj.put("eyeStrainReminderEnabled", eyeStrainReminderEnabled)
         obj.put("autoPageTurnEnabled", autoPageTurnEnabled)
-        obj.put("autoPageTurnCharsPerMinute", autoPageTurnCharsPerMinute)
+        obj.put("autoPageTurnIntervalSeconds", autoPageTurnIntervalSeconds)
         return obj
     }
 
@@ -70,7 +70,7 @@ data class ViewSettings(
                 fontWeight = obj.optInt("fontWeight", 400),
                 eyeStrainReminderEnabled = obj.optBoolean("eyeStrainReminderEnabled", false),
                 autoPageTurnEnabled = obj.optBoolean("autoPageTurnEnabled", false),
-                autoPageTurnCharsPerMinute = obj.optInt("autoPageTurnCharsPerMinute", 600),
+                autoPageTurnIntervalSeconds = obj.optInt("autoPageTurnIntervalSeconds", 10),
             )
         }
     }

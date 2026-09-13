@@ -78,7 +78,15 @@ class ReaderNavigator(
         }
 
         // 2. Mode branching only in one place to determine visible amount:
-        val rawNext = rawAdvanceTarget(ratio)
+        val rawNext = when (spec.paneMode) {
+            PaneMode.ONE -> {
+                val height = (spec.heightPx * ratio).toInt()
+                textFitter.fitForward(anchor, spec.effectiveWidthPx, height)
+            }
+            PaneMode.TWO -> {
+                textFitter.fitForward(anchor, spec.paneWidthPx, spec.paneHeightPx)
+            }
+        }
 
         // Guarantee at least 1 character advance to prevent infinite loops (Rule 5)
         val nextAnchor = if (rawNext <= anchor) {
@@ -93,40 +101,6 @@ class ReaderNavigator(
         }
 
         return state
-    }
-
-    /**
-     * Characters [advance] would move forward from here, without mutating any state.
-     *
-     * This is deliberately *not* "everything currently visible" — under the default 50%
-     * ratio (1-pane) and the sliding-window pane swap (2-pane), only about half of what's
-     * on screen is actually new content per turn. Auto page-turn uses this to size its
-     * wait to the content a turn actually reveals, so its speed presets track real pace
-     * instead of running at roughly half the labeled rate.
-     */
-    fun previewAdvanceCharCount(ratio: Float = 1.0f): Int {
-        if (anchor >= totalLength) return 0
-
-        if (forwardStack.isNotEmpty()) {
-            val nextAnchor = forwardStack.last().coerceIn(0, totalLength)
-            return (nextAnchor - anchor).coerceAtLeast(0)
-        }
-
-        val rawNext = rawAdvanceTarget(ratio)
-        val nextAnchor = if (rawNext <= anchor) minOf(anchor + 1, totalLength) else minOf(rawNext, totalLength)
-        return (nextAnchor - anchor).coerceAtLeast(0)
-    }
-
-    private fun rawAdvanceTarget(ratio: Float): Int {
-        return when (spec.paneMode) {
-            PaneMode.ONE -> {
-                val height = (spec.heightPx * ratio).toInt()
-                textFitter.fitForward(anchor, spec.effectiveWidthPx, height)
-            }
-            PaneMode.TWO -> {
-                textFitter.fitForward(anchor, spec.paneWidthPx, spec.paneHeightPx)
-            }
-        }
     }
 
     /**
