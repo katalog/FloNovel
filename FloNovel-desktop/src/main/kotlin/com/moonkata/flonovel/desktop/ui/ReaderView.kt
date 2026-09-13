@@ -64,6 +64,7 @@ import com.moonkata.flonovel.desktop.font.FontManager
 import com.moonkata.flonovel.desktop.library.KeymapSettings
 import com.moonkata.flonovel.desktop.library.ViewSettings
 import com.moonkata.flonovel.desktop.reader.ChapterJumpNavigator
+import com.moonkata.flonovel.desktop.reader.AutoPageTurnScheduler
 import com.moonkata.flonovel.desktop.reader.EyeStrainScheduler
 import com.moonkata.flonovel.desktop.reader.PaneMode
 import com.moonkata.flonovel.desktop.reader.ReaderNavigator
@@ -79,6 +80,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.FontMgr
 import org.jetbrains.skia.FontStyle
+
+// Tick interval driving the auto page-turn countdown bar. Short enough for the bar to
+// look smooth, long enough to not matter for recomposition cost.
+private const val AUTO_PAGE_TURN_TICK_MS = 100L
 
 object ProgressFormatter {
     /**
@@ -166,6 +171,8 @@ fun handleKeyAction(
     onBack: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
     onOpenInDefaultApp: (() -> Unit)? = null,
+    autoPageTurnEnabled: Boolean = false,
+    onToggleAutoPageTurn: (() -> Unit)? = null,
 ): Boolean {
     // 0. Escape / Back (returns to library/folder view)
     if (KeymapHelper.matches(keymap.back, key, codePoint)) {
@@ -230,10 +237,19 @@ fun handleKeyAction(
         return true
     }
 
+    // 7. Auto page-turn toggle ('P' by default)
+    if (KeymapHelper.matches(keymap.autoPageTurn, key, codePoint)) {
+        onToggleAutoPageTurn?.invoke()
+        return true
+    }
+
     // 8. Regular page navigation: Next Page ('>' / '.' by default, or DirectionRight, or Spacebar without Shift)
     if (KeymapHelper.matches(keymap.nextPage, key, codePoint) ||
         (!isCtrlPressed && (key == Key.DirectionRight || (key == Key.Spacebar && !isShiftPressed)))
     ) {
+        // A manual page turn while auto page-turn is running switches it off outright,
+        // rather than merely resetting its countdown — the reader took over, so stay handed off.
+        if (autoPageTurnEnabled) onToggleAutoPageTurn?.invoke()
         navigator.advance(advanceRatio.coerceIn(0.1f, 1.0f))
         onAnchorChanged?.invoke(navigator.anchor)
         return true
@@ -243,6 +259,7 @@ fun handleKeyAction(
     if (KeymapHelper.matches(keymap.prevPage, key, codePoint) ||
         (!isCtrlPressed && (key == Key.DirectionLeft || (key == Key.Spacebar && isShiftPressed)))
     ) {
+        if (autoPageTurnEnabled) onToggleAutoPageTurn?.invoke()
         navigator.retreat(advanceRatio.coerceIn(0.1f, 1.0f))
         onAnchorChanged?.invoke(navigator.anchor)
         return true
@@ -270,6 +287,8 @@ fun handleReaderKeyEvent(
     onBack: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
     onOpenInDefaultApp: (() -> Unit)? = null,
+    autoPageTurnEnabled: Boolean = false,
+    onToggleAutoPageTurn: (() -> Unit)? = null,
 ): Boolean {
     if (keyEvent.type != KeyEventType.KeyDown) return false
 
@@ -301,6 +320,8 @@ fun handleReaderKeyEvent(
         onBack = onBack,
         onOpenInExplorer = onOpenInExplorer,
         onOpenInDefaultApp = onOpenInDefaultApp,
+        autoPageTurnEnabled = autoPageTurnEnabled,
+        onToggleAutoPageTurn = onToggleAutoPageTurn,
     )
 }
 
@@ -453,6 +474,43 @@ fun ReaderView(
         currentAnchor = navigator.anchor
     }
 
+    // Auto page-turn: waits a fixed interval after each page is shown, then advances the
+    // same way a spacebar/arrow press would. Restarts whenever the page (currentAnchor)
+    // changes, whether from the timer itself, a manual jump, TOC, or search.
+    val autoPageTurnScheduler = remember(viewSettings.autoPageTurnIntervalSeconds) {
+        AutoPageTurnScheduler(intervalSeconds = viewSettings.autoPageTurnIntervalSeconds)
+    }
+    var autoPageTurnRemainingRatio by remember { mutableStateOf(1f) }
+
+    LaunchedEffect(viewSettings.autoPageTurnEnabled, currentAnchor, isOnEyeStrainBreak, autoPageTurnScheduler) {
+        if (!viewSettings.autoPageTurnEnabled) {
+            return@LaunchedEffect
+        }
+        if (currentAnchor >= fullText.length) {
+            // Nothing left to turn to: switch the setting off and say why, rather than
+            // leaving a "playing" icon that silently does nothing at the end of the book.
+            toastMessage = Strings.get("reader_auto_page_turn_end_toast")
+            onViewSettingsChanged?.invoke(viewSettings.copy(autoPageTurnEnabled = false))
+            return@LaunchedEffect
+        }
+        if (isOnEyeStrainBreak) {
+            return@LaunchedEffect
+        }
+        autoPageTurnScheduler.startPage()
+        autoPageTurnRemainingRatio = 1f
+        while (true) {
+            delay(AUTO_PAGE_TURN_TICK_MS)
+            autoPageTurnScheduler.tick(AUTO_PAGE_TURN_TICK_MS)
+            autoPageTurnRemainingRatio = autoPageTurnScheduler.remainingRatio
+            if (autoPageTurnScheduler.isReadyToTurn) {
+                navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+                currentAnchor = navigator.anchor
+                onAnchorChanged?.invoke(currentAnchor)
+                break
+            }
+        }
+    }
+
     fun acceptRemoteSync(offset: Int) {
         lastChapterJumpOffset = null
         navigator.jumpTo(offset)
@@ -581,6 +639,10 @@ fun ReaderView(
                     },
                     onOpenInExplorer = { onOpenInExplorer?.invoke() },
                     onOpenInDefaultApp = { onOpenInDefaultApp?.invoke() },
+                    autoPageTurnEnabled = viewSettings.autoPageTurnEnabled,
+                    onToggleAutoPageTurn = {
+                        onViewSettingsChanged?.invoke(viewSettings.copy(autoPageTurnEnabled = !viewSettings.autoPageTurnEnabled))
+                    },
                 )
             }
         }
@@ -764,6 +826,25 @@ fun ReaderView(
             }
         }
 
+        // Auto page-turn countdown bar: a thin strip at the very bottom edge that depletes
+        // as the next turn approaches. Only rendered while the feature is on, so it stays
+        // completely invisible during normal reading.
+        if (viewSettings.autoPageTurnEnabled) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .height(3.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(autoPageTurnRemainingRatio.coerceIn(0f, 1f))
+                        .background(colors.progressText),
+                )
+            }
+        }
+
         // Reading progress displayed in viewer bottom-right corner (always visible)
         Box(
             modifier = Modifier
@@ -850,6 +931,22 @@ fun ReaderView(
                         MediaControlIcon(
                             shape = if (radioPlaybackState.isPlaying) MediaControlShape.STOP else MediaControlShape.PLAY,
                             size = 19.dp,
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clickable {
+                                onViewSettingsChanged?.invoke(
+                                    viewSettings.copy(autoPageTurnEnabled = !viewSettings.autoPageTurnEnabled),
+                                )
+                            }
+                            .padding(4.dp),
+                    ) {
+                        Text(
+                            text = if (viewSettings.autoPageTurnEnabled) "⏸" else "▶",
+                            color = colors.progressText,
+                            fontSize = 17.sp,
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))

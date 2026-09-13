@@ -21,6 +21,8 @@ data class ViewSettings(
     val uiScale: Float = 1.0f,
     val fontWeight: Int = 400,
     val eyeStrainReminderEnabled: Boolean = false,
+    val autoPageTurnEnabled: Boolean = false,
+    val autoPageTurnIntervalSeconds: Int = 10,
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -41,6 +43,8 @@ data class ViewSettings(
         obj.put("uiScale", uiScale)
         obj.put("fontWeight", fontWeight)
         obj.put("eyeStrainReminderEnabled", eyeStrainReminderEnabled)
+        obj.put("autoPageTurnEnabled", autoPageTurnEnabled)
+        obj.put("autoPageTurnIntervalSeconds", autoPageTurnIntervalSeconds)
         return obj
     }
 
@@ -65,6 +69,8 @@ data class ViewSettings(
                 uiScale = obj.optDouble("uiScale", 1.0).toFloat(),
                 fontWeight = obj.optInt("fontWeight", 400),
                 eyeStrainReminderEnabled = obj.optBoolean("eyeStrainReminderEnabled", false),
+                autoPageTurnEnabled = obj.optBoolean("autoPageTurnEnabled", false),
+                autoPageTurnIntervalSeconds = obj.optInt("autoPageTurnIntervalSeconds", 10),
             )
         }
     }
@@ -193,6 +199,7 @@ data class KeymapSettings(
     val settings: String = "F4",
     val openInExplorer: String = "F7",
     val openInDefaultApp: String = "F8",
+    val autoPageTurn: String = "P",
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -207,6 +214,7 @@ data class KeymapSettings(
         obj.put("settings", settings)
         obj.put("openInExplorer", openInExplorer)
         obj.put("openInDefaultApp", openInDefaultApp)
+        obj.put("autoPageTurn", autoPageTurn)
         return obj
     }
 
@@ -225,6 +233,7 @@ data class KeymapSettings(
                 settings = obj.optString("settings", "F4"),
                 openInExplorer = obj.optString("openInExplorer", "F7"),
                 openInDefaultApp = obj.optString("openInDefaultApp", "F8"),
+                autoPageTurn = obj.optString("autoPageTurn", "P"),
             )
         }
     }

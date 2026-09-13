@@ -133,6 +133,15 @@
     <string name="settings_eye_strain_desc">20분마다 화면을 20초간 가리고 휴식을 권장합니다 (기본 꺼짐)</string>
     <string name="reader_eye_strain_break_title">눈을 쉬어주세요</string>
     <string name="reader_eye_strain_break_desc">6m(20피트) 정도 떨어진 곳을 바라보세요. 잠시 후 자동으로 뷰어로 돌아갑니다.</string>
+    <string name="settings_auto_page_turn_title">자동 페이지 넘기기</string>
+    <string name="settings_auto_page_turn_desc">정해진 시간마다 자동으로 페이지를 넘깁니다 (기본 꺼짐)</string>
+    <string name="settings_auto_page_turn_speed_slow">느림 (20초)</string>
+    <string name="settings_auto_page_turn_speed_normal">보통 (15초)</string>
+    <string name="settings_auto_page_turn_speed_fast">빠름 (10초)</string>
+    <string name="settings_auto_page_turn_speed_very_fast">매우 빠름 (5초)</string>
+    <string name="settings_auto_page_turn_custom_title">직접입력</string>
+    <string name="settings_auto_page_turn_custom_value">%d초</string>
+    <string name="reader_auto_page_turn_end_toast">책의 끝에 도달하여 자동 페이지 넘기기를 정지했습니다.</string>
     <string name="settings_sync_title">동기화 (Synchronization)</string>
     <string name="settings_dropbox_link_title">Dropbox 연동</string>
     <string name="settings_dropbox_linked">연결됨 (/Apps/FloNovel/)</string>
@@ -240,6 +249,7 @@
     <string name="settings_shortcut_settings">설정</string>
     <string name="settings_shortcut_open_in_explorer">파일 탐색기에서 위치 열기</string>
     <string name="settings_shortcut_open_in_default_app">기본 앱으로 파일 열기</string>
+    <string name="settings_shortcut_auto_page_turn">자동 페이지 넘기기 켜기/끄기</string>
     <string name="settings_shortcut_press_key">키 입력 대기 중...</string>
     <string name="settings_shortcut_reset">기본값으로 초기화</string>
 
