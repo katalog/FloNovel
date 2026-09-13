@@ -623,6 +623,7 @@ fun main(args: Array<String>) {
             LibraryView(
                 homeFolder = settings.homeFolder,
                 booksData = booksData,
+                minChaptersPerMb = settings.chapter.minChaptersPerMb,
                 failedFiles = failedFilesState,
                 isDropboxLinked = !credentials.dropboxRefreshToken.isNullOrBlank(),
                 isInitialUploadRequired = isInitialUploadRequired,
@@ -783,6 +784,12 @@ fun main(args: Array<String>) {
                     currentKeymap = settings.keymap,
                     onKeymapChanged = { newKeymap ->
                         val newSettings = settings.copy(keymap = newKeymap)
+                        settings = newSettings
+                        settingsStore.save(newSettings)
+                    },
+                    currentChapterSettings = settings.chapter,
+                    onChapterSettingsChanged = { newChapterSettings ->
+                        val newSettings = settings.copy(chapter = newChapterSettings)
                         settings = newSettings
                         settingsStore.save(newSettings)
                     },

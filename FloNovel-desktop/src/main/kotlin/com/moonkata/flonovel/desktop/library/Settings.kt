@@ -74,6 +74,9 @@ data class ChapterSettings(
     val enabledPresets: List<String> = listOf("hash"),
     val customPatterns: List<String> = emptyList(),
     val jumpDivisions: Int = 4,
+    // Books with fewer chapter markers than this per megabyte are flagged in the
+    // library list as likely missing chapter detection (e.g. an unsupported marker style).
+    val minChaptersPerMb: Int = 10,
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -86,6 +89,7 @@ data class ChapterSettings(
         obj.put("customPatterns", customArray)
 
         obj.put("jumpDivisions", jumpDivisions)
+        obj.put("minChaptersPerMb", minChaptersPerMb)
         return obj
     }
 
@@ -110,6 +114,7 @@ data class ChapterSettings(
                 enabledPresets = presets,
                 customPatterns = custom,
                 jumpDivisions = obj.optInt("jumpDivisions", 4),
+                minChaptersPerMb = obj.optInt("minChaptersPerMb", 10),
             )
         }
     }

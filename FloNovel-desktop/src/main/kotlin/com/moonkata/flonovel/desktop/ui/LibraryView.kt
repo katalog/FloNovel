@@ -84,6 +84,7 @@ private fun progressColorFor(state: ReadingProgressState): Color = when (state) 
 fun LibraryView(
     homeFolder: String,
     booksData: BooksData,
+    minChaptersPerMb: Int = 10,
     failedFiles: List<IntakeFailure> = emptyList(),
     isDropboxLinked: Boolean = false,
     isInitialUploadRequired: Boolean = false,
@@ -976,6 +977,16 @@ fun LibraryView(
                                                 overflow = TextOverflow.Ellipsis,
                                                 modifier = Modifier.padding(top = 2.dp),
                                             )
+                                            if (book.hasLowChapterDensity(minChaptersPerMb)) {
+                                                Text(
+                                                    text = stringResource("library_low_chapter_density"),
+                                                    color = Color(0xFF6B7280),
+                                                    fontSize = 10.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.padding(top = 1.dp),
+                                                )
+                                            }
                                         }
                                     }
 

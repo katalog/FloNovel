@@ -52,6 +52,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import com.moonkata.flonovel.desktop.font.FontCategory
 import com.moonkata.flonovel.desktop.font.CustomFont
+import com.moonkata.flonovel.desktop.library.ChapterSettings
 import com.moonkata.flonovel.desktop.library.KeymapSettings
 import com.moonkata.flonovel.desktop.library.ViewSettings
 import java.awt.GraphicsEnvironment
@@ -96,6 +97,8 @@ enum class FontPickerTab {
 fun SettingsDialog(
     currentSettings: ViewSettings,
     onSettingsChanged: (ViewSettings) -> Unit,
+    currentChapterSettings: ChapterSettings = ChapterSettings(),
+    onChapterSettingsChanged: ((ChapterSettings) -> Unit)? = null,
     onDismiss: () -> Unit,
     currentLanguage: String = "SYSTEM",
     onLanguageChanged: ((String) -> Unit)? = null,
@@ -912,6 +915,28 @@ fun SettingsDialog(
                             }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    // 12b. Minimum chapter markers per MB used to flag likely-missed chapter
+                    // detection in the library list (not a reader-facing setting).
+                    if (onChapterSettingsChanged != null) {
+                        item {
+                            NumericSettingRow(
+                                title = stringResource("settings_min_chapters_per_mb"),
+                                valueDisplay = stringResource("settings_min_chapters_per_mb_value", currentChapterSettings.minChaptersPerMb),
+                                onDecrease = {
+                                    if (currentChapterSettings.minChaptersPerMb > 1) {
+                                        onChapterSettingsChanged(currentChapterSettings.copy(minChaptersPerMb = currentChapterSettings.minChaptersPerMb - 1))
+                                    }
+                                },
+                                onIncrease = {
+                                    if (currentChapterSettings.minChaptersPerMb < 100) {
+                                        onChapterSettingsChanged(currentChapterSettings.copy(minChaptersPerMb = currentChapterSettings.minChaptersPerMb + 1))
+                                    }
+                                },
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
 
                     // 13. Eye strain reminder (20-20-20 rule, optional, defaults to false)
