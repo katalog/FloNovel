@@ -172,6 +172,7 @@ fun SettingsDialog(
                                 "settings" -> currentKeymap.copy(settings = newKey)
                                 "openInExplorer" -> currentKeymap.copy(openInExplorer = newKey)
                                 "openInDefaultApp" -> currentKeymap.copy(openInDefaultApp = newKey)
+                                "autoPageTurn" -> currentKeymap.copy(autoPageTurn = newKey)
                                 else -> currentKeymap
                             }
                             onKeymapChanged(updated)
@@ -967,6 +968,55 @@ fun SettingsDialog(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
+
+                    // 14. Auto page-turn (optional, defaults to false)
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                Text(text = stringResource("settings_auto_page_turn_title"), color = Color(0xFFCCCCCC), fontSize = 13.sp)
+                                Text(text = stringResource("settings_auto_page_turn_desc"), color = Color(0xFF888888), fontSize = 11.sp)
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                ThemeButton(
+                                    name = stringResource("common_off"),
+                                    selected = !currentSettings.autoPageTurnEnabled,
+                                    onClick = { onSettingsChanged(currentSettings.copy(autoPageTurnEnabled = false)) },
+                                    modifier = Modifier.width(60.dp),
+                                )
+                                ThemeButton(
+                                    name = stringResource("common_on"),
+                                    selected = currentSettings.autoPageTurnEnabled,
+                                    onClick = { onSettingsChanged(currentSettings.copy(autoPageTurnEnabled = true)) },
+                                    modifier = Modifier.width(60.dp),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            listOf(
+                                300 to stringResource("settings_auto_page_turn_speed_slow"),
+                                600 to stringResource("settings_auto_page_turn_speed_normal"),
+                                900 to stringResource("settings_auto_page_turn_speed_fast"),
+                                1200 to stringResource("settings_auto_page_turn_speed_very_fast"),
+                            ).forEach { (charsPerMinute, label) ->
+                                val selected = currentSettings.autoPageTurnCharsPerMinute == charsPerMinute
+                                ThemeButton(
+                                    name = label,
+                                    selected = selected,
+                                    onClick = { onSettingsChanged(currentSettings.copy(autoPageTurnCharsPerMinute = charsPerMinute)) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 } else if (currentTab == SettingsTab.SHORTCUTS) {
                     item {
                         SettingSectionTitle(stringResource("settings_shortcuts_title"))
@@ -1072,6 +1122,15 @@ fun SettingsDialog(
                             isRecording = recordingAction == "openInDefaultApp",
                             onClick = {
                                 recordingAction = if (recordingAction == "openInDefaultApp") null else "openInDefaultApp"
+                                focusRequester.requestFocus()
+                            },
+                        )
+                        ShortcutRow(
+                            title = stringResource("settings_shortcut_auto_page_turn"),
+                            keyDisplayName = KeymapHelper.toDisplayName(currentKeymap.autoPageTurn),
+                            isRecording = recordingAction == "autoPageTurn",
+                            onClick = {
+                                recordingAction = if (recordingAction == "autoPageTurn") null else "autoPageTurn"
                                 focusRequester.requestFocus()
                             },
                         )
