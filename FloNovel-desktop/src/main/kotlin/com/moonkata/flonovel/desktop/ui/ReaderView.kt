@@ -676,16 +676,20 @@ fun ReaderView(
             ProgressFormatter.format(navigator.progress(currentAnchor, fullText.length))
         }
 
-        // Auto page-turn: the wait is proportional to how many characters are visible
-        // (layout.panes summed), so a 2-pane page naturally waits longer than a 1-pane one
-        // with no pane-mode branch needed here — see AutoPageTurnScheduler.
-        val visibleCharCount = remember(layout) { layout.panes.sumOf { it.length } }
+        // Auto page-turn: the wait is proportional to how many characters THIS turn will
+        // actually reveal (navigator.previewAdvanceCharCount), not everything currently
+        // visible — under the default 50% ratio/pane overlap, only about half of what's on
+        // screen is new, so sizing the wait off the full visible span would make every speed
+        // preset feel roughly twice as slow as labeled. See AutoPageTurnScheduler.
+        val autoPageTurnCharCount = remember(currentAnchor, spec, fitter, viewSettings.advanceRatio) {
+            navigator.previewAdvanceCharCount(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+        }
         val autoPageTurnScheduler = remember(viewSettings.autoPageTurnCharsPerMinute) {
             AutoPageTurnScheduler(charsPerMinute = viewSettings.autoPageTurnCharsPerMinute)
         }
         var autoPageTurnRemainingRatio by remember { mutableStateOf(1f) }
 
-        LaunchedEffect(viewSettings.autoPageTurnEnabled, currentAnchor, visibleCharCount, isOnEyeStrainBreak, autoPageTurnScheduler) {
+        LaunchedEffect(viewSettings.autoPageTurnEnabled, currentAnchor, autoPageTurnCharCount, isOnEyeStrainBreak, autoPageTurnScheduler) {
             if (!viewSettings.autoPageTurnEnabled) {
                 return@LaunchedEffect
             }
@@ -699,7 +703,7 @@ fun ReaderView(
             if (isOnEyeStrainBreak) {
                 return@LaunchedEffect
             }
-            autoPageTurnScheduler.startPage(visibleCharCount)
+            autoPageTurnScheduler.startPage(autoPageTurnCharCount)
             autoPageTurnRemainingRatio = 1f
             while (true) {
                 delay(AUTO_PAGE_TURN_TICK_MS)

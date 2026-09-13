@@ -3,10 +3,11 @@ package com.moonkata.flonovel.desktop.reader
 /**
  * Pure timing state machine for auto page-turn.
  *
- * The wait duration for a page is derived from how many characters are visible on it
- * ([startPage]'s [visibleCharCount]), not from a fixed per-pane constant. A 2-pane page
- * naturally shows roughly twice the text of a 1-pane page, so it naturally waits roughly
- * twice as long — no separate pane-mode branch is needed here, unlike [ReaderNavigator.advance].
+ * The wait duration is derived from how many characters the upcoming turn will actually
+ * reveal ([startPage]'s [advanceCharCount] — see [ReaderNavigator.previewAdvanceCharCount]),
+ * not from everything currently on screen. 1-pane and 2-pane naturally advance different
+ * amounts per turn (a ratio-scaled fraction of the screen vs. a single sliding pane), so
+ * durations differ across modes without any pane-mode branch needed here.
  *
  * Kept free of Compose so it can be unit tested without a UI, the same way
  * [EyeStrainScheduler] is.
@@ -30,13 +31,14 @@ class AutoPageTurnScheduler(
         get() = if (totalMs <= 0L) 0f else (remainingMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
 
     /**
-     * Resets the countdown for a newly displayed page containing [visibleCharCount] characters.
-     * Duration is clamped to [minDurationMs, maxDurationMs] so a near-empty page (e.g. a bare
-     * chapter title) doesn't turn instantly, and an unusually dense page doesn't stall forever.
+     * Resets the countdown for a newly displayed page whose upcoming turn will advance
+     * [advanceCharCount] characters. Duration is clamped to [minDurationMs, maxDurationMs] so
+     * a near-empty page (e.g. a bare chapter title) doesn't turn instantly, and an unusually
+     * dense page doesn't stall forever.
      */
-    fun startPage(visibleCharCount: Int) {
+    fun startPage(advanceCharCount: Int) {
         val safeCharsPerMinute = charsPerMinute.coerceAtLeast(1)
-        val raw = visibleCharCount.coerceAtLeast(0).toLong() * 60_000L / safeCharsPerMinute
+        val raw = advanceCharCount.coerceAtLeast(0).toLong() * 60_000L / safeCharsPerMinute
         totalMs = raw.coerceIn(minDurationMs, maxDurationMs)
         remainingMs = totalMs
     }

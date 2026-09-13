@@ -14,9 +14,9 @@ class AutoPageTurnSchedulerTest {
     ) = AutoPageTurnScheduler(charsPerMinute = charsPerMinute, minDurationMs = minDurationMs, maxDurationMs = maxDurationMs)
 
     @Test
-    fun durationScalesWithVisibleCharCount() {
-        // 600 chars/min = 10 chars/sec, so 600 visible chars should wait 60s... but that's
-        // clamped by maxDurationMs below; use an unclamped range to check the raw scaling.
+    fun durationScalesWithAdvanceCharCount() {
+        // 600 chars/min = 10 chars/sec, so a 300-char advance should wait 30s. Use an
+        // unclamped range here to check the raw scaling; clamping is tested separately below.
         val scheduler = createScheduler(charsPerMinute = 600, minDurationMs = 0L, maxDurationMs = Long.MAX_VALUE)
 
         scheduler.startPage(300)
@@ -26,18 +26,19 @@ class AutoPageTurnSchedulerTest {
     }
 
     @Test
-    fun twoPaneVisibleCountWaitsLongerThanOnePane() {
-        // Same chars/min; a 2-pane page's char count is simply larger (both panes summed),
-        // so the resulting duration is proportionally larger with no separate pane branch.
+    fun durationDoubles_whenAdvanceCharCountDoubles() {
+        // The scheduler itself is agnostic to why one turn advances more characters than
+        // another (1-pane ratio vs. 2-pane pane width) — it just scales linearly with
+        // whatever ReaderNavigator.previewAdvanceCharCount reports for that turn.
         val scheduler = createScheduler(charsPerMinute = 600, minDurationMs = 0L, maxDurationMs = Long.MAX_VALUE)
 
-        scheduler.startPage(200) // 1-pane
-        val onePaneDuration = scheduler.totalMs
+        scheduler.startPage(200)
+        val smallerAdvanceDuration = scheduler.totalMs
 
-        scheduler.startPage(400) // 2-pane: left + right combined
-        val twoPaneDuration = scheduler.totalMs
+        scheduler.startPage(400)
+        val largerAdvanceDuration = scheduler.totalMs
 
-        assertEquals(onePaneDuration * 2, twoPaneDuration)
+        assertEquals(smallerAdvanceDuration * 2, largerAdvanceDuration)
     }
 
     @Test
