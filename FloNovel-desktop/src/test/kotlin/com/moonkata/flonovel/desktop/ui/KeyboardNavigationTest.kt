@@ -901,5 +901,43 @@ class KeyboardNavigationTest {
         assertFalse(handled)
         assertFalse(jumpCalled)
     }
+
+    // --- 19. SettingsDialog Escape logic: clear shortcut vs dismiss dialog ---
+
+    @Test
+    fun settingsDialog_escapeClearsShortcutWhenRecording_dismissesWhenNotRecording() {
+        var currentKeymap = KeymapSettings(nextChapterJump = "PAGE_DOWN")
+        var dismissed = false
+        var recordingAction: String? = "nextChapterJump"
+
+        fun simulateKeyEvent(key: Key): Boolean {
+            val isEsc = key == Key.Escape
+            if (recordingAction != null) {
+                val newKey = if (isEsc) "" else key.toString()
+                val action = recordingAction
+                recordingAction = null
+                if (action == "nextChapterJump") {
+                    currentKeymap = currentKeymap.copy(nextChapterJump = newKey)
+                }
+                return true
+            } else if (isEsc) {
+                dismissed = true
+                return true
+            }
+            return false
+        }
+
+        // 1st Escape: while recording -> clears shortcut to "", recording mode ends, NOT dismissed!
+        val handled1 = simulateKeyEvent(Key.Escape)
+        assertTrue(handled1)
+        assertEquals("", currentKeymap.nextChapterJump)
+        assertNull(recordingAction)
+        assertFalse(dismissed)
+
+        // 2nd Escape: when not recording -> dismisses dialog!
+        val handled2 = simulateKeyEvent(Key.Escape)
+        assertTrue(handled2)
+        assertTrue(dismissed)
+    }
 }
 

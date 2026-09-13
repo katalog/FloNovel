@@ -141,12 +141,54 @@ fun SettingsDialog(
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
+    LaunchedEffect(recordingAction) {
+        if (recordingAction != null) {
+            focusRequester.requestFocus()
+        }
+    }
 
     // Dimmed background overlay
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { keyEvent ->
+                if (keyEvent.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                val isEsc = keyEvent.key == Key.Escape || KeymapHelper.fromKeyEvent(keyEvent) == "ESCAPE"
+                if (recordingAction != null) {
+                    val newKey = if (isEsc) "" else KeymapHelper.fromKeyEvent(keyEvent)
+                    val action = recordingAction
+                    recordingAction = null
+                    if (onKeymapChanged != null && action != null) {
+                        val updated = when (action) {
+                            "nextPage" -> currentKeymap.copy(nextPage = newKey)
+                            "prevPage" -> currentKeymap.copy(prevPage = newKey)
+                            "nextChapterJump" -> currentKeymap.copy(nextChapterJump = newKey)
+                            "prevChapterJump" -> currentKeymap.copy(prevChapterJump = newKey)
+                            "nextChapter" -> currentKeymap.copy(nextChapter = newKey)
+                            "prevChapter" -> currentKeymap.copy(prevChapter = newKey)
+                            "back" -> currentKeymap.copy(back = newKey)
+                            "home" -> currentKeymap.copy(home = newKey)
+                            "search" -> currentKeymap.copy(search = newKey)
+                            "toc" -> currentKeymap.copy(toc = newKey)
+                            "settings" -> currentKeymap.copy(settings = newKey)
+                            "openInExplorer" -> currentKeymap.copy(openInExplorer = newKey)
+                            "openInDefaultApp" -> currentKeymap.copy(openInDefaultApp = newKey)
+                            "autoPageTurn" -> currentKeymap.copy(autoPageTurn = newKey)
+                            else -> currentKeymap
+                        }
+                        onKeymapChanged(updated)
+                    }
+                    true
+                } else if (isEsc) {
+                    onDismiss()
+                    true
+                } else {
+                    false
+                }
+            }
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.Center,
     ) {
@@ -154,39 +196,6 @@ fun SettingsDialog(
         Surface(
             modifier = Modifier
                 .width(500.dp)
-                .focusRequester(focusRequester)
-                .focusable()
-                .onPreviewKeyEvent { keyEvent ->
-                    if (recordingAction != null && keyEvent.type == KeyEventType.KeyDown) {
-                        val isEsc = keyEvent.key == Key.Escape
-                        val newKey = if (isEsc) "" else KeymapHelper.fromKeyEvent(keyEvent)
-                        val action = recordingAction
-                        recordingAction = null
-                        if (onKeymapChanged != null && action != null) {
-                            val updated = when (action) {
-                                "nextPage" -> currentKeymap.copy(nextPage = newKey)
-                                "prevPage" -> currentKeymap.copy(prevPage = newKey)
-                                "nextChapterJump" -> currentKeymap.copy(nextChapterJump = newKey)
-                                "prevChapterJump" -> currentKeymap.copy(prevChapterJump = newKey)
-                                "nextChapter" -> currentKeymap.copy(nextChapter = newKey)
-                                "prevChapter" -> currentKeymap.copy(prevChapter = newKey)
-                                "back" -> currentKeymap.copy(back = newKey)
-                                "home" -> currentKeymap.copy(home = newKey)
-                                "search" -> currentKeymap.copy(search = newKey)
-                                "toc" -> currentKeymap.copy(toc = newKey)
-                                "settings" -> currentKeymap.copy(settings = newKey)
-                                "openInExplorer" -> currentKeymap.copy(openInExplorer = newKey)
-                                "openInDefaultApp" -> currentKeymap.copy(openInDefaultApp = newKey)
-                                "autoPageTurn" -> currentKeymap.copy(autoPageTurn = newKey)
-                                else -> currentKeymap
-                            }
-                            onKeymapChanged(updated)
-                        }
-                        true
-                    } else {
-                        false
-                    }
-                }
                 .clickable(enabled = false) {}, // Prevent click propagation to overlay
             shape = RoundedCornerShape(12.dp),
             color = Color(0xFF252528),

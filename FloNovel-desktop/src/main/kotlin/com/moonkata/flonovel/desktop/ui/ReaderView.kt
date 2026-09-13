@@ -700,10 +700,13 @@ fun ReaderView(
                 // Swallow everything, including Escape: the break is not user-skippable.
                 true
             } else if (showSettings || showToc || showSearch || showRadioDialog) {
-                if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape) {
+                if (showSettings) {
+                    // SettingsDialog manages its own keyboard handling (including Escape to clear a shortcut
+                    // while recording, or Escape to dismiss), so pass through without window-level interception.
+                    false
+                } else if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape) {
                     if (showSearch) showSearch = false
                     else if (showToc) showToc = false
-                    else if (showSettings) showSettings = false
                     else if (showRadioDialog) showRadioDialog = false
                     true
                 } else {
