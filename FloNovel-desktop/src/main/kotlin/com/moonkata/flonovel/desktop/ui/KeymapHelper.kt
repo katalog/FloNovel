@@ -14,6 +14,7 @@ object KeymapHelper {
      * Return user-friendly display name for a key identifier.
      */
     fun toDisplayName(keyName: String): String {
+        if (keyName.isBlank()) return "—"
         return when (keyName.uppercase()) {
             "PERIOD" -> ">  (.)"
             "COMMA" -> "<  (,)"
@@ -127,6 +128,7 @@ object KeymapHelper {
      * Check if a [KeyEvent] matches a configured key identifier string.
      */
     fun matches(actionKey: String, keyEvent: KeyEvent): Boolean {
+        if (actionKey.isBlank()) return false
         val mapped = fromKeyEvent(keyEvent)
         return mapped.equals(actionKey, ignoreCase = true)
     }
@@ -135,6 +137,7 @@ object KeymapHelper {
      * Check if a [Key] and [codePoint] match a configured key identifier string.
      */
     fun matches(actionKey: String, key: Key, codePoint: Int = 0): Boolean {
+        if (actionKey.isBlank()) return false
         val mapped = resolveKeyIdentifier(key, codePoint)
         return mapped.equals(actionKey, ignoreCase = true)
     }

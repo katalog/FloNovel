@@ -38,7 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import com.moonkata.flonovel.desktop.i18n.stringResource
@@ -156,13 +158,16 @@ fun SettingsDialog(
                 .focusable()
                 .onPreviewKeyEvent { keyEvent ->
                     if (recordingAction != null && keyEvent.type == KeyEventType.KeyDown) {
-                        val newKey = KeymapHelper.fromKeyEvent(keyEvent)
+                        val isEsc = keyEvent.key == Key.Escape
+                        val newKey = if (isEsc) "" else KeymapHelper.fromKeyEvent(keyEvent)
                         val action = recordingAction
                         recordingAction = null
                         if (onKeymapChanged != null && action != null) {
                             val updated = when (action) {
                                 "nextPage" -> currentKeymap.copy(nextPage = newKey)
                                 "prevPage" -> currentKeymap.copy(prevPage = newKey)
+                                "nextChapterJump" -> currentKeymap.copy(nextChapterJump = newKey)
+                                "prevChapterJump" -> currentKeymap.copy(prevChapterJump = newKey)
                                 "nextChapter" -> currentKeymap.copy(nextChapter = newKey)
                                 "prevChapter" -> currentKeymap.copy(prevChapter = newKey)
                                 "back" -> currentKeymap.copy(back = newKey)
@@ -923,6 +928,23 @@ fun SettingsDialog(
                     if (onChapterSettingsChanged != null) {
                         item {
                             NumericSettingRow(
+                                title = stringResource("settings_chapter_jump_divisions"),
+                                valueDisplay = stringResource("settings_chapter_jump_divisions_value", currentChapterSettings.jumpDivisions),
+                                onDecrease = {
+                                    if (currentChapterSettings.jumpDivisions > 2) {
+                                        onChapterSettingsChanged(currentChapterSettings.copy(jumpDivisions = currentChapterSettings.jumpDivisions - 1))
+                                    }
+                                },
+                                onIncrease = {
+                                    if (currentChapterSettings.jumpDivisions < 10) {
+                                        onChapterSettingsChanged(currentChapterSettings.copy(jumpDivisions = currentChapterSettings.jumpDivisions + 1))
+                                    }
+                                },
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                        item {
+                            NumericSettingRow(
                                 title = stringResource("settings_min_chapters_per_mb"),
                                 valueDisplay = stringResource("settings_min_chapters_per_mb_value", currentChapterSettings.minChaptersPerMb),
                                 onDecrease = {
@@ -1103,6 +1125,24 @@ fun SettingsDialog(
                             isRecording = recordingAction == "prevPage",
                             onClick = {
                                 recordingAction = if (recordingAction == "prevPage") null else "prevPage"
+                                focusRequester.requestFocus()
+                            },
+                        )
+                        ShortcutRow(
+                            title = stringResource("settings_shortcut_next_chapter_jump"),
+                            keyDisplayName = KeymapHelper.toDisplayName(currentKeymap.nextChapterJump),
+                            isRecording = recordingAction == "nextChapterJump",
+                            onClick = {
+                                recordingAction = if (recordingAction == "nextChapterJump") null else "nextChapterJump"
+                                focusRequester.requestFocus()
+                            },
+                        )
+                        ShortcutRow(
+                            title = stringResource("settings_shortcut_prev_chapter_jump"),
+                            keyDisplayName = KeymapHelper.toDisplayName(currentKeymap.prevChapterJump),
+                            isRecording = recordingAction == "prevChapterJump",
+                            onClick = {
+                                recordingAction = if (recordingAction == "prevChapterJump") null else "prevChapterJump"
                                 focusRequester.requestFocus()
                             },
                         )

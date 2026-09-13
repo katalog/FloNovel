@@ -537,6 +537,12 @@ fun main(args: Array<String>) {
                     settings = newSettings
                     settingsStore.save(newSettings)
                 },
+                chapterSettings = settings.chapter,
+                onChapterSettingsChanged = { newChapterSettings ->
+                    val newSettings = settings.copy(chapter = newChapterSettings)
+                    settings = newSettings
+                    settingsStore.save(newSettings)
+                },
                 keymap = settings.keymap,
                 onKeymapChanged = { newKeymap ->
                     val newSettings = settings.copy(keymap = newKeymap)

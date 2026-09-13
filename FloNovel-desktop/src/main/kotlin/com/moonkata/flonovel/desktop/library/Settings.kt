@@ -196,8 +196,10 @@ data class WindowSettings(
 data class KeymapSettings(
     val nextPage: String = "PERIOD",
     val prevPage: String = "COMMA",
-    val nextChapter: String = "PAGE_DOWN",
-    val prevChapter: String = "PAGE_UP",
+    val nextChapterJump: String = "PAGE_DOWN",
+    val prevChapterJump: String = "PAGE_UP",
+    val nextChapter: String = "RIGHT_BRACKET",
+    val prevChapter: String = "LEFT_BRACKET",
     val back: String = "ESCAPE",
     val home: String = "F1",
     val search: String = "F2",
@@ -211,6 +213,8 @@ data class KeymapSettings(
         val obj = JSONObject()
         obj.put("nextPage", nextPage)
         obj.put("prevPage", prevPage)
+        obj.put("nextChapterJump", nextChapterJump)
+        obj.put("prevChapterJump", prevChapterJump)
         obj.put("nextChapter", nextChapter)
         obj.put("prevChapter", prevChapter)
         obj.put("back", back)
@@ -230,8 +234,10 @@ data class KeymapSettings(
             return KeymapSettings(
                 nextPage = obj.optString("nextPage", "PERIOD"),
                 prevPage = obj.optString("prevPage", "COMMA"),
-                nextChapter = obj.optString("nextChapter", "PAGE_DOWN"),
-                prevChapter = obj.optString("prevChapter", "PAGE_UP"),
+                nextChapterJump = obj.optString("nextChapterJump", "PAGE_DOWN"),
+                prevChapterJump = obj.optString("prevChapterJump", "PAGE_UP"),
+                nextChapter = obj.optString("nextChapter", "RIGHT_BRACKET"),
+                prevChapter = obj.optString("prevChapter", "LEFT_BRACKET"),
                 back = obj.optString("back", "ESCAPE"),
                 home = obj.optString("home", "F1"),
                 search = obj.optString("search", "F2"),

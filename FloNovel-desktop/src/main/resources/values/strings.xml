@@ -127,6 +127,9 @@
     <string name="settings_max_line_width">Max line width</string>
     <string name="settings_min_chapters_per_mb">Low chapter density threshold</string>
     <string name="settings_min_chapters_per_mb_value">%d / MB</string>
+    <string name="settings_chapter_jump_divisions">Chapter jump divisions</string>
+    <string name="settings_chapter_jump_divisions_desc">Number of subdivisions per chapter when jumping (default 4)</string>
+    <string name="settings_chapter_jump_divisions_value">%d divisions</string>
     <string name="settings_chapter_left_align_title">Start chapter at left pane</string>
     <string name="settings_chapter_left_align_desc">In 2-pane mode, always start a new chapter in the left pane (default off)</string>
     <string name="settings_eye_strain_title">Eye strain reminder (20-20-20)</string>
@@ -244,9 +247,11 @@
     <string name="settings_tab_shortcuts">Shortcuts</string>
     <string name="settings_tab_sync">Cloud Sync</string>
     <string name="settings_shortcuts_title">Keyboard Shortcuts</string>
-    <string name="settings_shortcuts_desc">Click an item and press a key to customize its shortcut.</string>
+    <string name="settings_shortcuts_desc">Click an item and press a key to customize. Press ESC while recording to clear the shortcut.</string>
     <string name="settings_shortcut_next_page">Next Page</string>
     <string name="settings_shortcut_prev_page">Previous Page</string>
+    <string name="settings_shortcut_next_chapter_jump">Next Chapter Jump</string>
+    <string name="settings_shortcut_prev_chapter_jump">Previous Chapter Jump</string>
     <string name="settings_shortcut_next_chapter">Next Chapter</string>
     <string name="settings_shortcut_prev_chapter">Previous Chapter</string>
     <string name="settings_shortcut_back">Back / Parent Folder</string>

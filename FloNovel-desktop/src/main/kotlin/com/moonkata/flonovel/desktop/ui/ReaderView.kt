@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import com.moonkata.flonovel.desktop.font.FontCatalog
 import com.moonkata.flonovel.desktop.font.FontDownloader
 import com.moonkata.flonovel.desktop.font.FontManager
+import com.moonkata.flonovel.desktop.library.ChapterSettings
 import com.moonkata.flonovel.desktop.library.KeymapSettings
 import com.moonkata.flonovel.desktop.library.ViewSettings
 import com.moonkata.flonovel.desktop.reader.ChapterJumpNavigator
@@ -172,6 +173,8 @@ fun handleKeyAction(
     onOpenSearch: (() -> Unit)? = null,
     onNextChapterJump: (() -> Unit)? = null,
     onPreviousChapterJump: (() -> Unit)? = null,
+    onNextChapter: (() -> Unit)? = null,
+    onPreviousChapter: (() -> Unit)? = null,
     onHome: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
@@ -224,21 +227,35 @@ fun handleKeyAction(
         return true
     }
 
-    // 5. Chapter jump forward (PgDn by default, or Ctrl+PgDn, Ctrl+Right, ']')
-    if (KeymapHelper.matches(keymap.nextChapter, key, codePoint) ||
-        (isCtrlPressed && (key == Key.PageDown || key == Key.DirectionRight)) ||
-        (!isCtrlPressed && key == Key.RightBracket)
+    // 5. Chapter jump forward (subdivision jump: PgDn by default, or Ctrl+PgDn, Ctrl+Right)
+    if (KeymapHelper.matches(keymap.nextChapterJump, key, codePoint) ||
+        (isCtrlPressed && (key == Key.PageDown || key == Key.DirectionRight))
     ) {
         onNextChapterJump?.invoke()
         return true
     }
 
-    // 6. Chapter jump backward (PgUp by default, or Ctrl+PgUp, Ctrl+Left, '[')
-    if (KeymapHelper.matches(keymap.prevChapter, key, codePoint) ||
-        (isCtrlPressed && (key == Key.PageUp || key == Key.DirectionLeft)) ||
-        (!isCtrlPressed && key == Key.LeftBracket)
+    // 6. Chapter jump backward (subdivision jump: PgUp by default, or Ctrl+PgUp, Ctrl+Left)
+    if (KeymapHelper.matches(keymap.prevChapterJump, key, codePoint) ||
+        (isCtrlPressed && (key == Key.PageUp || key == Key.DirectionLeft))
     ) {
         onPreviousChapterJump?.invoke()
+        return true
+    }
+
+    // 5b. Direct next chapter (whole chapter forward: ']' by default)
+    if (KeymapHelper.matches(keymap.nextChapter, key, codePoint) ||
+        (!isCtrlPressed && key == Key.RightBracket)
+    ) {
+        (onNextChapter ?: onNextChapterJump)?.invoke()
+        return true
+    }
+
+    // 6b. Direct previous chapter (whole chapter backward: '[' by default)
+    if (KeymapHelper.matches(keymap.prevChapter, key, codePoint) ||
+        (!isCtrlPressed && key == Key.LeftBracket)
+    ) {
+        (onPreviousChapter ?: onPreviousChapterJump)?.invoke()
         return true
     }
 
@@ -288,6 +305,8 @@ fun handleReaderKeyEvent(
     onOpenSearch: (() -> Unit)? = null,
     onNextChapterJump: (() -> Unit)? = null,
     onPreviousChapterJump: (() -> Unit)? = null,
+    onNextChapter: (() -> Unit)? = null,
+    onPreviousChapter: (() -> Unit)? = null,
     onHome: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
@@ -321,6 +340,8 @@ fun handleReaderKeyEvent(
         onOpenSearch = onOpenSearch,
         onNextChapterJump = onNextChapterJump,
         onPreviousChapterJump = onPreviousChapterJump,
+        onNextChapter = onNextChapter,
+        onPreviousChapter = onPreviousChapter,
         onHome = onHome,
         onBack = onBack,
         onOpenInExplorer = onOpenInExplorer,
@@ -344,6 +365,8 @@ fun ReaderView(
     fullText: String,
     navigator: ReaderNavigator,
     viewSettings: ViewSettings,
+    chapterSettings: ChapterSettings = ChapterSettings(),
+    onChapterSettingsChanged: ((ChapterSettings) -> Unit)? = null,
     chapterOffsets: Set<Int> = emptySet(),
     remoteSyncNotice: RemotePositionNotice? = null,
     onAcceptRemoteSync: ((Int) -> Unit)? = null,
@@ -555,6 +578,60 @@ fun ReaderView(
             onAnchorChanged?.invoke(currentAnchor)
             return
         }
+        val divisions = chapterSettings.jumpDivisions.coerceAtLeast(1)
+        val breakpoints = ChapterJumpNavigator.breakpoints(chapters, fullText.length, divisions, fullText)
+        val anchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE)
+        val target = ChapterJumpNavigator.nextBreakpoint(breakpoints, anchor)
+        if (target != null) {
+            lastChapterJumpOffset = target
+            navigator.jumpTo(target)
+        } else {
+            lastChapterJumpOffset = null
+            beginPageTurnSlide(forward = true)
+            navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+        }
+        currentAnchor = navigator.anchor
+        onAnchorChanged?.invoke(currentAnchor)
+    }
+
+    fun performPreviousChapterJump() {
+        val chapters = detectedChapters
+        if (chapters.isNullOrEmpty()) {
+            toastMessage = Strings.get("reader_no_chapter_toast")
+            lastChapterJumpOffset = null
+            beginPageTurnSlide(forward = false)
+            navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+            currentAnchor = navigator.anchor
+            onAnchorChanged?.invoke(currentAnchor)
+            return
+        }
+        val divisions = chapterSettings.jumpDivisions.coerceAtLeast(1)
+        val breakpoints = ChapterJumpNavigator.breakpoints(chapters, fullText.length, divisions, fullText)
+        val anchor = minOf(currentAnchor, lastChapterJumpOffset ?: Int.MAX_VALUE)
+        val target = ChapterJumpNavigator.previousBreakpoint(breakpoints, anchor)
+        if (target != null) {
+            lastChapterJumpOffset = target
+            navigator.jumpTo(target)
+        } else {
+            lastChapterJumpOffset = null
+            beginPageTurnSlide(forward = false)
+            navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+        }
+        currentAnchor = navigator.anchor
+        onAnchorChanged?.invoke(currentAnchor)
+    }
+
+    fun performNextChapter() {
+        val chapters = detectedChapters
+        if (chapters.isNullOrEmpty()) {
+            toastMessage = Strings.get("reader_no_chapter_toast")
+            lastChapterJumpOffset = null
+            beginPageTurnSlide(forward = true)
+            navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+            currentAnchor = navigator.anchor
+            onAnchorChanged?.invoke(currentAnchor)
+            return
+        }
         val anchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE)
         val target = ChapterJumpNavigator.nextChapter(chapters, anchor)
         if (target != null) {
@@ -569,7 +646,7 @@ fun ReaderView(
         onAnchorChanged?.invoke(currentAnchor)
     }
 
-    fun performPreviousChapterJump() {
+    fun performPreviousChapter() {
         val chapters = detectedChapters
         if (chapters.isNullOrEmpty()) {
             toastMessage = Strings.get("reader_no_chapter_toast")
@@ -611,6 +688,7 @@ fun ReaderView(
         isOnEyeStrainBreak,
         remoteSyncNotice,
         viewSettings,
+        chapterSettings,
         keymap,
         currentAnchor,
         detectedChapters,
@@ -665,6 +743,8 @@ fun ReaderView(
                     onOpenSearch = { showSearch = true },
                     onNextChapterJump = { performNextChapterJump() },
                     onPreviousChapterJump = { performPreviousChapterJump() },
+                    onNextChapter = { performNextChapter() },
+                    onPreviousChapter = { performPreviousChapter() },
                     onHome = { onHome?.invoke() ?: performHome() },
                     onBack = {
                         onBackToLibrary?.invoke()
@@ -1162,6 +1242,8 @@ fun ReaderView(
                 onLanguageChanged = onLanguageChanged,
                 currentKeymap = keymap,
                 onKeymapChanged = onKeymapChanged,
+                currentChapterSettings = chapterSettings,
+                onChapterSettingsChanged = onChapterSettingsChanged,
                 isDropboxLinked = isDropboxLinked,
                 cachedSupabaseSecret = cachedSupabaseSecret,
                 isSupabaseConfigured = isSupabaseConfigured,

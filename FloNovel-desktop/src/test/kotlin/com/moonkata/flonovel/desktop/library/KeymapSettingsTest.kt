@@ -15,8 +15,10 @@ class KeymapSettingsTest {
         val keymap = KeymapSettings()
         assertEquals("PERIOD", keymap.nextPage)
         assertEquals("COMMA", keymap.prevPage)
-        assertEquals("PAGE_DOWN", keymap.nextChapter)
-        assertEquals("PAGE_UP", keymap.prevChapter)
+        assertEquals("PAGE_DOWN", keymap.nextChapterJump)
+        assertEquals("PAGE_UP", keymap.prevChapterJump)
+        assertEquals("RIGHT_BRACKET", keymap.nextChapter)
+        assertEquals("LEFT_BRACKET", keymap.prevChapter)
         assertEquals("ESCAPE", keymap.back)
         assertEquals("F1", keymap.home)
         assertEquals("F2", keymap.search)
@@ -35,8 +37,10 @@ class KeymapSettingsTest {
             val customKeymap = KeymapSettings(
                 nextPage = "DIRECTION_RIGHT",
                 prevPage = "DIRECTION_LEFT",
-                nextChapter = "RIGHT_BRACKET",
-                prevChapter = "LEFT_BRACKET",
+                nextChapterJump = "PAGE_DOWN",
+                prevChapterJump = "PAGE_UP",
+                nextChapter = "N",
+                prevChapter = "B",
                 back = "BACKSPACE",
                 home = "H",
                 search = "SLASH",
@@ -49,8 +53,10 @@ class KeymapSettingsTest {
             val loaded = store.load()
             assertEquals("DIRECTION_RIGHT", loaded.keymap.nextPage)
             assertEquals("DIRECTION_LEFT", loaded.keymap.prevPage)
-            assertEquals("RIGHT_BRACKET", loaded.keymap.nextChapter)
-            assertEquals("LEFT_BRACKET", loaded.keymap.prevChapter)
+            assertEquals("PAGE_DOWN", loaded.keymap.nextChapterJump)
+            assertEquals("PAGE_UP", loaded.keymap.prevChapterJump)
+            assertEquals("N", loaded.keymap.nextChapter)
+            assertEquals("B", loaded.keymap.prevChapter)
             assertEquals("BACKSPACE", loaded.keymap.back)
             assertEquals("H", loaded.keymap.home)
             assertEquals("SLASH", loaded.keymap.search)
@@ -75,6 +81,8 @@ class KeymapSettingsTest {
         assertEquals("Space", KeymapHelper.toDisplayName("SPACEBAR"))
         assertEquals("→", KeymapHelper.toDisplayName("DIRECTION_RIGHT"))
         assertEquals("←", KeymapHelper.toDisplayName("DIRECTION_LEFT"))
+        assertEquals("—", KeymapHelper.toDisplayName(""))
+        assertEquals("—", KeymapHelper.toDisplayName("   "))
     }
 
     @Test
@@ -95,5 +103,10 @@ class KeymapSettingsTest {
         // Negative match
         assertFalse(KeymapHelper.matches("F4", Key.F2))
         assertFalse(KeymapHelper.matches("PAGE_DOWN", Key.PageUp))
+
+        // Blank key unassigned never matches any key
+        assertFalse(KeymapHelper.matches("", Key.Escape))
+        assertFalse(KeymapHelper.matches("", Key.Period))
+        assertFalse(KeymapHelper.matches("   ", Key.PageDown))
     }
 }

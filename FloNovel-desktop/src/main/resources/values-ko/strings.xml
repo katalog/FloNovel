@@ -127,6 +127,9 @@
     <string name="settings_max_line_width">최대 폭 제한</string>
     <string name="settings_min_chapters_per_mb">챕터 마커 부족 기준</string>
     <string name="settings_min_chapters_per_mb_value">%d / MB</string>
+    <string name="settings_chapter_jump_divisions">챕터 점프 분할 수</string>
+    <string name="settings_chapter_jump_divisions_desc">챕터 점프 시 챕터당 분할 수 (기본 4)</string>
+    <string name="settings_chapter_jump_divisions_value">%d등분</string>
     <string name="settings_chapter_left_align_title">챕터 시작 좌측 정렬</string>
     <string name="settings_chapter_left_align_desc">2-pane 모드에서 새 챕터를 좌측 pane 시작에 배치 (기본 꺼짐)</string>
     <string name="settings_eye_strain_title">눈 피로 감소 (20-20-20)</string>
@@ -244,11 +247,13 @@
     <string name="settings_tab_shortcuts">단축키</string>
     <string name="settings_tab_sync">클라우드 동기화</string>
     <string name="settings_shortcuts_title">단축키 설정</string>
-    <string name="settings_shortcuts_desc">항목을 클릭한 뒤 원하는 키를 누르면 단축키가 변경됩니다.</string>
+    <string name="settings_shortcuts_desc">항목을 클릭한 뒤 원하는 키를 누르면 단축키가 변경됩니다. 설정 대기 중 ESC를 누르면 단축키가 해제(삭제)됩니다.</string>
     <string name="settings_shortcut_next_page">다음 페이지</string>
     <string name="settings_shortcut_prev_page">이전 페이지</string>
-    <string name="settings_shortcut_next_chapter">다음 챕터 이동</string>
-    <string name="settings_shortcut_prev_chapter">이전 챕터 이동</string>
+    <string name="settings_shortcut_next_chapter_jump">다음 챕터 점프</string>
+    <string name="settings_shortcut_prev_chapter_jump">이전 챕터 점프</string>
+    <string name="settings_shortcut_next_chapter">다음 챕터로 이동</string>
+    <string name="settings_shortcut_prev_chapter">이전 챕터로 이동</string>
     <string name="settings_shortcut_back">이전 폴더 / 서재로</string>
     <string name="settings_shortcut_home">서재 홈으로</string>
     <string name="settings_shortcut_search">본문 검색</string>

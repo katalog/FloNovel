@@ -7,8 +7,10 @@ import com.moonkata.flonovel.desktop.reader.ReaderNavigator
 import com.moonkata.flonovel.desktop.reader.ViewportSpec
 import com.moonkata.flonovel.desktop.text.Chapter
 import com.moonkata.flonovel.desktop.text.Search
+import com.moonkata.flonovel.desktop.library.KeymapSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -757,6 +759,147 @@ class KeyboardNavigationTest {
         assertEquals("query", state.executedQuery)
         assertEquals(2, state.results?.size)
         assertEquals(1, state.selectedIndex)
+    }
+
+    // --- 17. Chapter jump 4-way subdivision navigation ---
+
+    @Test
+    fun chapterJump_4wayBreakpoints_walksThroughFractionsAndNextChapter() {
+        val ch1 = Chapter("1장", 0)
+        val ch2 = Chapter("2장", 100)
+        val ch3 = Chapter("3장", 300)
+        val chapters = listOf(ch1, ch2, ch3)
+        val totalLength = 400
+        val text = "a\n".repeat(totalLength / 2)
+
+        val breakpoints = ChapterJumpNavigator.breakpoints(
+            chapters = chapters,
+            totalCharCount = totalLength,
+            divisions = 4,
+            text = text,
+        )
+
+        // Chapter 1 (0..100) -> 25 (1/4), 50 (2/4), 75 (3/4), 100 (2장 시작)
+        // Chapter 2 (100..300) -> 150 (1/4), 200 (2/4), 250 (3/4), 300 (3장 시작)
+        // Chapter 3 (300..400) -> 325 (1/4), 350 (2/4), 375 (3/4), 400 (끝)
+        assertEquals(
+            listOf(25, 50, 75, 100, 150, 200, 250, 300, 325, 350, 375, 400),
+            breakpoints,
+        )
+
+        var anchor = 0
+        // From chapter start (0) -> 1/4 (25)
+        anchor = ChapterJumpNavigator.nextBreakpoint(breakpoints, anchor)!!
+        assertEquals(25, anchor)
+
+        // 1/4 (25) -> 2/4 (50)
+        anchor = ChapterJumpNavigator.nextBreakpoint(breakpoints, anchor)!!
+        assertEquals(50, anchor)
+
+        // 2/4 (50) -> 3/4 (75)
+        anchor = ChapterJumpNavigator.nextBreakpoint(breakpoints, anchor)!!
+        assertEquals(75, anchor)
+
+        // 3/4 (75) -> Next chapter start (100)
+        anchor = ChapterJumpNavigator.nextBreakpoint(breakpoints, anchor)!!
+        assertEquals(100, anchor)
+
+        // Reverse: Next chapter start (100) -> 3/4 (75)
+        anchor = ChapterJumpNavigator.previousBreakpoint(breakpoints, anchor)!!
+        assertEquals(75, anchor)
+    }
+
+    // --- 18. Keymap custom shortcut and unassignment ---
+
+    @Test
+    fun handleKeyAction_nextChapterJumpAndPrevChapterJump() {
+        val navigator = ReaderNavigator(
+            totalLength = 5000,
+            textFitter = { from, _, _ -> from + 200 },
+            initialSpec = ViewportSpec(widthPx = 800, heightPx = 600, paneMode = PaneMode.ONE),
+            initialAnchor = 0,
+        )
+
+        var nextJumpCalled = false
+        var prevJumpCalled = false
+        var nextChapterCalled = false
+        var prevChapterCalled = false
+
+        val keymap = KeymapSettings(
+            nextChapterJump = "PAGE_DOWN",
+            prevChapterJump = "PAGE_UP",
+            nextChapter = "RIGHT_BRACKET",
+            prevChapter = "LEFT_BRACKET",
+        )
+
+        // PageDown triggers nextChapterJump
+        val handledPgDn = handleKeyAction(
+            key = Key.PageDown,
+            keymap = keymap,
+            navigator = navigator,
+            advanceRatio = 0.5f,
+            onNextChapterJump = { nextJumpCalled = true },
+            onPreviousChapterJump = { prevJumpCalled = true },
+            onNextChapter = { nextChapterCalled = true },
+            onPreviousChapter = { prevChapterCalled = true },
+        )
+        assertTrue(handledPgDn)
+        assertTrue(nextJumpCalled)
+        assertFalse(prevJumpCalled)
+        assertFalse(nextChapterCalled)
+
+        // PageUp triggers prevChapterJump
+        val handledPgUp = handleKeyAction(
+            key = Key.PageUp,
+            keymap = keymap,
+            navigator = navigator,
+            advanceRatio = 0.5f,
+            onNextChapterJump = { nextJumpCalled = true },
+            onPreviousChapterJump = { prevJumpCalled = true },
+            onNextChapter = { nextChapterCalled = true },
+            onPreviousChapter = { prevChapterCalled = true },
+        )
+        assertTrue(handledPgUp)
+        assertTrue(prevJumpCalled)
+
+        // Right bracket triggers direct next chapter
+        val handledRightBracket = handleKeyAction(
+            key = Key.RightBracket,
+            keymap = keymap,
+            navigator = navigator,
+            advanceRatio = 0.5f,
+            onNextChapterJump = { nextJumpCalled = true },
+            onPreviousChapterJump = { prevJumpCalled = true },
+            onNextChapter = { nextChapterCalled = true },
+            onPreviousChapter = { prevChapterCalled = true },
+        )
+        assertTrue(handledRightBracket)
+        assertTrue(nextChapterCalled)
+    }
+
+    @Test
+    fun handleKeyAction_clearedShortcut_doesNotTrigger() {
+        val navigator = ReaderNavigator(
+            totalLength = 5000,
+            textFitter = { from, _, _ -> from + 200 },
+            initialSpec = ViewportSpec(widthPx = 800, heightPx = 600, paneMode = PaneMode.ONE),
+            initialAnchor = 0,
+        )
+
+        var jumpCalled = false
+        // Keymap where nextChapterJump is cleared (empty string)
+        val keymap = KeymapSettings(nextChapterJump = "")
+
+        val handled = handleKeyAction(
+            key = Key.PageDown,
+            keymap = keymap,
+            navigator = navigator,
+            advanceRatio = 0.5f,
+            onNextChapterJump = { jumpCalled = true },
+        )
+        // Since nextChapterJump is "", PageDown must not trigger it
+        assertFalse(handled)
+        assertFalse(jumpCalled)
     }
 }
 
