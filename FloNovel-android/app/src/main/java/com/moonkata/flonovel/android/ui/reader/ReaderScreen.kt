@@ -271,35 +271,18 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                             showChrome = false
                             return@detectTapGestures
                         }
-                        val width = size.width
-                        val height = size.height
-                        when (currentSettings.touchZoneMode) {
-                            TouchZoneMode.STANDARD_3_COLUMN -> {
-                                // Left/right are fixed to previous/next page here — this is Plan A's
-                                // whole pitch (settings_touch_zone_standard_desc spells it out to the
-                                // user), unlike every other gesture in this app. There used to be a
-                                // touchLeftAction/touchRightAction pair to make these configurable,
-                                // but the settings row that changed them was removed in favor of
-                                // Standard3ColumnDiagram() (a non-interactive explanation) once
-                                // Plan B (GRID_3X3, with its own per-cell gridTouchActions below) gave
-                                // people who want that flexibility a real way to get it instead.
-                                when {
-                                    offset.x < width * 0.25f -> viewModel.performGestureAction(PageGestureAction.PREVIOUS_PAGE)
-                                    offset.x > width * 0.75f -> viewModel.performGestureAction(PageGestureAction.NEXT_PAGE)
-                                    else -> showChrome = true
-                                }
-                            }
-                            TouchZoneMode.GRID_3X3 -> {
-                                val col = (offset.x / (width / 3f)).toInt().coerceIn(0, 2)
-                                val row = (offset.y / (height / 3f)).toInt().coerceIn(0, 2)
-                                val index = row * 3 + col
-                                val action = currentSettings.gridTouchActions.getOrElse(index) { PageGestureAction.NEXT_PAGE }
-                                if (action == PageGestureAction.SHOW_MENU) {
-                                    showChrome = true
-                                } else {
-                                    viewModel.performGestureAction(action)
-                                }
-                            }
+                        val action = resolveTapAction(
+                            x = offset.x,
+                            y = offset.y,
+                            width = size.width.toFloat(),
+                            height = size.height.toFloat(),
+                            mode = currentSettings.touchZoneMode,
+                            gridActions = currentSettings.gridTouchActions,
+                        )
+                        if (action == PageGestureAction.SHOW_MENU) {
+                            showChrome = true
+                        } else {
+                            viewModel.performGestureAction(action)
                         }
                     })
                 }
@@ -464,5 +447,44 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
             confirmButton = { TextButton(onClick = viewModel::jumpToExternalPosition) { Text(stringResource(R.string.reader_external_position_confirm)) } },
             dismissButton = { TextButton(onClick = viewModel::dismissExternalPositionPrompt) { Text(stringResource(R.string.reader_external_position_dismiss)) } },
         )
+    }
+}
+
+/**
+ * Resolves the action for a tap at (x, y) given viewport dimensions and user settings.
+ *
+ * Both Plan A (STANDARD_3_COLUMN) and Plan B (GRID_3X3) share a 4:2:4 horizontal ratio:
+ * - Left 40% (x < width * 0.4f): Column 0
+ * - Center 20% (width * 0.4f <= x <= width * 0.6f): Column 1
+ * - Right 40% (x > width * 0.6f): Column 2
+ *
+ * Plan A fixes Left -> PREVIOUS_PAGE, Center -> SHOW_MENU, Right -> NEXT_PAGE.
+ * Plan B divides vertically into 3 equal rows and maps to user-configured gridTouchActions.
+ */
+internal fun resolveTapAction(
+    x: Float,
+    y: Float,
+    width: Float,
+    height: Float,
+    mode: TouchZoneMode,
+    gridActions: List<PageGestureAction>,
+): PageGestureAction {
+    if (width <= 0f || height <= 0f) return PageGestureAction.SHOW_MENU
+    val col = when {
+        x < width * 0.4f -> 0
+        x > width * 0.6f -> 2
+        else -> 1
+    }
+    return when (mode) {
+        TouchZoneMode.STANDARD_3_COLUMN -> when (col) {
+            0 -> PageGestureAction.PREVIOUS_PAGE
+            2 -> PageGestureAction.NEXT_PAGE
+            else -> PageGestureAction.SHOW_MENU
+        }
+        TouchZoneMode.GRID_3X3 -> {
+            val row = (y / (height / 3f)).toInt().coerceIn(0, 2)
+            val index = row * 3 + col
+            gridActions.getOrElse(index) { PageGestureAction.NEXT_PAGE }
+        }
     }
 }

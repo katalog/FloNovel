@@ -356,7 +356,7 @@ private fun gestureActionLabelRes(action: PageGestureAction): Int = when (action
 }
 
 /**
- * Purely explanatory — no touch targets. Plan A's left/right zones are fixed to previous/next page
+ * Purely explanatory — no touch targets. Plan A's left/center/right zones follow a 4:2:4 ratio
  * (see [ReaderScreen]'s STANDARD_3_COLUMN branch), so unlike every other gesture row in this sheet
  * there is nothing here to configure; this diagram exists so the fixed mapping is still visible
  * without a picker. Someone who wants per-zone control has Plan B (GRID_3X3) for that instead.
@@ -374,7 +374,7 @@ private fun Standard3ColumnDiagram() {
         Row(Modifier.fillMaxSize()) {
             Box(
                 Modifier
-                    .weight(0.25f)
+                    .weight(0.4f)
                     .fillMaxHeight()
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
                 contentAlignment = Alignment.Center,
@@ -393,7 +393,7 @@ private fun Standard3ColumnDiagram() {
             )
             Box(
                 Modifier
-                    .weight(0.5f)
+                    .weight(0.2f)
                     .fillMaxHeight(),
                 contentAlignment = Alignment.Center,
             ) {
@@ -411,7 +411,7 @@ private fun Standard3ColumnDiagram() {
             )
             Box(
                 Modifier
-                    .weight(0.25f)
+                    .weight(0.4f)
                     .fillMaxHeight()
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
                 contentAlignment = Alignment.Center,
@@ -447,7 +447,7 @@ private fun Grid3x3Customizer(
                     val currentAction = actions.getOrElse(index) { PageGestureAction.NEXT_PAGE }
                     var expanded by remember { mutableStateOf(false) }
 
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(if (col == 1) 0.2f else 0.4f)) {
                         OutlinedButton(
                             onClick = { expanded = true },
                             modifier = Modifier
