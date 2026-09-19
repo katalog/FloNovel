@@ -49,7 +49,7 @@ class TextPreprocessorTest {
 
         val normalized = TextPreprocessor.normalizeContent(input)
         val lines = normalized.split('\n').filter { it.isNotBlank() }
-        assertEquals(listOf("Original Line 1", "Original Line 2"), lines)
+        assertEquals(listOf(TextPreprocessor.MARKER_FILE_START, "Original Line 1", "Original Line 2", TextPreprocessor.MARKER_FILE_END), lines)
     }
 
     // --- P5: Blank line inserted between content lines ---
@@ -57,7 +57,7 @@ class TextPreprocessorTest {
     fun p5_blankLineInsertedBetweenContentLines() {
         val input = "First line\nSecond line\nThird line"
         val normalized = TextPreprocessor.normalizeContent(input)
-        assertEquals("First line\n\nSecond line\n\nThird line", normalized)
+        assertEquals("${TextPreprocessor.MARKER_FILE_START}\n\nFirst line\n\nSecond line\n\nThird line\n\n${TextPreprocessor.MARKER_FILE_END}", normalized)
     }
 
     // --- P6: 3 or more consecutive newlines collapsed to 2 (\n\n) ---
@@ -65,7 +65,7 @@ class TextPreprocessorTest {
     fun p6_threeOrMoreConsecutiveNewlinesCollapsedToTwo() {
         val input = "Section A\n\n\n\n\n\nSection B\n\n\nSection C"
         val normalized = TextPreprocessor.normalizeContent(input)
-        assertEquals("Section A\n\nSection B\n\nSection C", normalized)
+        assertEquals("${TextPreprocessor.MARKER_FILE_START}\n\nSection A\n\nSection B\n\nSection C\n\n${TextPreprocessor.MARKER_FILE_END}", normalized)
     }
 
     // --- P7: Chapter heading pattern in long lines gets "## " (NO length limit) ---
@@ -87,7 +87,29 @@ class TextPreprocessorTest {
     fun p8_linesAlreadyStartingWithDoubleHashAreNotTouched() {
         val input = "## 제10장 모험의 시작\n\n## 100화 최종 결전"
         val normalized = TextPreprocessor.normalizeContent(input)
-        assertEquals("## 제10장 모험의 시작\n\n## 100화 최종 결전", normalized)
+        assertEquals("${TextPreprocessor.MARKER_FILE_START}\n\n## 제10장 모험의 시작\n\n## 100화 최종 결전\n\n${TextPreprocessor.MARKER_FILE_END}", normalized)
+    }
+
+    // --- P15: Start and end file markers added ---
+    @Test
+    fun p15_startAndEndFileMarkersAdded() {
+        val input = "이야기의 본문입니다."
+        val normalized = TextPreprocessor.normalizeContent(input)
+        assertEquals("${TextPreprocessor.MARKER_FILE_START}\n\n이야기의 본문입니다.\n\n${TextPreprocessor.MARKER_FILE_END}", normalized)
+    }
+
+    // --- P16: Start and end file markers not duplicated if already present ---
+    @Test
+    fun p16_startAndEndFileMarkersNotDuplicatedIfAlreadyPresent() {
+        val inputWithMarkers = "## 파일 시작\n\n이미 시작 마커가 있는 본문\n\n## 파일 끝"
+        val normalized = TextPreprocessor.normalizeContent(inputWithMarkers)
+        assertEquals("## 파일 시작\n\n이미 시작 마커가 있는 본문\n\n## 파일 끝", normalized)
+
+        // Variations with extra spaces around marker
+        val inputSpaced = "##  파일  시작\n\n본문 내용\n\n##  파일  끝"
+        val normalizedSpaced = TextPreprocessor.normalizeContent(inputSpaced)
+        assertFalse(normalizedSpaced.startsWith("## 파일 시작\n\n##  파일  시작"))
+        assertFalse(normalizedSpaced.endsWith("##  파일  끝\n\n## 파일 끝"))
     }
 
     // --- P9: Filename cleaning removes Han when Hangul+Han coexist ---

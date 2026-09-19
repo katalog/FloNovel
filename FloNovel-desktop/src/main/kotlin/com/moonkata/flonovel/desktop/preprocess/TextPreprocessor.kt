@@ -55,7 +55,11 @@ object TextPreprocessor {
         Regex("""(?:chapter|episode|ep|ch)\s*[.:#]?\s*(\d+)""", RegexOption.IGNORE_CASE),
     )
     private val reThreeOrMoreNewlines = Regex("""\n{3,}""")
+    private val reStartMarker = Regex("""^##\s*파일\s*시작""")
+    private val reEndMarker = Regex("""^##\s*파일\s*끝""")
 
+    const val MARKER_FILE_START = "## 파일 시작"
+    const val MARKER_FILE_END = "## 파일 끝"
     const val MAX_FILE_NAME_LENGTH = 50
     const val DEFAULT_ORIGINAL_BACKUP_DIR = ".flonovel/original"
 
@@ -127,6 +131,7 @@ object TextPreprocessor {
      * 4. Insert an empty line before content lines if preceded by content
      * 5. Collapse 3+ consecutive newlines (\n{3,}) into \n\n
      * 6. Normalize headings with "## " (no length limit, partial match)
+     * 7. Ensure file start/end markers ("## 파일 시작", "## 파일 끝") unless matching pattern already exists
      *
      * Pure function, no IO side effects. Idempotent across re-runs.
      */
@@ -163,7 +168,26 @@ object TextPreprocessor {
 
         var joined = result.joinToString("\n")
         joined = reThreeOrMoreNewlines.replace(joined, "\n\n")
-        return normalizeHeadings(joined)
+        val headed = normalizeHeadings(joined)
+        if (headed.isBlank()) return ""
+
+        val headedLines = headed.split('\n')
+        val hasStartMarker = headedLines.any { reStartMarker.containsMatchIn(it.trimStart()) }
+        val hasEndMarker = headedLines.any { reEndMarker.containsMatchIn(it.trimStart()) }
+
+        val withStart = if (!hasStartMarker) {
+            val trimmed = headed.trimStart('\n')
+            "$MARKER_FILE_START\n\n$trimmed"
+        } else {
+            headed
+        }
+
+        return if (!hasEndMarker) {
+            val trimmed = withStart.trimEnd('\n')
+            "$trimmed\n\n$MARKER_FILE_END"
+        } else {
+            withStart
+        }
     }
 
     /**
