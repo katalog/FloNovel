@@ -376,11 +376,11 @@ class IntakePipelineTest {
         )
 
         try {
-            // "제1화 시작" is normalized into a "## " heading by preprocessing, matching the
-            // default hash preset -- so the freshly-registered record must already carry chapterCount = 1.
+            // "제1화 시작" is normalized into a "## " heading by preprocessing, plus start/end
+            // boundary markers ("## 파일 시작", "## 파일 끝") -- so the freshly-registered record carries chapterCount = 3.
             val initial = pipeline.processSingleFile(novelFile)
             assertNotNull(initial)
-            assertEquals(1, initial.chapterCount, "Chapter count must be computed during initial preprocess")
+            assertEquals(3, initial.chapterCount, "Chapter count must be computed during initial preprocess")
 
             // External editor appends two more chapter headings after preprocessing already ran.
             Thread.sleep(50L)
@@ -392,7 +392,7 @@ class IntakePipelineTest {
 
             val updated = pipeline.processSingleFile(novelFile, isModifyEvent = true)
             assertNotNull(updated)
-            assertEquals(3, updated.chapterCount, "Chapter count must be recomputed after an external edit")
+            assertEquals(5, updated.chapterCount, "Chapter count must be recomputed after an external edit")
         } finally {
             pipeline.close()
         }
