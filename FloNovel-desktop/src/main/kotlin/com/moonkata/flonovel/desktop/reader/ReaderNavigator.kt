@@ -151,11 +151,7 @@ class ReaderNavigator(
         val target = offset.coerceIn(0, totalLength)
         if (centerInOnePane && spec.paneMode == PaneMode.ONE && target > 0) {
             val height = maxOf(1, (spec.heightPx * ratio).toInt())
-            // Fast 1-pass measurement: compute span of characters fitting ratio of viewport height,
-            // then place anchor that span before target so target lands at ratio of screen.
-            // Takes exactly 1 fit measurement instead of multi-iteration binary search.
-            val forwardSpan = (fitSafe(target, spec.effectiveWidthPx, height) - target).coerceAtLeast(1)
-            val estimatedAnchor = maxOf(0, target - forwardSpan)
+            val estimatedAnchor = estimatePreviousAnchor(target, spec.effectiveWidthPx, height)
             if (estimatedAnchor in 1 until target) {
                 anchor = estimatedAnchor
                 forwardStack.addLast(target)
@@ -253,20 +249,29 @@ class ReaderNavigator(
         val forwardSpan = (fitSafe(targetEnd, widthPx, heightPx) - targetEnd).coerceAtLeast(1)
         val initialSpan = if (forwardSpan > 1) forwardSpan else fitSafe(0, widthPx, heightPx).coerceAtLeast(50)
 
-        // Find lower bound where fitSafe(low) < targetEnd (or low reaches 0)
-        var step = maxOf(initialSpan * 2, 100)
-        var low = maxOf(0, targetEnd - step)
-        var attempts = 0
-        while (low > 0 && fitSafe(low, widthPx, heightPx) >= targetEnd && attempts < 10) {
-            attempts++
-            step = if (step <= Int.MAX_VALUE / 2) step * 2 else Int.MAX_VALUE
-            low = maxOf(0, targetEnd - step)
+        val guess = maxOf(0, targetEnd - initialSpan)
+        val guessFit = fitSafe(guess, widthPx, heightPx)
+
+        var low: Int
+        var r: Int
+
+        if (guessFit >= targetEnd) {
+            r = guess
+            var step = maxOf(initialSpan, 50)
+            low = maxOf(0, guess - step)
+            var attempts = 0
+            while (low > 0 && fitSafe(low, widthPx, heightPx) >= targetEnd && attempts < 5) {
+                attempts++
+                step = if (step <= Int.MAX_VALUE / 2) step * 2 else Int.MAX_VALUE
+                low = maxOf(0, guess - step)
+            }
+        } else {
+            low = guess + 1
+            r = targetEnd
         }
 
-        // Binary search for the smallest start in [low, targetEnd] such that fitSafe(start) >= targetEnd
         var l = low
-        var r = targetEnd
-        var best = targetEnd
+        var best = if (guessFit >= targetEnd) guess else targetEnd
 
         while (l <= r) {
             val mid = (l + r) ushr 1
