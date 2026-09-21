@@ -26,7 +26,7 @@ object ChapterJumpNavigator {
      */
     fun nextChapter(chapters: List<Chapter>, currentOffset: Int): Int? {
         val offsets = chapterOffsets(chapters)
-        return offsets.firstOrNull { it > currentOffset }
+        return nextBreakpoint(offsets, currentOffset)
     }
 
     /**
@@ -38,7 +38,7 @@ object ChapterJumpNavigator {
      */
     fun previousChapter(chapters: List<Chapter>, currentOffset: Int): Int? {
         val offsets = chapterOffsets(chapters)
-        return offsets.lastOrNull { it < currentOffset }
+        return previousBreakpoint(offsets, currentOffset)
     }
 
     /**
@@ -92,12 +92,20 @@ object ChapterJumpNavigator {
     /**
      * Finds the next breakpoint strictly greater than [currentOffset].
      */
-    fun nextBreakpoint(breakpoints: List<Int>, currentOffset: Int): Int? =
-        breakpoints.firstOrNull { it > currentOffset }
+    fun nextBreakpoint(breakpoints: List<Int>, currentOffset: Int): Int? {
+        if (breakpoints.isEmpty()) return null
+        val idx = breakpoints.binarySearch(currentOffset)
+        val nextIdx = if (idx >= 0) idx + 1 else -idx - 1
+        return if (nextIdx in breakpoints.indices) breakpoints[nextIdx] else null
+    }
 
     /**
      * Finds the previous breakpoint strictly less than [currentOffset].
      */
-    fun previousBreakpoint(breakpoints: List<Int>, currentOffset: Int): Int? =
-        breakpoints.lastOrNull { it < currentOffset }
+    fun previousBreakpoint(breakpoints: List<Int>, currentOffset: Int): Int? {
+        if (breakpoints.isEmpty()) return null
+        val idx = breakpoints.binarySearch(currentOffset)
+        val prevIdx = if (idx >= 0) idx - 1 else -idx - 2
+        return if (prevIdx in breakpoints.indices) breakpoints[prevIdx] else null
+    }
 }

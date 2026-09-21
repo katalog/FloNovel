@@ -30,6 +30,7 @@ class ReaderNavigator(
 
     private val history = ArrayDeque<Int>()
     private val forwardStack = ArrayDeque<Int>()
+    private val centeredAnchorCache = mutableMapOf<Long, Int>()
 
     val historyStack: List<Int>
         get() = history.toList()
@@ -140,11 +141,28 @@ class ReaderNavigator(
     /**
      * Jumps directly to [offset] (e.g. from TOC, search, chapter jump, remote sync).
      * Clears both visit history and forward history, recalculating layout from target offset.
+     *
+     * In 1-pane mode, if [centerInOnePane] is true, reverse-estimates the previous anchor
+     * by [ratio] of the viewport height so that [offset] lands vertically in the middle (at [ratio] of the screen),
+     * and saves [offset] into the forward stack so the next regular [advance] moves it to the very top.
      */
-    fun jumpTo(offset: Int): ReaderState {
+    fun jumpTo(offset: Int, centerInOnePane: Boolean = false, ratio: Float = 0.5f): ReaderState {
         history.clear()
         forwardStack.clear()
-        anchor = offset.coerceIn(0, totalLength)
+        val target = offset.coerceIn(0, totalLength)
+        if (centerInOnePane && spec.paneMode == PaneMode.ONE && target > 0) {
+            val height = maxOf(1, (spec.heightPx * ratio).toInt())
+            val cacheKey = (target.toLong() shl 32) or (height.toLong() and 0xFFFFFFFFL)
+            val estimatedAnchor = centeredAnchorCache.getOrPut(cacheKey) {
+                estimatePreviousAnchor(target, spec.effectiveWidthPx, height)
+            }
+            if (estimatedAnchor in 1 until target) {
+                anchor = estimatedAnchor
+                forwardStack.addLast(target)
+                return state
+            }
+        }
+        anchor = target
         return state
     }
 
@@ -158,6 +176,7 @@ class ReaderNavigator(
     fun onLayoutKeyChanged(newSpec: ViewportSpec, newFitter: TextFitter = textFitter): ReaderState {
         history.clear()
         forwardStack.clear()
+        centeredAnchorCache.clear()
         spec = newSpec
         textFitter = newFitter
         return state
@@ -235,20 +254,37 @@ class ReaderNavigator(
         val forwardSpan = (fitSafe(targetEnd, widthPx, heightPx) - targetEnd).coerceAtLeast(1)
         val initialSpan = if (forwardSpan > 1) forwardSpan else fitSafe(0, widthPx, heightPx).coerceAtLeast(50)
 
-        // Find lower bound where fitSafe(low) < targetEnd (or low reaches 0)
-        var step = maxOf(initialSpan * 2, 100)
-        var low = maxOf(0, targetEnd - step)
-        var attempts = 0
-        while (low > 0 && fitSafe(low, widthPx, heightPx) >= targetEnd && attempts < 10) {
-            attempts++
-            step = if (step <= Int.MAX_VALUE / 2) step * 2 else Int.MAX_VALUE
-            low = maxOf(0, targetEnd - step)
+        val guess = maxOf(0, targetEnd - initialSpan)
+        val guessFit = fitSafe(guess, widthPx, heightPx)
+
+        // Secant refinement: if guess missed targetEnd, shift by difference to get within ±1 line
+        val diff = targetEnd - guessFit
+        val (refinedGuess, refinedFit) = if (diff != 0 && guess > 0 && guess < targetEnd) {
+            val nextGuess = (guess + diff).coerceIn(0, targetEnd)
+            nextGuess to fitSafe(nextGuess, widthPx, heightPx)
+        } else {
+            guess to guessFit
         }
 
-        // Binary search for the smallest start in [low, targetEnd] such that fitSafe(start) >= targetEnd
+        var low: Int
+        var r: Int
+
+        if (refinedFit >= targetEnd) {
+            r = refinedGuess
+            val step = maxOf(40, (targetEnd - refinedGuess) / 2)
+            low = maxOf(0, refinedGuess - step)
+            var attempts = 0
+            while (low > 0 && fitSafe(low, widthPx, heightPx) >= targetEnd && attempts < 4) {
+                attempts++
+                low = maxOf(0, low - step)
+            }
+        } else {
+            low = refinedGuess + 1
+            r = targetEnd
+        }
+
         var l = low
-        var r = targetEnd
-        var best = targetEnd
+        var best = if (refinedFit >= targetEnd) refinedGuess else targetEnd
 
         while (l <= r) {
             val mid = (l + r) ushr 1

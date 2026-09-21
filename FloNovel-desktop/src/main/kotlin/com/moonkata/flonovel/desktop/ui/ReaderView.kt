@@ -481,6 +481,26 @@ fun ReaderView(
         else (detectedChapters ?: emptyList()).map { it.charOffset }.toSet()
     }
 
+    val cachedChapterOffsets = remember(detectedChapters) {
+        val chapters = detectedChapters
+        if (chapters.isNullOrEmpty()) emptyList()
+        else ChapterJumpNavigator.chapterOffsets(chapters)
+    }
+
+    val cachedBreakpoints = remember(detectedChapters, fullText, chapterSettings.jumpDivisions) {
+        val chapters = detectedChapters
+        if (chapters.isNullOrEmpty()) {
+            emptyList()
+        } else {
+            ChapterJumpNavigator.breakpoints(
+                chapters = chapters,
+                totalCharCount = fullText.length,
+                divisions = chapterSettings.jumpDivisions.coerceAtLeast(1),
+                text = fullText,
+            )
+        }
+    }
+
     val style = remember(
         viewSettings.fontSizeSp,
         viewSettings.lineHeightMultiplier,
@@ -578,13 +598,12 @@ fun ReaderView(
             onAnchorChanged?.invoke(currentAnchor)
             return
         }
-        val divisions = chapterSettings.jumpDivisions.coerceAtLeast(1)
-        val breakpoints = ChapterJumpNavigator.breakpoints(chapters, fullText.length, divisions, fullText)
+        val breakpoints = cachedBreakpoints
         val anchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE)
         val target = ChapterJumpNavigator.nextBreakpoint(breakpoints, anchor)
         if (target != null) {
             lastChapterJumpOffset = target
-            navigator.jumpTo(target)
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
         } else {
             lastChapterJumpOffset = null
             beginPageTurnSlide(forward = true)
@@ -605,13 +624,12 @@ fun ReaderView(
             onAnchorChanged?.invoke(currentAnchor)
             return
         }
-        val divisions = chapterSettings.jumpDivisions.coerceAtLeast(1)
-        val breakpoints = ChapterJumpNavigator.breakpoints(chapters, fullText.length, divisions, fullText)
+        val breakpoints = cachedBreakpoints
         val anchor = minOf(currentAnchor, lastChapterJumpOffset ?: Int.MAX_VALUE)
         val target = ChapterJumpNavigator.previousBreakpoint(breakpoints, anchor)
         if (target != null) {
             lastChapterJumpOffset = target
-            navigator.jumpTo(target)
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
         } else {
             lastChapterJumpOffset = null
             beginPageTurnSlide(forward = false)
@@ -633,10 +651,10 @@ fun ReaderView(
             return
         }
         val anchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE)
-        val target = ChapterJumpNavigator.nextChapter(chapters, anchor)
+        val target = cachedChapterOffsets.firstOrNull { it > anchor }
         if (target != null) {
             lastChapterJumpOffset = target
-            navigator.jumpTo(target)
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
         } else {
             lastChapterJumpOffset = null
             beginPageTurnSlide(forward = true)
@@ -658,10 +676,10 @@ fun ReaderView(
             return
         }
         val anchor = minOf(currentAnchor, lastChapterJumpOffset ?: Int.MAX_VALUE)
-        val target = ChapterJumpNavigator.previousChapter(chapters, anchor)
+        val target = cachedChapterOffsets.lastOrNull { it < anchor }
         if (target != null) {
             lastChapterJumpOffset = target
-            navigator.jumpTo(target)
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
         } else {
             lastChapterJumpOffset = null
             beginPageTurnSlide(forward = false)
@@ -1205,9 +1223,9 @@ fun ReaderView(
                 initialState = searchDialogState,
                 onStateChanged = { searchDialogState = it },
                 onResultSelected = { result ->
-                    lastChapterJumpOffset = null
                     val targetOffset = Search.findParagraphStart(fullText, result.charOffset)
-                    navigator.jumpTo(targetOffset)
+                    lastChapterJumpOffset = targetOffset
+                    navigator.jumpTo(targetOffset, centerInOnePane = true, ratio = viewSettings.advanceRatio)
                     currentAnchor = navigator.anchor
                     onAnchorChanged?.invoke(currentAnchor)
                     showSearch = false
@@ -1220,11 +1238,11 @@ fun ReaderView(
         if (showToc) {
             TocDialog(
                 chapters = detectedChapters,
-                currentAnchor = currentAnchor,
+                currentAnchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE),
                 totalCharCount = fullText.length,
                 onChapterSelected = { chapter ->
-                    lastChapterJumpOffset = null
-                    navigator.jumpTo(chapter.charOffset)
+                    lastChapterJumpOffset = chapter.charOffset
+                    navigator.jumpTo(chapter.charOffset, centerInOnePane = true, ratio = viewSettings.advanceRatio)
                     currentAnchor = navigator.anchor
                     onAnchorChanged?.invoke(currentAnchor)
                     showToc = false
