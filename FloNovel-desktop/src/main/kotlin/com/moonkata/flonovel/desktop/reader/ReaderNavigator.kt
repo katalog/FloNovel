@@ -151,7 +151,11 @@ class ReaderNavigator(
         val target = offset.coerceIn(0, totalLength)
         if (centerInOnePane && spec.paneMode == PaneMode.ONE && target > 0) {
             val height = maxOf(1, (spec.heightPx * ratio).toInt())
-            val estimatedAnchor = estimatePreviousAnchor(target, spec.effectiveWidthPx, height)
+            // Fast 1-pass measurement: compute span of characters fitting ratio of viewport height,
+            // then place anchor that span before target so target lands at ratio of screen.
+            // Takes exactly 1 fit measurement instead of multi-iteration binary search.
+            val forwardSpan = (fitSafe(target, spec.effectiveWidthPx, height) - target).coerceAtLeast(1)
+            val estimatedAnchor = maxOf(0, target - forwardSpan)
             if (estimatedAnchor in 1 until target) {
                 anchor = estimatedAnchor
                 forwardStack.addLast(target)
