@@ -30,6 +30,7 @@ class ReaderNavigator(
 
     private val history = ArrayDeque<Int>()
     private val forwardStack = ArrayDeque<Int>()
+    private val centeredAnchorCache = mutableMapOf<Long, Int>()
 
     val historyStack: List<Int>
         get() = history.toList()
@@ -151,7 +152,10 @@ class ReaderNavigator(
         val target = offset.coerceIn(0, totalLength)
         if (centerInOnePane && spec.paneMode == PaneMode.ONE && target > 0) {
             val height = maxOf(1, (spec.heightPx * ratio).toInt())
-            val estimatedAnchor = estimatePreviousAnchor(target, spec.effectiveWidthPx, height)
+            val cacheKey = (target.toLong() shl 32) or (height.toLong() and 0xFFFFFFFFL)
+            val estimatedAnchor = centeredAnchorCache.getOrPut(cacheKey) {
+                estimatePreviousAnchor(target, spec.effectiveWidthPx, height)
+            }
             if (estimatedAnchor in 1 until target) {
                 anchor = estimatedAnchor
                 forwardStack.addLast(target)
@@ -172,6 +176,7 @@ class ReaderNavigator(
     fun onLayoutKeyChanged(newSpec: ViewportSpec, newFitter: TextFitter = textFitter): ReaderState {
         history.clear()
         forwardStack.clear()
+        centeredAnchorCache.clear()
         spec = newSpec
         textFitter = newFitter
         return state
@@ -252,26 +257,34 @@ class ReaderNavigator(
         val guess = maxOf(0, targetEnd - initialSpan)
         val guessFit = fitSafe(guess, widthPx, heightPx)
 
+        // Secant refinement: if guess missed targetEnd, shift by difference to get within ±1 line
+        val diff = targetEnd - guessFit
+        val (refinedGuess, refinedFit) = if (diff != 0 && guess > 0 && guess < targetEnd) {
+            val nextGuess = (guess + diff).coerceIn(0, targetEnd)
+            nextGuess to fitSafe(nextGuess, widthPx, heightPx)
+        } else {
+            guess to guessFit
+        }
+
         var low: Int
         var r: Int
 
-        if (guessFit >= targetEnd) {
-            r = guess
-            var step = maxOf(initialSpan, 50)
-            low = maxOf(0, guess - step)
+        if (refinedFit >= targetEnd) {
+            r = refinedGuess
+            val step = maxOf(40, (targetEnd - refinedGuess) / 2)
+            low = maxOf(0, refinedGuess - step)
             var attempts = 0
-            while (low > 0 && fitSafe(low, widthPx, heightPx) >= targetEnd && attempts < 5) {
+            while (low > 0 && fitSafe(low, widthPx, heightPx) >= targetEnd && attempts < 4) {
                 attempts++
-                step = if (step <= Int.MAX_VALUE / 2) step * 2 else Int.MAX_VALUE
-                low = maxOf(0, guess - step)
+                low = maxOf(0, low - step)
             }
         } else {
-            low = guess + 1
+            low = refinedGuess + 1
             r = targetEnd
         }
 
         var l = low
-        var best = if (guessFit >= targetEnd) guess else targetEnd
+        var best = if (refinedFit >= targetEnd) refinedGuess else targetEnd
 
         while (l <= r) {
             val mid = (l + r) ushr 1
