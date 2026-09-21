@@ -140,11 +140,25 @@ class ReaderNavigator(
     /**
      * Jumps directly to [offset] (e.g. from TOC, search, chapter jump, remote sync).
      * Clears both visit history and forward history, recalculating layout from target offset.
+     *
+     * In 1-pane mode, if [centerInOnePane] is true, reverse-estimates the previous anchor
+     * by [ratio] of the viewport height so that [offset] lands vertically in the middle (at [ratio] of the screen),
+     * and saves [offset] into the forward stack so the next regular [advance] moves it to the very top.
      */
-    fun jumpTo(offset: Int): ReaderState {
+    fun jumpTo(offset: Int, centerInOnePane: Boolean = false, ratio: Float = 0.5f): ReaderState {
         history.clear()
         forwardStack.clear()
-        anchor = offset.coerceIn(0, totalLength)
+        val target = offset.coerceIn(0, totalLength)
+        if (centerInOnePane && spec.paneMode == PaneMode.ONE && target > 0) {
+            val height = maxOf(1, (spec.heightPx * ratio).toInt())
+            val estimatedAnchor = estimatePreviousAnchor(target, spec.effectiveWidthPx, height)
+            if (estimatedAnchor in 1 until target) {
+                anchor = estimatedAnchor
+                forwardStack.addLast(target)
+                return state
+            }
+        }
+        anchor = target
         return state
     }
 

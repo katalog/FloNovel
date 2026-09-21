@@ -391,4 +391,77 @@ class MovementRulesTest {
         navigator.advance(ratio = 0.5f)
         assertEquals(200, navigator.anchor)
     }
+
+    // --- M20: 1-pane jumpTo(centerInOnePane = true) reverse-estimates anchor to position target at middle ---
+
+    @Test
+    fun m20_onePane_jumpToCentered_positionsTargetAtMiddle_andAdvanceRestoresTargetToTop() {
+        val (navigator, _) = createNavigator(initialAnchor = 0)
+
+        // Chapter jump to 200 with centerInOnePane = true
+        navigator.jumpTo(200, centerInOnePane = true, ratio = 0.5f)
+
+        // Anchor is reverse-estimated 20 chars backward to 180
+        assertEquals(180, navigator.anchor, "Anchor should be 180 so target 200 lands at 50% height")
+        assertEquals(listOf(200), navigator.forwardHistoryStack, "Target 200 must be in forward history")
+
+        // The visible pane spans [180, 230), containing target 200 exactly at 50% height
+        val layout = navigator.state.layout
+        val pane = layout.leftPane
+        assertEquals(180, pane.startOffset)
+        assertEquals(230, pane.endOffset)
+        assertTrue(200 in pane.startOffset until pane.endOffset)
+
+        // Next advance restores target 200 to the top of screen
+        navigator.advance(ratio = 0.5f)
+        assertEquals(200, navigator.anchor)
+        assertEquals(listOf(180), navigator.historyStack)
+
+        // Retreat goes back to centered position
+        navigator.retreat(ratio = 0.5f)
+        assertEquals(180, navigator.anchor)
+    }
+
+    // --- M21: 1-pane jumpTo(centerInOnePane = true) near beginning clamps safely ---
+
+    @Test
+    fun m21_onePane_jumpToCentered_nearBeginning_clampsSafely() {
+        val (navigator, _) = createNavigator(initialAnchor = 0)
+
+        // Jump to 0: stays 0
+        navigator.jumpTo(0, centerInOnePane = true, ratio = 0.5f)
+        assertEquals(0, navigator.anchor)
+        assertTrue(navigator.forwardHistoryStack.isEmpty())
+
+        // Jump to 10 (less than 20 chars): cannot reverse 20 chars, falls back to target
+        navigator.jumpTo(10, centerInOnePane = true, ratio = 0.5f)
+        assertEquals(10, navigator.anchor)
+        assertTrue(navigator.forwardHistoryStack.isEmpty())
+    }
+
+    // --- M22: 2-pane jumpTo(centerInOnePane = true) preserves standard 2-pane layout ---
+
+    @Test
+    fun m22_twoPane_jumpToCentered_ignoresOnePaneCentering_andKeepsTargetOnRightPane() {
+        val (navigator, _) = createNavigator(
+            widthPx = 200,
+            heightPx = 100,
+            paneMode = PaneMode.TWO,
+            initialAnchor = 0,
+        )
+
+        // 2-pane mode: paneWidth = 100, paneHeight = 100 -> 50 chars per pane
+        navigator.jumpTo(200, centerInOnePane = true, ratio = 0.5f)
+
+        // Anchor is directly 200 (top of right pane)
+        assertEquals(200, navigator.anchor)
+        assertTrue(navigator.forwardHistoryStack.isEmpty())
+
+        val layout = navigator.state.layout
+        assertEquals(150, layout.leftPane.startOffset)
+        assertEquals(200, layout.leftPane.endOffset)
+        assertEquals(200, layout.rightPane!!.startOffset)
+        assertEquals(250, layout.rightPane!!.endOffset)
+    }
 }
+

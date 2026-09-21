@@ -584,7 +584,7 @@ fun ReaderView(
         val target = ChapterJumpNavigator.nextBreakpoint(breakpoints, anchor)
         if (target != null) {
             lastChapterJumpOffset = target
-            navigator.jumpTo(target)
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
         } else {
             lastChapterJumpOffset = null
             beginPageTurnSlide(forward = true)
@@ -611,7 +611,7 @@ fun ReaderView(
         val target = ChapterJumpNavigator.previousBreakpoint(breakpoints, anchor)
         if (target != null) {
             lastChapterJumpOffset = target
-            navigator.jumpTo(target)
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
         } else {
             lastChapterJumpOffset = null
             beginPageTurnSlide(forward = false)
@@ -636,7 +636,7 @@ fun ReaderView(
         val target = ChapterJumpNavigator.nextChapter(chapters, anchor)
         if (target != null) {
             lastChapterJumpOffset = target
-            navigator.jumpTo(target)
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
         } else {
             lastChapterJumpOffset = null
             beginPageTurnSlide(forward = true)
@@ -661,7 +661,7 @@ fun ReaderView(
         val target = ChapterJumpNavigator.previousChapter(chapters, anchor)
         if (target != null) {
             lastChapterJumpOffset = target
-            navigator.jumpTo(target)
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
         } else {
             lastChapterJumpOffset = null
             beginPageTurnSlide(forward = false)
@@ -1205,9 +1205,9 @@ fun ReaderView(
                 initialState = searchDialogState,
                 onStateChanged = { searchDialogState = it },
                 onResultSelected = { result ->
-                    lastChapterJumpOffset = null
                     val targetOffset = Search.findParagraphStart(fullText, result.charOffset)
-                    navigator.jumpTo(targetOffset)
+                    lastChapterJumpOffset = targetOffset
+                    navigator.jumpTo(targetOffset, centerInOnePane = true, ratio = viewSettings.advanceRatio)
                     currentAnchor = navigator.anchor
                     onAnchorChanged?.invoke(currentAnchor)
                     showSearch = false
@@ -1220,11 +1220,11 @@ fun ReaderView(
         if (showToc) {
             TocDialog(
                 chapters = detectedChapters,
-                currentAnchor = currentAnchor,
+                currentAnchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE),
                 totalCharCount = fullText.length,
                 onChapterSelected = { chapter ->
-                    lastChapterJumpOffset = null
-                    navigator.jumpTo(chapter.charOffset)
+                    lastChapterJumpOffset = chapter.charOffset
+                    navigator.jumpTo(chapter.charOffset, centerInOnePane = true, ratio = viewSettings.advanceRatio)
                     currentAnchor = navigator.anchor
                     onAnchorChanged?.invoke(currentAnchor)
                     showToc = false
