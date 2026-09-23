@@ -59,4 +59,25 @@ class ContentHashTest {
         }
         assertEquals(ContentHash.of(data), ContentHash.of(trickle as InputStream))
     }
+
+    @Test
+    fun hashingOutputStream_matchesOneShotHash_andPassesBytesThrough() {
+        val data = pattern(block * 2 + 777)
+        val sink = java.io.ByteArrayOutputStream()
+        val hashing = HashingOutputStream(sink)
+        // Uneven chunks, so block boundaries fall inside writes.
+        var pos = 0
+        while (pos < data.size) {
+            val n = minOf(123_457, data.size - pos)
+            hashing.write(data, pos, n)
+            pos += n
+        }
+        assertEquals(ContentHash.of(data), hashing.contentHash())
+        assertEquals(data.size, sink.size())
+    }
+
+    @Test
+    fun hashingOutputStream_emptyStream() {
+        assertEquals(ContentHash.of(ByteArray(0)), HashingOutputStream(java.io.ByteArrayOutputStream()).contentHash())
+    }
 }

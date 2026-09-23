@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.InputStream
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -40,6 +41,34 @@ sealed class DropboxDownloadResult {
     data class Failure(val statusCode: Int) : DropboxDownloadResult()
 }
 
+sealed class DropboxUploadResult {
+    data class Success(val pathDisplay: String, val rev: String, val contentHash: String, val size: Long) : DropboxUploadResult()
+
+    /** `mode=add` over an existing file, or `mode=update` against a rev that has since moved on. */
+    object Conflict : DropboxUploadResult()
+    object InsufficientSpace : DropboxUploadResult()
+
+    /** The token lacks `files.content.write`: linked before two-way sync, so reconnect. */
+    object MissingScope : DropboxUploadResult()
+    data class Failure(val statusCode: Int) : DropboxUploadResult()
+}
+
+sealed class DropboxDeleteResult {
+    object Deleted : DropboxDeleteResult()
+    object NotFound : DropboxDeleteResult()
+
+    /** `parent_rev` no longer matches: the file changed since it was last seen. */
+    object Conflict : DropboxDeleteResult()
+    object MissingScope : DropboxDeleteResult()
+    data class Failure(val statusCode: Int) : DropboxDeleteResult()
+}
+
+sealed class DropboxMetadataResult {
+    data class Found(val file: DropboxEntry.File) : DropboxMetadataResult()
+    object NotFound : DropboxMetadataResult()
+    data class Failure(val statusCode: Int) : DropboxMetadataResult()
+}
+
 sealed class DropboxListResult {
     data class Success(val entries: List<DropboxEntry>, val cursor: String, val hasMore: Boolean) : DropboxListResult()
 
@@ -50,9 +79,9 @@ sealed class DropboxListResult {
 }
 
 /**
- * The Dropbox HTTP API, limited to what the phone actually does: read metadata, read content
- * (docs 06-SYNC-STRATEGY B2 — Android never uploads and never deletes remotely, so there is no
- * upload/delete here to be called by mistake).
+ * The Dropbox HTTP API, limited to what the phone does: list, download, and for two-way sync
+ * (CLAUDE.md §1) conditional upload and delete. Book writes are always `add` or `update(rev)`,
+ * never `overwrite`, so a change another device made in the meantime is refused, not lost.
  *
  * Hand-written against `HttpURLConnection` + `org.json` to match [ReadingPositionSyncClient] and the
  * Desktop client, rather than pulling in the Dropbox SDK for four endpoints.
@@ -61,14 +90,25 @@ sealed class DropboxListResult {
  * excluded from cloud backup (see `backup_rules.xml`).
  */
 class DropboxClient(
-    private val settingsRepository: ReaderSettingsRepository,
+    // Functions rather than the settings repository itself, so the client runs in JVM tests,
+    // where there is no Context to build a DataStore from.
+    private val loadRefreshToken: suspend () -> String,
+    private val saveRotatedRefreshToken: suspend (String) -> Unit,
     private val appKey: String = DropboxConfig.appKey,
+    private val apiBase: String = API_BASE,
+    private val contentBase: String = CONTENT_BASE,
 ) {
+    constructor(settingsRepository: ReaderSettingsRepository, appKey: String = DropboxConfig.appKey) : this(
+        loadRefreshToken = { settingsRepository.settingsFlow.first().dropboxRefreshToken },
+        saveRotatedRefreshToken = { settingsRepository.updateDropboxRefreshToken(it) },
+        appKey = appKey,
+    )
+
     private val tokenMutex = Mutex()
     private var cachedAccessToken: String? = null
     private var tokenExpiresAtMillis: Long = 0L
 
-    suspend fun isLinked(): Boolean = settingsRepository.settingsFlow.first().dropboxRefreshToken.isNotBlank()
+    suspend fun isLinked(): Boolean = loadRefreshToken().isNotBlank()
 
     /**
      * Returns a usable access token, refreshing it when it is missing or close to expiry. Null means
@@ -80,7 +120,7 @@ class DropboxClient(
         // A minute of headroom: a token that expires mid-request would fail the call it was fetched for.
         cachedAccessToken?.let { if (now < tokenExpiresAtMillis - 60_000L) return@withLock it }
 
-        val refreshToken = settingsRepository.settingsFlow.first().dropboxRefreshToken
+        val refreshToken = loadRefreshToken()
         if (refreshToken.isBlank()) return@withLock null
 
         val tokens = DropboxOAuth.refreshAccessToken(refreshToken, appKey) ?: return@withLock null
@@ -88,7 +128,7 @@ class DropboxClient(
         tokenExpiresAtMillis = now + tokens.expiresInSeconds * 1000L
         // Dropbox rarely rotates the refresh token, but when it does, dropping the new one would
         // silently break every sync after the old one expires.
-        tokens.refreshToken?.takeIf { it != refreshToken }?.let { settingsRepository.updateDropboxRefreshToken(it) }
+        tokens.refreshToken?.takeIf { it != refreshToken }?.let { saveRotatedRefreshToken(it) }
         tokens.accessToken
     }
 
@@ -105,7 +145,7 @@ class DropboxClient(
 
     /** The signed-in account's email, shown in settings so it is obvious *which* account is linked. */
     suspend fun accountEmail(): String? = withContext(Dispatchers.IO) {
-        val body = rpc("$API_BASE/2/users/get_current_account", "null") ?: return@withContext null
+        val body = rpc("$apiBase/2/users/get_current_account", "null") ?: return@withContext null
         runCatching { JSONObject(body).optStringOrNull("email") }.getOrNull()
     }
 
@@ -113,13 +153,13 @@ class DropboxClient(
     suspend fun listFolder(path: String = DropboxConfig.REMOTE_BOOKS_ROOT): DropboxListResult =
         withContext(Dispatchers.IO) {
             val request = JSONObject().put("path", path).put("recursive", true).toString()
-            rpcWithStatus("$API_BASE/2/files/list_folder", request).toListResult()
+            rpcWithStatus("$apiBase/2/files/list_folder", request).toListResult()
         }
 
     /** Only what changed since [cursor] — including explicit `deleted` entries. */
     suspend fun listFolderContinue(cursor: String): DropboxListResult = withContext(Dispatchers.IO) {
         val request = JSONObject().put("cursor", cursor).toString()
-        rpcWithStatus("$API_BASE/2/files/list_folder/continue", request).toListResult()
+        rpcWithStatus("$apiBase/2/files/list_folder/continue", request).toListResult()
     }
 
     /**
@@ -145,7 +185,7 @@ class DropboxClient(
         withContext(Dispatchers.IO) {
         val token = accessToken() ?: return@withContext DropboxDownloadResult.Failure(-1)
         runCatching {
-            val connection = (URL("$CONTENT_BASE/2/files/download").openConnection() as HttpURLConnection).apply {
+            val connection = (URL("$contentBase/2/files/download").openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 connectTimeout = 15_000
                 // Generous: a large novel over a slow connection must not be cut off mid-transfer.
@@ -173,6 +213,112 @@ class DropboxClient(
             .getOrDefault(DropboxDownloadResult.Failure(-1))
     }
 
+    /**
+     * Streams a local book to [path]. [parentRev] set means `mode=update(parentRev)`, otherwise
+     * `mode=add`. [openInput] is called again for the single retry after a 401, since the first
+     * stream is already consumed by then.
+     */
+    suspend fun uploadFile(
+        path: String,
+        length: Long,
+        parentRev: String?,
+        openInput: () -> InputStream?,
+    ): DropboxUploadResult = withContext(Dispatchers.IO) {
+        val first = uploadOnce(path, length, parentRev, openInput)
+        if (first is DropboxUploadResult.Failure && first.statusCode == 401) {
+            forgetAccessToken()
+            val second = uploadOnce(path, length, parentRev, openInput)
+            // A 401 that survives a fresh token is not expiry. The body naming missing_scope is
+            // not always readable here: a JVM HttpURLConnection throws on 401 for a streamed body.
+            if (second is DropboxUploadResult.Failure && second.statusCode == 401) DropboxUploadResult.MissingScope else second
+        } else {
+            first
+        }
+    }
+
+    private suspend fun uploadOnce(
+        path: String,
+        length: Long,
+        parentRev: String?,
+        openInput: () -> InputStream?,
+    ): DropboxUploadResult = withContext(Dispatchers.IO) {
+        val token = accessToken() ?: return@withContext DropboxUploadResult.Failure(-1)
+        val mode: Any = if (parentRev != null) JSONObject().put(".tag", "update").put("update", parentRev) else "add"
+        val arg = JSONObject().put("path", path).put("mode", mode).put("autorename", false).put("mute", true)
+        runCatching {
+            val connection = (URL("$contentBase/2/files/upload").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 15_000
+                readTimeout = 120_000
+                doOutput = true
+                // Streams the body instead of buffering it: a book can be tens of megabytes.
+                setFixedLengthStreamingMode(length)
+                setRequestProperty("Authorization", "Bearer $token")
+                setRequestProperty("Dropbox-API-Arg", asciiSafeDropboxApiArg(arg.toString()))
+                setRequestProperty("Content-Type", "application/octet-stream")
+            }
+            connection.use {
+                val input = openInput() ?: return@runCatching DropboxUploadResult.Failure(-1)
+                input.use { source -> it.outputStream.use { out -> source.copyTo(out) } }
+                val status = it.responseCode
+                val body = (if (status in 200..299) it.inputStream else it.errorStream)
+                    ?.bufferedReader()?.readText().orEmpty()
+                when {
+                    status in 200..299 -> {
+                        val json = JSONObject(body)
+                        DropboxUploadResult.Success(
+                            pathDisplay = json.optString("path_display", path),
+                            rev = json.optString("rev", ""),
+                            contentHash = json.optString("content_hash", ""),
+                            size = json.optLong("size", length),
+                        )
+                    }
+                    body.contains("missing_scope") -> DropboxUploadResult.MissingScope
+                    status == 409 && body.contains("insufficient_space") -> DropboxUploadResult.InsufficientSpace
+                    status == 409 && body.contains("conflict") -> DropboxUploadResult.Conflict
+                    else -> DropboxUploadResult.Failure(status)
+                }
+            }
+        }.getOrElse { error ->
+            Log.w(TAG, "Upload failed for $path", error)
+            if (error is java.net.HttpRetryException && error.responseCode() == 401) {
+                DropboxUploadResult.Failure(401)
+            } else {
+                DropboxUploadResult.Failure(-1)
+            }
+        }
+    }
+
+    /** Deletes [path] only while it is still at [parentRev]. */
+    suspend fun deleteFile(path: String, parentRev: String?): DropboxDeleteResult = withContext(Dispatchers.IO) {
+        val request = JSONObject().put("path", path).apply { if (parentRev != null) put("parent_rev", parentRev) }
+        val response = rpcWithStatus("$apiBase/2/files/delete_v2", request.toString())
+        val body = response.body.orEmpty()
+        when {
+            response.status in 200..299 -> DropboxDeleteResult.Deleted
+            body.contains("missing_scope") -> DropboxDeleteResult.MissingScope
+            response.status == 409 && body.contains("not_found") -> DropboxDeleteResult.NotFound
+            // Any other 409 on a conditional delete is the rev check failing, whatever the tag.
+            response.status == 409 && parentRev != null -> DropboxDeleteResult.Conflict
+            else -> DropboxDeleteResult.Failure(response.status)
+        }
+    }
+
+    /** Re-reads one file after a conditional write was refused. */
+    suspend fun getMetadata(path: String): DropboxMetadataResult = withContext(Dispatchers.IO) {
+        val response = rpcWithStatus("$apiBase/2/files/get_metadata", JSONObject().put("path", path).toString())
+        val body = response.body.orEmpty()
+        when {
+            response.status in 200..299 -> {
+                val parsed = parseListFolderBody("""{"entries":[$body],"cursor":"","has_more":false}""")
+                val file = (parsed as? DropboxListResult.Success)?.entries?.singleOrNull() as? DropboxEntry.File
+                if (file != null) DropboxMetadataResult.Found(file) else DropboxMetadataResult.NotFound
+            }
+            response.status == 409 && body.contains("not_found") -> DropboxMetadataResult.NotFound
+            else -> DropboxMetadataResult.Failure(response.status)
+        }
+    }
+
     // ── HTTP plumbing ──────────────────────────────────────────────────────
 
     private data class Response(val status: Int, val body: String?)
@@ -186,7 +332,8 @@ class DropboxClient(
      */
     private suspend fun rpcWithStatus(url: String, jsonBody: String): Response {
         val first = rpcOnce(url, jsonBody) ?: return Response(-1, null)
-        if (first.status != 401) return first
+        // A fresh token carries the same permissions, so a missing scope is final.
+        if (first.status != 401 || first.body?.contains("missing_scope") == true) return first
         forgetAccessToken()
         return rpcOnce(url, jsonBody) ?: Response(-1, null)
     }

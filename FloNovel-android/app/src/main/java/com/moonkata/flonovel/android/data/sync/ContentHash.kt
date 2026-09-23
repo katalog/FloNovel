@@ -1,6 +1,7 @@
 package com.moonkata.flonovel.android.data.sync
 
 import java.io.InputStream
+import java.io.OutputStream
 import java.security.MessageDigest
 
 /**
@@ -40,5 +41,48 @@ object ContentHash {
             filled += n
         }
         return filled
+    }
+}
+
+/**
+ * Passes bytes through to [target] while computing their `content_hash`, so a download can be
+ * checked without reading the written file back. SAF has no atomic replace, so the bytes are
+ * verified on the way in instead.
+ */
+class HashingOutputStream(private val target: OutputStream) : OutputStream() {
+    private val overall = MessageDigest.getInstance("SHA-256")
+    private var block = MessageDigest.getInstance("SHA-256")
+    private var inBlock = 0
+
+    override fun write(b: Int) {
+        write(byteArrayOf(b.toByte()), 0, 1)
+    }
+
+    override fun write(b: ByteArray, off: Int, len: Int) {
+        target.write(b, off, len)
+        var pos = off
+        var remaining = len
+        while (remaining > 0) {
+            val take = minOf(remaining, ContentHash.BLOCK_SIZE - inBlock)
+            block.update(b, pos, take)
+            inBlock += take
+            pos += take
+            remaining -= take
+            if (inBlock == ContentHash.BLOCK_SIZE) finishBlock()
+        }
+    }
+
+    override fun flush() = target.flush()
+
+    /** The hash of everything written so far. Call once, after the last write. */
+    fun contentHash(): String {
+        if (inBlock > 0) finishBlock()
+        return overall.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    private fun finishBlock() {
+        overall.update(block.digest())
+        block = MessageDigest.getInstance("SHA-256")
+        inBlock = 0
     }
 }
