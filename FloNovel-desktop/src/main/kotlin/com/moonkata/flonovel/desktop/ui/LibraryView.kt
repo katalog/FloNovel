@@ -114,6 +114,9 @@ fun LibraryView(
     isExternalDialogOpen: Boolean = false,
     onRegisterKeyDispatcher: (((KeyEvent) -> Boolean)?) -> Unit = {},
     onExitApp: (() -> Unit)? = null,
+    deleteKey: String = "DELETE",
+    // Called with the selected book file (isFolder = false) or folder (isFolder = true).
+    onRemoveRequested: ((path: Path, isFolder: Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var sortOption by remember(initialSortOption) { mutableStateOf(initialSortOption) }
@@ -263,6 +266,8 @@ fun LibraryView(
     val currentIsAnyDialogOpen by rememberUpdatedState(isAnyDialogOpen)
     val currentDisplayItems by rememberUpdatedState(displayItems)
     val currentPath by rememberUpdatedState(currentRelativePath)
+    val currentDeleteKey by rememberUpdatedState(deleteKey)
+    val currentOnRemoveRequested by rememberUpdatedState(onRemoveRequested)
 
     LaunchedEffect(displayItems) {
         if (displayItems.isNotEmpty() && selectedIndex >= displayItems.size) {
@@ -316,6 +321,17 @@ fun LibraryView(
                 // where "Esc" stops meaning "back" and starts meaning "leave the app," so it needs
                 // its own confirmation instead of silently doing nothing (the previous behavior).
                 showExitConfirmDialog = true
+                true
+            } else if (event.type == KeyEventType.KeyDown && items.isNotEmpty() &&
+                KeymapHelper.matches(currentDeleteKey, event)
+            ) {
+                // The selection index is left alone: once the row is gone the same index points
+                // at the next row, or is clamped to the new last row.
+                val item = items.getOrNull(selectedIndex)
+                when (item?.type) {
+                    1 -> currentOnRemoveRequested?.invoke(item.folder!!.file.toPath(), true)
+                    2 -> currentOnRemoveRequested?.invoke(item.book!!.file.toPath(), false)
+                }
                 true
             } else if (event.type == KeyEventType.KeyDown && items.isNotEmpty()) {
                 when (event.key) {

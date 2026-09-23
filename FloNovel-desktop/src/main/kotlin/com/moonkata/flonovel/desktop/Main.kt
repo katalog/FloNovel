@@ -60,12 +60,18 @@ import com.moonkata.flonovel.desktop.i18n.stringResource
 import com.moonkata.flonovel.desktop.library.BookRecord
 import com.moonkata.flonovel.desktop.library.BookStore
 import com.moonkata.flonovel.desktop.library.CredentialsStore
+import com.moonkata.flonovel.desktop.library.DeleteAction
+import com.moonkata.flonovel.desktop.library.FileRemover
+import com.moonkata.flonovel.desktop.library.LibraryScanner
+import com.moonkata.flonovel.desktop.library.RemovalOutcome
+import com.moonkata.flonovel.desktop.library.RemovalRefusal
 import com.moonkata.flonovel.desktop.library.LibrarySortOption
 import com.moonkata.flonovel.desktop.library.ResumeManager
 import com.moonkata.flonovel.desktop.library.ResumeTarget
 import com.moonkata.flonovel.desktop.library.SettingsStore
 import com.moonkata.flonovel.desktop.library.WindowSettings
 import com.moonkata.flonovel.desktop.platform.FileOpener
+import com.moonkata.flonovel.desktop.platform.SystemTrash
 import com.moonkata.flonovel.desktop.platform.WindowsTitleBar
 import com.moonkata.flonovel.desktop.platform.configDir
 import com.moonkata.flonovel.desktop.preprocess.IntakeFailure
@@ -90,12 +96,17 @@ import com.moonkata.flonovel.desktop.sync.SyncStatus
 import com.moonkata.flonovel.desktop.text.TextLoader
 import com.moonkata.flonovel.desktop.ui.AutoDismissMessage
 import com.moonkata.flonovel.desktop.ui.LibraryView
+import com.moonkata.flonovel.desktop.ui.RemovalConfirmDialog
+import com.moonkata.flonovel.desktop.ui.RemovalRequest
+import com.moonkata.flonovel.desktop.ui.removalOutcomeMessage
+import com.moonkata.flonovel.desktop.ui.removalRefusalMessage
 import com.moonkata.flonovel.desktop.ui.ReaderView
 import com.moonkata.flonovel.desktop.ui.SettingsDialog
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 fun main(args: Array<String>) {
     System.setProperty("sun.java2d.uiScale", "1.0")
@@ -172,7 +183,8 @@ fun main(args: Array<String>) {
     var syncStatus by remember { mutableStateOf(syncEngine?.status ?: SyncStatus.IDLE) }
     var initialProgress by remember { mutableStateOf<InitialUploadProgress?>(null) }
     val syncCompletedMessage = remember { AutoDismissMessage(coroutineScope, 3000L) }
-    val syncToast = remember { AutoDismissMessage(coroutineScope, 3000L) }
+    // Shared by sync results and Delete-key results; shown bottom-right in reader and library.
+    val floatingToast = remember { AutoDismissMessage(coroutineScope, 3000L) }
     var autoSyncJob by remember { mutableStateOf<Job?>(null) }
     var syncFailedFiles by remember { mutableStateOf<List<SyncFileFailure>>(emptyList()) }
     var isInitialUploadRequired by remember { mutableStateOf(syncEngine?.isInitialUploadRequired ?: false) }
@@ -205,7 +217,7 @@ fun main(args: Array<String>) {
                             Strings.get("sync_toast_synced_only", summary.successCount)
                     }
                     syncCompletedMessage.show(countMsg)
-                    syncToast.show(Strings.get("sync_toast_prefix", countMsg))
+                    floatingToast.show(Strings.get("sync_toast_prefix", countMsg))
                 }
             }
         }
@@ -362,6 +374,70 @@ fun main(args: Array<String>) {
         }
     }
 
+    var pendingRemoval by remember { mutableStateOf<RemovalRequest?>(null) }
+
+    // Checks that can fail before the user is asked anything, so a confirmation is never shown
+    // for an action that is already known to be refused.
+    val requestRemoval: (Path, Boolean) -> Unit = { path, isFolder ->
+        val refusal = when {
+            isFolder ->
+                if (runCatching { FileRemover.isEmptyFolder(path) }.getOrDefault(false)) null
+                else RemovalRefusal.FOLDER_NOT_EMPTY
+            settings.delete.action == DeleteAction.TRASH ->
+                if (SystemTrash.isSupported) null else RemovalRefusal.TRASH_UNSUPPORTED
+            else -> FileRemover.checkMoveFolder(settings.delete.moveFolder, homePath)
+        }
+        if (refusal != null) {
+            floatingToast.show(removalRefusalMessage(refusal))
+        } else {
+            pendingRemoval = RemovalRequest(path, isFolder)
+        }
+    }
+
+    val performRemoval: (RemovalRequest) -> Unit = { request ->
+        pendingRemoval = null
+        val openBook = activeTarget?.takeIf {
+            !request.isFolder &&
+                it.filePath.toAbsolutePath().normalize() == request.path.toAbsolutePath().normalize()
+        }
+        var nextSelectionPath: String? = null
+        if (openBook != null) {
+            // Persist the reading position while the record still exists; the watcher drops
+            // the record once the file is gone.
+            bookStore.flush()
+            val folder = openBook.book.path.replace('\\', '/').substringBeforeLast('/', "")
+            if (homePath != null) {
+                val sorted = LibraryScanner.sort(
+                    LibraryScanner.scanDirectory(homePath, folder, booksData).books,
+                    runCatching { LibrarySortOption.valueOf(settings.librarySortOption) }
+                        .getOrDefault(LibrarySortOption.RECENT),
+                )
+                nextSelectionPath = LibraryScanner.neighbourAfterRemoval(sorted, openBook.book.key)?.relativePath
+            }
+        }
+        coroutineScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                if (request.isFolder) FileRemover.removeEmptyFolder(request.path)
+                else FileRemover.removeBook(request.path, settings.delete, homePath ?: request.path.parent)
+            }
+            floatingToast.show(removalOutcomeMessage(outcome))
+            val removed = outcome is RemovalOutcome.Trashed ||
+                outcome is RemovalOutcome.Moved ||
+                outcome is RemovalOutcome.FolderRemoved
+            if (removed) {
+                if (openBook != null) {
+                    readingSyncCoordinator.onBookClosed()
+                    val normPath = openBook.book.path.replace('\\', '/')
+                    currentLibraryFolder = normPath.substringBeforeLast('/', "")
+                    lastClosedBookPath = nextSelectionPath
+                    activeTarget = null
+                }
+                booksData = bookStore.load()
+                directoryRevision++
+            }
+        }
+    }
+
     var windowKeyDispatcher by remember { mutableStateOf<((androidx.compose.ui.input.key.KeyEvent) -> Boolean)?>(null) }
 
     val initialWindowSettings = remember { settings.window }
@@ -435,7 +511,18 @@ fun main(args: Array<String>) {
         title = if (activeTarget != null) "${activeTarget!!.book.displayName} - FloNovel" else "FloNovel",
         icon = painterResource("icon.png"),
         onPreviewKeyEvent = { keyEvent ->
-            if (dropboxAuthErrorMessage != null || dropboxManualAuthUrl != null) {
+            val removal = pendingRemoval
+            if (removal != null) {
+                // Modal: nothing behind the confirmation may react, so every key is consumed.
+                if (keyEvent.type == androidx.compose.ui.input.key.KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        androidx.compose.ui.input.key.Key.Enter,
+                        androidx.compose.ui.input.key.Key.NumPadEnter -> performRemoval(removal)
+                        androidx.compose.ui.input.key.Key.Escape -> pendingRemoval = null
+                    }
+                }
+                true
+            } else if (dropboxAuthErrorMessage != null || dropboxManualAuthUrl != null) {
                 if (keyEvent.type == androidx.compose.ui.input.key.KeyEventType.KeyDown && keyEvent.key == androidx.compose.ui.input.key.Key.Escape) {
                     dropboxAuthErrorMessage = null
                     dropboxManualAuthUrl = null
@@ -565,6 +652,14 @@ fun main(args: Array<String>) {
                 },
                 onOpenInExplorer = { FileOpener.revealInFileManager(currentTarget.filePath) },
                 onOpenInDefaultApp = { FileOpener.openWithDefaultApp(currentTarget.filePath) },
+                onDeleteFile = { requestRemoval(currentTarget.filePath, false) },
+                deleteSettings = settings.delete,
+                onDeleteSettingsChanged = { newDeleteSettings ->
+                    val newSettings = settings.copy(delete = newDeleteSettings)
+                    settings = newSettings
+                    settingsStore.save(newSettings)
+                },
+                libraryFolder = settings.homeFolder,
                 onHome = {
                     readingSyncCoordinator.onBookClosed()
                     bookStore.flush()
@@ -640,6 +735,8 @@ fun main(args: Array<String>) {
                 onRelativePathChanged = { currentLibraryFolder = it },
                 initialSelectedRelativePath = lastClosedBookPath,
                 onExitApp = performExit,
+                deleteKey = settings.keymap.deleteFile,
+                onRemoveRequested = requestRemoval,
                 directoryRevision = directoryRevision,
                 onSortOptionChanged = { newOption ->
                     val updatedSettings = settings.copy(librarySortOption = newOption.name)
@@ -787,6 +884,13 @@ fun main(args: Array<String>) {
                         settings = newSettings
                         settingsStore.save(newSettings)
                     },
+                    deleteSettings = settings.delete,
+                    onDeleteSettingsChanged = { newDeleteSettings ->
+                        val newSettings = settings.copy(delete = newDeleteSettings)
+                        settings = newSettings
+                        settingsStore.save(newSettings)
+                    },
+                    libraryFolder = settings.homeFolder,
                     currentChapterSettings = settings.chapter,
                     onChapterSettingsChanged = { newChapterSettings ->
                         val newSettings = settings.copy(chapter = newChapterSettings)
@@ -987,9 +1091,18 @@ fun main(args: Array<String>) {
             }
         }
 
-        // Global Floating Sync Toast Notification (appears in Reader or Library mode)
+        pendingRemoval?.let { request ->
+            RemovalConfirmDialog(
+                request = request,
+                deleteSettings = settings.delete,
+                onConfirm = { performRemoval(request) },
+                onCancel = { pendingRemoval = null },
+            )
+        }
+
+        // Global Floating Toast (appears in Reader or Library mode)
         AnimatedVisibility(
-            visible = syncToast.message != null,
+            visible = floatingToast.message != null,
             enter = fadeIn() + slideInVertically { it / 2 },
             exit = fadeOut() + slideOutVertically { it / 2 },
             modifier = Modifier
@@ -1007,7 +1120,7 @@ fun main(args: Array<String>) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = syncToast.message ?: "",
+                        text = floatingToast.message ?: "",
                         color = Color.White,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,

@@ -32,6 +32,7 @@ object KeymapHelper {
             "BACKSPACE" -> "Backspace"
             "ENTER" -> "Enter"
             "TAB" -> "Tab"
+            "DELETE" -> "Del"
             else -> keyName.uppercase()
         }
     }
@@ -71,6 +72,7 @@ object KeymapHelper {
             key == Key.Backspace -> "BACKSPACE"
             key == Key.Enter -> "ENTER"
             key == Key.Tab -> "TAB"
+            key == Key.Delete -> "DELETE"
             key == Key.A -> "A"
             key == Key.B -> "B"
             key == Key.C -> "C"

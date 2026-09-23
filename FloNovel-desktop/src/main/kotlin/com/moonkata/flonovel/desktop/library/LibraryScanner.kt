@@ -217,4 +217,15 @@ object LibraryScanner {
             LibrarySortOption.RECENT -> items.sortedByDescending { it.bookRecord?.lastOpenedAt ?: 0L }
         }
     }
+
+    /**
+     * The row to land on once the book [removedKey] is gone from [sortedItems]: the one after it,
+     * or the one before it if it was last -- the same place the cursor ends up when a row is
+     * removed from the library list itself.
+     */
+    fun neighbourAfterRemoval(sortedItems: List<LibraryBookItem>, removedKey: String): LibraryBookItem? {
+        val idx = sortedItems.indexOfFirst { it.key == removedKey }
+        if (idx < 0) return null
+        return sortedItems.getOrNull(idx + 1) ?: sortedItems.getOrNull(idx - 1)
+    }
 }

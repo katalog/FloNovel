@@ -244,6 +244,7 @@
     <!-- Shortcut Settings -->
     <string name="settings_tab_view">Reading View</string>
     <string name="settings_tab_shortcuts">Shortcuts</string>
+    <string name="settings_tab_files">Files</string>
     <string name="settings_tab_sync">Cloud Sync</string>
     <string name="settings_shortcuts_title">Keyboard Shortcuts</string>
     <string name="settings_shortcuts_desc">Click an item and press a key to customize. Press ESC while recording to clear the shortcut.</string>
@@ -261,6 +262,7 @@
     <string name="settings_shortcut_open_in_explorer">Reveal file in file manager</string>
     <string name="settings_shortcut_open_in_default_app">Open file in default app</string>
     <string name="settings_shortcut_auto_page_turn">Toggle Auto Page-Turn</string>
+    <string name="settings_shortcut_delete_file">Delete / Move File</string>
     <string name="settings_shortcut_press_key">Press any key...</string>
     <string name="settings_shortcut_reset">Reset to Defaults</string>
 
@@ -276,4 +278,31 @@
     <string name="radio_stop_playback">Stop</string>
     <string name="radio_minutes_unit">%d min</string>
     <string name="radio_error_toast">Radio playback failed: %s</string>
+    <!-- Delete key: settings, confirmation, results -->
+    <string name="settings_delete_title">Delete Key</string>
+    <string name="settings_delete_desc">What the Delete key does to a book in the library or the reader. Empty folders are always deleted. Removed books also disappear from Dropbox and your phone.</string>
+    <string name="settings_delete_action_trash">Recycle Bin</string>
+    <string name="settings_delete_action_move">Move to folder</string>
+    <string name="settings_delete_move_folder_none">No folder selected</string>
+    <string name="settings_delete_move_folder_choose">Choose Folder</string>
+    <string name="removal_confirm_trash_title">Move to Recycle Bin?</string>
+    <string name="removal_confirm_trash_message">"%s" will be moved to the Recycle Bin. It will also be removed from Dropbox and your phone.</string>
+    <string name="removal_confirm_trash_button">Move to Recycle Bin</string>
+    <string name="removal_confirm_move_title">Move file?</string>
+    <string name="removal_confirm_move_message">"%s" will be moved to %s. It will also be removed from Dropbox and your phone.</string>
+    <string name="removal_confirm_move_button">Move</string>
+    <string name="removal_confirm_folder_title">Delete empty folder?</string>
+    <string name="removal_confirm_folder_message">The empty folder "%s" will be deleted.</string>
+    <string name="removal_confirm_delete_button">Delete</string>
+    <string name="removal_done_trashed">Moved to Recycle Bin: %s</string>
+    <string name="removal_done_moved">Moved: %s</string>
+    <string name="removal_done_folder">Deleted folder: %s</string>
+    <string name="removal_failed">Could not remove the file: %s</string>
+    <string name="removal_refused_not_found">The file no longer exists.</string>
+    <string name="removal_refused_folder_not_empty">Only empty folders can be deleted.</string>
+    <string name="removal_refused_trash_unsupported">This system has no Recycle Bin. Choose "Move to folder" in Settings, Files tab.</string>
+    <string name="removal_refused_trash_failed">Could not move the file to the Recycle Bin.</string>
+    <string name="removal_refused_move_folder_not_set">No move folder is set. Choose one in Settings, Files tab.</string>
+    <string name="removal_refused_move_folder_missing">The move folder does not exist. Choose it again in Settings, Files tab.</string>
+    <string name="removal_refused_move_folder_inside_library">The move folder cannot be inside the library folder.</string>
 </resources>
