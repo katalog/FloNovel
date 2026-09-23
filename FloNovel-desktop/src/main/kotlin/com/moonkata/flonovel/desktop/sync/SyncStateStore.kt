@@ -1,6 +1,7 @@
 package com.moonkata.flonovel.desktop.sync
 
 import com.moonkata.flonovel.desktop.library.AtomicFile
+import java.nio.file.Files
 import java.nio.file.Path
 import org.json.JSONArray
 import org.json.JSONObject
@@ -81,6 +82,13 @@ class SyncStateStore(val filePath: Path) {
         val content = AtomicFile.readIfExists(filePath) ?: return SyncState()
         return runCatching { SyncState.fromJsonString(content) }.getOrDefault(SyncState())
     }
+
+    /**
+     * False only before the first two-way sync has saved anything. That moment, and not a
+     * corrupted file, is what marks an upgrade from one-way sync (see DropboxSyncEngine).
+     */
+    val fileExists: Boolean
+        get() = Files.exists(filePath)
 
     fun load(): SyncState = synchronized(lock) { cached }
 

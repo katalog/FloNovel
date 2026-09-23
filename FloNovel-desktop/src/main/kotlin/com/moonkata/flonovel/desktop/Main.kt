@@ -84,6 +84,7 @@ import com.moonkata.flonovel.desktop.sync.DropboxClient
 import com.moonkata.flonovel.desktop.sync.DropboxConfig
 import com.moonkata.flonovel.desktop.sync.DropboxOAuth
 import com.moonkata.flonovel.desktop.sync.DropboxSyncEngine
+import com.moonkata.flonovel.desktop.sync.SyncStateStore
 import com.moonkata.flonovel.desktop.sync.ForcePushOutcome
 import com.moonkata.flonovel.desktop.sync.InitialUploadProgress
 import com.moonkata.flonovel.desktop.sync.ReadingPositionSyncClient
@@ -173,9 +174,9 @@ fun main(args: Array<String>) {
             DropboxSyncEngine(
                 homeFolder = homePath,
                 bookStore = bookStore,
-                credentialsStore = credentialsStore,
                 settingsStore = settingsStore,
                 dropboxClient = dropboxClient,
+                syncStateStore = SyncStateStore(appConfigDir.resolve("sync-state.json")),
             )
         } else null
     }
@@ -251,6 +252,16 @@ fun main(args: Array<String>) {
     var lastClosedBookPath by remember { mutableStateOf<String?>(null) }
 
     var activeTarget by remember { mutableStateOf<ResumeTarget?>(initialResumeTarget) }
+
+    // Sync runs off the UI thread; it asks here which file the reader holds, and leaves it alone.
+    LaunchedEffect(syncEngine) {
+        syncEngine?.isOpenInReader = { path ->
+            activeTarget?.filePath?.toAbsolutePath()?.normalize() == path.toAbsolutePath().normalize()
+        }
+    }
+    LaunchedEffect(syncEngine, settings.language) {
+        syncEngine?.conflictLabel = Strings.get("sync_conflict_copy_label")
+    }
 
     val intakePipeline = remember(homePath) {
         if (homePath != null && Files.exists(homePath)) {

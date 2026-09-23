@@ -40,9 +40,36 @@ sealed class DropboxEntry {
 }
 
 sealed class DropboxUploadResult {
-    data class Success(val path: String, val size: Long, val serverModified: String) : DropboxUploadResult()
+    data class Success(
+        val path: String,
+        val size: Long,
+        val serverModified: String,
+        val rev: String = "",
+        val contentHash: String = "",
+    ) : DropboxUploadResult()
     object InsufficientSpace : DropboxUploadResult()
+
+    /**
+     * The write was refused because the remote is not what the caller expected: `mode=add` over an
+     * existing file, or `mode=update` against a rev another device has already replaced.
+     */
+    data class Conflict(val message: String) : DropboxUploadResult()
     data class Failure(val message: String, val statusCode: Int = -1) : DropboxUploadResult()
+}
+
+sealed class DropboxDeleteResult {
+    object Deleted : DropboxDeleteResult()
+    object NotFound : DropboxDeleteResult()
+
+    /** `parent_rev` no longer matches: someone changed the file since it was last seen. */
+    data class Conflict(val message: String) : DropboxDeleteResult()
+    data class Failure(val message: String, val statusCode: Int = -1) : DropboxDeleteResult()
+}
+
+sealed class DropboxMetadataResult {
+    data class Found(val entry: DropboxEntry) : DropboxMetadataResult()
+    object NotFound : DropboxMetadataResult()
+    data class Failure(val message: String, val statusCode: Int = -1) : DropboxMetadataResult()
 }
 
 sealed class DropboxListFolderResult {
@@ -157,16 +184,25 @@ class DropboxClient(
 
     /**
      * Uploads file content to Dropbox.
+     *
+     * [updateRev] set means `mode=update(rev)`: replace the file only if it is still at that rev.
+     * Book sync always uses `add` or `update`, never `overwrite`, which would silently discard a
+     * change another device made in the meantime (CLAUDE.md §1).
      */
     fun uploadFile(
         path: String,
         content: ByteArray,
         overwrite: Boolean = true,
+        updateRev: String? = null,
     ): DropboxUploadResult {
         val normPath = if (path.startsWith("/")) path else "/$path"
         val argJson = JSONObject().apply {
             put("path", normPath)
-            put("mode", if (overwrite) "overwrite" else "add")
+            when {
+                updateRev != null -> put("mode", JSONObject().put(".tag", "update").put("update", updateRev))
+                overwrite -> put("mode", "overwrite")
+                else -> put("mode", "add")
+            }
             put("autorename", false)
             put("mute", true)
         }.toString()
@@ -187,12 +223,17 @@ class DropboxClient(
                 path = json.optString("path_display", normPath),
                 size = json.optLong("size", content.size.toLong()),
                 serverModified = json.optString("server_modified", ""),
+                rev = json.optString("rev", ""),
+                contentHash = json.optString("content_hash", ""),
             )
         }
 
         val bodyStr = response.body()
         if (response.statusCode() == 409 && bodyStr.contains("insufficient_space")) {
             return DropboxUploadResult.InsufficientSpace
+        }
+        if (response.statusCode() == 409 && bodyStr.contains("conflict")) {
+            return DropboxUploadResult.Conflict(errorSummaryOf(bodyStr, response.statusCode()))
         }
 
         val errorSummary = runCatching {
@@ -230,12 +271,13 @@ class DropboxClient(
     }
 
     /**
-     * Deletes a file or folder in Dropbox.
+     * Deletes a file or folder in Dropbox. With [parentRev], only if the file is still at that rev.
      */
-    fun deleteFile(path: String): Boolean {
+    fun deleteFile(path: String, parentRev: String? = null): DropboxDeleteResult {
         val normPath = if (path.startsWith("/")) path else "/$path"
         val bodyJson = JSONObject().apply {
             put("path", normPath)
+            if (parentRev != null) put("parent_rev", parentRev)
         }.toString()
 
         val response = executeStringRequest { token ->
@@ -245,11 +287,45 @@ class DropboxClient(
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(bodyJson))
                 .build()
-        } ?: return false
+        } ?: return DropboxDeleteResult.Failure("Network or auth error")
 
-        return response.statusCode() in 200..299 ||
-            (response.statusCode() == 409 && response.body().contains("not_found"))
+        val body = response.body()
+        return when {
+            response.statusCode() in 200..299 -> DropboxDeleteResult.Deleted
+            response.statusCode() == 409 && body.contains("not_found") -> DropboxDeleteResult.NotFound
+            // Any other 409 on a conditional delete is the rev check failing, whatever tag Dropbox
+            // puts on it; the caller re-reads the file and decides again rather than parsing tags.
+            response.statusCode() == 409 && parentRev != null ->
+                DropboxDeleteResult.Conflict(errorSummaryOf(body, response.statusCode()))
+            else -> DropboxDeleteResult.Failure(errorSummaryOf(body, response.statusCode()), response.statusCode())
+        }
     }
+
+    /** Metadata for one path; used to re-read a file after a conditional write was refused. */
+    fun getMetadata(path: String): DropboxMetadataResult {
+        val normPath = if (path.startsWith("/")) path else "/$path"
+        val bodyJson = JSONObject().put("path", normPath).toString()
+
+        val response = executeStringRequest { token ->
+            HttpRequest.newBuilder()
+                .uri(URI.create("$apiBaseUrl/2/files/get_metadata"))
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(bodyJson))
+                .build()
+        } ?: return DropboxMetadataResult.Failure("Network or auth error")
+
+        val body = response.body()
+        if (response.statusCode() in 200..299) {
+            val entry = parseEntry(JSONObject(body)) ?: return DropboxMetadataResult.NotFound
+            return DropboxMetadataResult.Found(entry)
+        }
+        if (response.statusCode() == 409 && body.contains("not_found")) return DropboxMetadataResult.NotFound
+        return DropboxMetadataResult.Failure(errorSummaryOf(body, response.statusCode()), response.statusCode())
+    }
+
+    private fun errorSummaryOf(body: String, status: Int): String =
+        runCatching { JSONObject(body).optString("error_summary", "HTTP $status") }.getOrDefault("HTTP $status")
 
     /**
      * Lists entries in [path] (e.g. "/books").
@@ -299,38 +375,7 @@ class DropboxClient(
             val entriesArray = json.optJSONArray("entries") ?: JSONArray()
             val entries = mutableListOf<DropboxEntry>()
             for (i in 0 until entriesArray.length()) {
-                val item = entriesArray.getJSONObject(i)
-                val tag = item.optString(".tag")
-                val name = item.optString("name", "")
-                val pathDisplay = item.optString("path_display", "")
-                val pathLower = item.optString("path_lower", "")
-                when (tag) {
-                    "file" -> entries.add(
-                        DropboxEntry.FileEntry(
-                            name = name,
-                            pathDisplay = pathDisplay,
-                            pathLower = pathLower,
-                            size = item.optLong("size", 0L),
-                            serverModified = item.optString("server_modified", ""),
-                            rev = item.optString("rev", ""),
-                            contentHash = item.optString("content_hash", ""),
-                        )
-                    )
-                    "folder" -> entries.add(
-                        DropboxEntry.FolderEntry(
-                            name = name,
-                            pathDisplay = pathDisplay,
-                            pathLower = pathLower,
-                        )
-                    )
-                    "deleted" -> entries.add(
-                        DropboxEntry.DeletedEntry(
-                            name = name,
-                            pathDisplay = pathDisplay,
-                            pathLower = pathLower,
-                        )
-                    )
-                }
+                parseEntry(entriesArray.getJSONObject(i))?.let { entries.add(it) }
             }
             val cursor = json.optString("cursor", "")
             val hasMore = json.optBoolean("has_more", false)
@@ -347,6 +392,26 @@ class DropboxClient(
         }.getOrDefault("HTTP ${response.statusCode()}")
 
         return DropboxListFolderResult.Failure(errorSummary, response.statusCode())
+    }
+
+    private fun parseEntry(item: JSONObject): DropboxEntry? {
+        val name = item.optString("name", "")
+        val pathDisplay = item.optString("path_display", "")
+        val pathLower = item.optString("path_lower", "")
+        return when (item.optString(".tag")) {
+            "file" -> DropboxEntry.FileEntry(
+                name = name,
+                pathDisplay = pathDisplay,
+                pathLower = pathLower,
+                size = item.optLong("size", 0L),
+                serverModified = item.optString("server_modified", ""),
+                rev = item.optString("rev", ""),
+                contentHash = item.optString("content_hash", ""),
+            )
+            "folder" -> DropboxEntry.FolderEntry(name = name, pathDisplay = pathDisplay, pathLower = pathLower)
+            "deleted" -> DropboxEntry.DeletedEntry(name = name, pathDisplay = pathDisplay, pathLower = pathLower)
+            else -> null
+        }
     }
 
     private fun executeStringRequest(
