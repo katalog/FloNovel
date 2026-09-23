@@ -185,6 +185,23 @@ fun DropboxSyncSheet(viewModel: LibraryViewModel, settings: ReaderSettings, onDi
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
+                    // Which books, so a failure that keeps coming back can be looked into.
+                    result.failedPaths.take(5).forEach { path ->
+                        Text(
+                            "• $path",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (result.deferred > 0) {
+                    Text(
+                        stringResource(R.string.dropbox_result_deferred, result.deferred),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 if (result.conflicts > 0) {
                     Text(

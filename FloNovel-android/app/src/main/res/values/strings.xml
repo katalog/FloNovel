@@ -150,6 +150,7 @@
     <string name="dropbox_title">Dropbox sync</string>
     <string name="dropbox_description">Syncs books with the PC both ways: books added, changed or deleted on either side reach the other.</string>
     <string name="dropbox_result_two_way">Downloaded %1$d, uploaded %2$d, deleted %3$d.</string>
+    <string name="dropbox_result_deferred">%1$d changes to the book you have open will be applied after you close it.</string>
     <string name="dropbox_result_conflicts">%1$d books were changed on two devices; both versions were kept as conflicted copies.</string>
     <string name="dropbox_result_waiting_for_write">%1$d changes from this phone are waiting. Reconnect Dropbox to send them.</string>
     <string name="dropbox_reconnect_for_write">This link was made before the phone could upload. Reconnect once so changes made here reach the PC.</string>

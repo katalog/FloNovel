@@ -14,6 +14,9 @@ data class TwoWaySyncResult(
     val withheldDeletions: List<String> = emptyList(),
     /** Uploads and remote deletes skipped because the link predates write access. */
     val waitingForWriteAccess: Int = 0,
+    /** Changes to the book open in the reader, left until it is closed. */
+    val deferred: Int = 0,
+    val failedPaths: List<String> = emptyList(),
 ) {
     val changed: Int get() = downloaded + uploaded + deletedLocal + deletedRemote + conflicts
 }
@@ -49,6 +52,8 @@ class TwoWayBookSync(
      * it could not be preprocessed, so it is not uploaded raw.
      */
     private val prepareNewBook: suspend (relativePath: String) -> String?,
+    /** True for the book open in the reader: it is not replaced, deleted or renamed under it. */
+    private val isInUse: (relativePath: String) -> Boolean = { false },
     private val deviceName: String = "Android",
 ) {
     private data class LocalEntry(val file: LibraryFile, val state: LocalFileState)
@@ -64,6 +69,7 @@ class TwoWayBookSync(
             val conflict: Boolean = false,
         ) : Outcome()
         object WaitingForWriteAccess : Outcome()
+        object Deferred : Outcome()
         object Failed : Outcome()
     }
 
@@ -108,9 +114,13 @@ class TwoWayBookSync(
                     complete = false
                     result.copy(waitingForWriteAccess = result.waitingForWriteAccess + 1)
                 }
+                Outcome.Deferred -> {
+                    complete = false
+                    result.copy(deferred = result.deferred + 1)
+                }
                 Outcome.Failed -> {
                     complete = false
-                    result.copy(failed = result.failed + 1)
+                    result.copy(failed = result.failed + 1, failedPaths = result.failedPaths + displayPath(plan.key, local, remote, bases))
                 }
             }
         }
@@ -155,13 +165,17 @@ class TwoWayBookSync(
                 Outcome.Done()
             }
 
-            is SyncAction.Download -> download(key, action.remote, entry?.file?.relativePath ?: action.remote.pathDisplay, bases)
+            is SyncAction.Download -> {
+                if (entry != null && isInUse(entry.file.relativePath)) return Outcome.Deferred
+                download(key, action.remote, entry?.file?.relativePath ?: action.remote.pathDisplay, bases)
+            }
 
             SyncAction.DeleteLocal -> {
                 val e = entry ?: run {
                     forget(key, bases)
                     return Outcome.Done()
                 }
+                if (isInUse(e.file.relativePath)) return Outcome.Deferred
                 if (!files.delete(e.file.relativePath)) return Outcome.Failed
                 forget(key, bases)
                 Outcome.Done(deletedLocal = true)
@@ -275,6 +289,7 @@ class TwoWayBookSync(
         bases: MutableMap<String, SyncBase>,
     ): Outcome {
         val e = entry ?: return download(key, remoteFile, remoteFile.pathDisplay, bases)
+        if (isInUse(e.file.relativePath)) return Outcome.Deferred
         if (!canWrite) return Outcome.WaitingForWriteAccess
 
         val rel = e.file.relativePath

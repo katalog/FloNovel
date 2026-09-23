@@ -17,7 +17,7 @@ import org.junit.Test
  * Two-way sync on the phone, against an in-memory library folder and a fake Dropbox. Each test
  * checks both sides afterwards. The cases follow the Desktop engine's suite where the rules are
  * shared, plus what only the phone has: in-place writes, interrupted downloads, read-only links,
- * and books waiting for preprocessing.
+ * and books added on the phone, which are preprocessed before their first upload.
  */
 class TwoWayBookSyncTest {
 
@@ -52,6 +52,8 @@ class TwoWayBookSyncTest {
         server.shutdown()
     }
 
+    private var openBook: String? = null
+
     private fun engine(canWrite: Boolean = true, syncedOneWayBefore: Boolean = false) = TwoWayBookSync(
         files = library,
         client = client,
@@ -69,6 +71,7 @@ class TwoWayBookSyncTest {
                 is LibraryPreprocessor.Result.Failed -> null
             }
         },
+        isInUse = { rel -> rel == openBook },
     )
 
     private fun sync(
@@ -294,6 +297,43 @@ class TwoWayBookSyncTest {
         assertEquals(1, result.failed)
         assertEquals("DOWNLOADING", dao.rows["book.txt"]?.state)
         assertTrue(cursor.isBlank())
+    }
+
+    // ── The book open in the reader ─────────────────────────────────────
+
+    @Test
+    fun openBook_isLeftAlone_untilClosed() {
+        syncedBook("Open.txt", "v1")
+        syncedBook("Other.txt", "o1")
+        dropbox.put("Open.txt", "v2")
+        dropbox.put("Other.txt", "o2")
+        openBook = "Open.txt"
+
+        val held = sync()
+        assertEquals(1, held.deferred)
+        assertEquals("v1", library.content("Open.txt"))
+        assertEquals("o2", library.content("Other.txt"))
+
+        openBook = null
+        sync()
+        assertEquals("v2", library.content("Open.txt"))
+    }
+
+    @Test
+    fun openBook_remoteDeletion_waitsToo() {
+        syncedBook()
+        dropbox.remove("Book.txt")
+        openBook = "Book.txt"
+
+        assertEquals(1, sync().deferred)
+        assertEquals("v1", library.content("Book.txt"))
+    }
+
+    @Test
+    fun failedPaths_nameTheBooks() {
+        dropbox.put("Bad.txt", "x")
+        dropbox.failDownloadsOf += "Bad.txt"
+        assertEquals(listOf("Bad.txt"), sync().failedPaths)
     }
 
     // ── Write access ────────────────────────────────────────────────────

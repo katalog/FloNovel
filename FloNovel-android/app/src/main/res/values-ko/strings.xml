@@ -150,6 +150,7 @@
     <string name="dropbox_title">Dropbox 동기화</string>
     <string name="dropbox_description">PC와 책을 양방향으로 동기화합니다. 어느 쪽에서 추가·수정·삭제해도 다른 쪽에 반영됩니다.</string>
     <string name="dropbox_result_two_way">받음 %1$d · 올림 %2$d · 삭제 %3$d</string>
+    <string name="dropbox_result_deferred">열어 둔 책의 변경 %1$d건은 책을 닫은 뒤에 반영합니다.</string>
     <string name="dropbox_result_conflicts">두 기기에서 함께 바뀐 책 %1$d권은 두 버전을 모두 충돌 사본으로 남겼습니다.</string>
     <string name="dropbox_result_waiting_for_write">이 폰에서 바꾼 %1$d건이 대기 중입니다. Dropbox를 다시 연결하면 올라갑니다.</string>
     <string name="dropbox_reconnect_for_write">폰에서 올리기 기능이 생기기 전에 연결되었습니다. 한 번 다시 연결하면 여기서 바꾼 내용도 PC로 갑니다.</string>

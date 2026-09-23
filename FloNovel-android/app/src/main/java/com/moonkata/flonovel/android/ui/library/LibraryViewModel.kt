@@ -33,7 +33,9 @@ import com.moonkata.flonovel.android.data.sync.DropboxClient
 import com.moonkata.flonovel.android.data.sync.DropboxConfig
 import com.moonkata.flonovel.android.data.sync.DropboxOAuth
 import com.moonkata.flonovel.android.data.sync.DropboxSyncProgress
+import com.moonkata.flonovel.android.data.sync.OpenBook
 import com.moonkata.flonovel.android.data.sync.SafLibraryFiles
+import com.moonkata.flonovel.android.data.sync.shouldAutoSync
 import com.moonkata.flonovel.android.data.sync.TwoWayBookSync
 import com.moonkata.flonovel.android.data.sync.TwoWaySyncResult
 import com.moonkata.flonovel.android.data.sync.ReadingPositionSyncClient
@@ -495,6 +497,7 @@ class LibraryViewModel(
                 conflictLabel = app.getString(R.string.dropbox_conflict_copy_label),
                 today = { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) },
                 prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
+                isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
             )
             val result = withContext(Dispatchers.IO) {
                 sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
@@ -520,6 +523,25 @@ class LibraryViewModel(
             // listing is only read when it is entered — without this, new books stay invisible until
             // the user navigates away and back (the same fix the PC sync needed).
             if (result != null && result.changed > 0) loadCurrent()
+        }
+    }
+
+    private var lastAutoSyncAt = 0L
+
+    /**
+     * The library came to the front: app launch, back from another app, or back from the reader.
+     * Syncs so the other device's changes show up, at most once a minute (CLAUDE.md §1: Android
+     * syncs on launch and foreground, no background sync). Silent when sync is not set up.
+     */
+    fun onLibraryResumed() {
+        val now = System.currentTimeMillis()
+        if (!shouldAutoSync(lastAutoSyncAt, now) || _dropboxState.value.isSyncing) return
+        val rootUri = _browseState.value.rootUri ?: return
+        if (!getApplication<Application>().hasPersistedWritePermission(rootUri)) return
+        viewModelScope.launch {
+            if (!dropboxClient.isLinked()) return@launch
+            lastAutoSyncAt = now
+            syncFromDropbox()
         }
     }
 
