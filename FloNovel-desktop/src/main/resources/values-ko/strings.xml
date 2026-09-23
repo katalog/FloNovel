@@ -217,7 +217,6 @@
     <string name="sync_toast_deleted_only">✓ %d개 삭제 동기화 완료</string>
     <string name="sync_toast_synced_only">✓ %d개 동기화 완료</string>
     <string name="sync_toast_prefix">☁️ Dropbox 동기화: %s</string>
-    <string name="sync_toast_title_match">☁️ Dropbox 동기화</string>
     <string name="dropbox_auth_no_key">Dropbox 앱 키가 설정되지 않았습니다.\nlocal.properties 파일에 DROPBOX_APP_KEY를 설정하거나 환경변수를 지정해주세요.</string>
     <string name="dropbox_auth_loopback_failed">Dropbox 루프백 서버 시작 실패 (포트 %d):\n%s</string>
     <string name="dropbox_auth_failed_title">Dropbox 설정 안내</string>

@@ -217,7 +217,6 @@
     <string name="sync_toast_deleted_only">✓ %d deleted synced</string>
     <string name="sync_toast_synced_only">✓ %d items synced</string>
     <string name="sync_toast_prefix">☁️ Dropbox sync: %s</string>
-    <string name="sync_toast_title_match">☁️ Dropbox sync</string>
     <string name="dropbox_auth_no_key">Dropbox App Key is not configured.\nPlease set DROPBOX_APP_KEY in local.properties or specify environment variable.</string>
     <string name="dropbox_auth_loopback_failed">Failed to start Dropbox loopback server (Port %d):\n%s</string>
     <string name="dropbox_auth_failed_title">Dropbox Auth Notice</string>

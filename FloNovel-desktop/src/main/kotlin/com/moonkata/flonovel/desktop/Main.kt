@@ -88,6 +88,7 @@ import com.moonkata.flonovel.desktop.sync.SupabaseConfig
 import com.moonkata.flonovel.desktop.sync.SyncFileFailure
 import com.moonkata.flonovel.desktop.sync.SyncStatus
 import com.moonkata.flonovel.desktop.text.TextLoader
+import com.moonkata.flonovel.desktop.ui.AutoDismissMessage
 import com.moonkata.flonovel.desktop.ui.LibraryView
 import com.moonkata.flonovel.desktop.ui.ReaderView
 import com.moonkata.flonovel.desktop.ui.SettingsDialog
@@ -170,8 +171,8 @@ fun main(args: Array<String>) {
 
     var syncStatus by remember { mutableStateOf(syncEngine?.status ?: SyncStatus.IDLE) }
     var initialProgress by remember { mutableStateOf<InitialUploadProgress?>(null) }
-    var syncCompletedMessage by remember { mutableStateOf<String?>(null) }
-    var syncToastMessage by remember { mutableStateOf<String?>(null) }
+    val syncCompletedMessage = remember { AutoDismissMessage(coroutineScope, 3000L) }
+    val syncToast = remember { AutoDismissMessage(coroutineScope, 3000L) }
     var autoSyncJob by remember { mutableStateOf<Job?>(null) }
     var syncFailedFiles by remember { mutableStateOf<List<SyncFileFailure>>(emptyList()) }
     var isInitialUploadRequired by remember { mutableStateOf(syncEngine?.isInitialUploadRequired ?: false) }
@@ -203,11 +204,8 @@ fun main(args: Array<String>) {
                         else ->
                             Strings.get("sync_toast_synced_only", summary.successCount)
                     }
-                    syncCompletedMessage = countMsg
-                    syncToastMessage = Strings.get("sync_toast_prefix", countMsg)
-                    delay(3000L)
-                    if (syncCompletedMessage == countMsg) syncCompletedMessage = null
-                    if (syncToastMessage?.startsWith(Strings.get("sync_toast_title_match")) == true) syncToastMessage = null
+                    syncCompletedMessage.show(countMsg)
+                    syncToast.show(Strings.get("sync_toast_prefix", countMsg))
                 }
             }
         }
@@ -635,7 +633,7 @@ fun main(args: Array<String>) {
                 isInitialUploadRequired = isInitialUploadRequired,
                 syncStatus = syncStatus,
                 initialProgress = initialProgress,
-                syncCompletedMessage = syncCompletedMessage,
+                syncCompletedMessage = syncCompletedMessage.message,
                 syncFailedFiles = syncFailedFiles,
                 initialSortOption = runCatching { LibrarySortOption.valueOf(settings.librarySortOption) }.getOrDefault(LibrarySortOption.RECENT),
                 initialRelativePath = currentLibraryFolder,
@@ -683,9 +681,7 @@ fun main(args: Array<String>) {
                                 else ->
                                     Strings.get("sync_toast_synced_only", summary.successCount)
                             }
-                            syncCompletedMessage = countMsg
-                            delay(3000L)
-                            if (syncCompletedMessage == countMsg) syncCompletedMessage = null
+                            syncCompletedMessage.show(countMsg)
                         }
                     }
                 },
@@ -711,9 +707,7 @@ fun main(args: Array<String>) {
                                 else ->
                                     Strings.get("sync_toast_synced_only", summary.successCount)
                             }
-                            syncCompletedMessage = countMsg
-                            delay(3000L)
-                            if (syncCompletedMessage == countMsg) syncCompletedMessage = null
+                            syncCompletedMessage.show(countMsg)
                         }
                     }
                 },
@@ -995,7 +989,7 @@ fun main(args: Array<String>) {
 
         // Global Floating Sync Toast Notification (appears in Reader or Library mode)
         AnimatedVisibility(
-            visible = syncToastMessage != null,
+            visible = syncToast.message != null,
             enter = fadeIn() + slideInVertically { it / 2 },
             exit = fadeOut() + slideOutVertically { it / 2 },
             modifier = Modifier
@@ -1013,7 +1007,7 @@ fun main(args: Array<String>) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = syncToastMessage ?: "",
+                        text = syncToast.message ?: "",
                         color = Color.White,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
