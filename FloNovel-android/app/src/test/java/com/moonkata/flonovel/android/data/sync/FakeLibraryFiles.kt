@@ -74,6 +74,13 @@ class FakeLibraryFiles : LibraryFiles {
 
     override fun delete(relativePath: String): Boolean = entries.remove(relativePath) != null
 
+    override fun move(from: String, to: String): Boolean {
+        if (to in entries) return false
+        val entry = entries.remove(from) ?: return false
+        entries[to] = entry
+        return true
+    }
+
     override fun rename(relativePath: String, newName: String): Boolean {
         val folder = relativePath.substringBeforeLast('/', "")
         val target = if (folder.isEmpty()) newName else "$folder/$newName"

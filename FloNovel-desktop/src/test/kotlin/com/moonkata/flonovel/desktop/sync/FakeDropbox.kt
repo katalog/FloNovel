@@ -32,10 +32,14 @@ class FakeDropbox : Dispatcher() {
     /** Upload `mode` values received, e.g. "add", "update:r3". */
     val uploadModes = mutableListOf<String>()
 
+    /** Moves carried out, as (from, to) paths relative to /books. */
+    val moves = mutableListOf<Pair<String, String>>()
+
     /** `parent_rev` values received on delete_v2 (null when absent). */
     val deleteParentRevs = mutableListOf<String?>()
 
     var booksFolderExists = true
+    var failMoves = false
     var insufficientSpace = false
     var resetNextContinue = false
     val failDownloadsOf = mutableSetOf<String>()
@@ -85,6 +89,7 @@ class FakeDropbox : Dispatcher() {
             "/2/files/download" -> download(JSONObject(request.getHeader("Dropbox-API-Arg")!!).getString("path"))
             "/2/files/delete_v2" -> delete(JSONObject(request.body.readUtf8()))
             "/2/files/get_metadata" -> metadata(JSONObject(request.body.readUtf8()).getString("path"))
+            "/2/files/move_v2" -> move(JSONObject(request.body.readUtf8()))
             else -> MockResponse().setResponseCode(404)
         }
     }
@@ -168,6 +173,21 @@ class FakeDropbox : Dispatcher() {
         files.remove(lower)
         log += Change.Deleted(existing.pathDisplay)
         return ok(JSONObject().put("metadata", fileJson(existing)))
+    }
+
+    private fun move(body: JSONObject): MockResponse {
+        val fromLower = body.getString("from_path").lowercase()
+        val toDisplay = body.getString("to_path")
+        if (failMoves) return MockResponse().setResponseCode(500)
+        val existing = files[fromLower] ?: return error409("from_lookup/not_found/")
+        if (toDisplay.lowercase() in files) return error409("to/conflict/file/")
+        files.remove(fromLower)
+        val moved = Stored(toDisplay, existing.bytes, "r${++revCounter}")
+        files[toDisplay.lowercase()] = moved
+        log += Change.Deleted(existing.pathDisplay)
+        log += Change.Written(toDisplay.lowercase())
+        moves += existing.pathDisplay.removePrefix("/books/") to toDisplay.removePrefix("/books/")
+        return ok(JSONObject().put("metadata", fileJson(moved).apply { remove(".tag") }))
     }
 
     private fun metadata(display: String): MockResponse {

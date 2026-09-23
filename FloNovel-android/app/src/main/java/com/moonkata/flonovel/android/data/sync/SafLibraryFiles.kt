@@ -91,6 +91,27 @@ class SafLibraryFiles(context: Context, private val treeUri: Uri) : LibraryFiles
         return find(if (folder.isEmpty()) newName else "$folder/$newName")?.let { documentUri(it.documentId) } == renamed
     }
 
+    override fun move(from: String, to: String): Boolean {
+        val child = find(from) ?: return false
+        if (find(to) != null) return false
+        val fromFolder = from.substringBeforeLast('/', "")
+        val toFolder = to.substringBeforeLast('/', "")
+        val toName = to.substringAfterLast('/')
+        var uri = documentUri(child.documentId)
+        if (fromFolder != toFolder) {
+            val sourceParent = if (fromFolder.isEmpty()) rootId else find(fromFolder)?.documentId ?: return false
+            val targetParent = ensureFolders(if (toFolder.isEmpty()) emptyList() else toFolder.split('/')) ?: return false
+            uri = runCatching {
+                DocumentsContract.moveDocument(resolver, uri, documentUri(sourceParent), documentUri(targetParent))
+            }.getOrNull() ?: return false
+        }
+        if (child.name != toName) {
+            uri = runCatching { DocumentsContract.renameDocument(resolver, uri, toName) }.getOrNull() ?: return false
+        }
+        pruneEmptyParents(from)
+        return find(to)?.let { documentUri(it.documentId) } == uri
+    }
+
     /** The document URI a book at [relativePath] is stored under in the reading-position table. */
     fun uriOf(relativePath: String): Uri? = find(relativePath)?.let { documentUri(it.documentId) }
 

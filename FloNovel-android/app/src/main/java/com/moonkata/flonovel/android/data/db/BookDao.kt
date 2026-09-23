@@ -40,6 +40,10 @@ interface BookDao {
     )
     suspend fun relocate(oldUri: String, newUri: String, displayName: String, relativePath: String, charCount: Int)
 
+    /** Follows a book that sync moved or renamed: same text, new file. */
+    @Query("UPDATE books SET documentUri = :newUri, displayName = :displayName, relativePath = :newRelativePath WHERE relativePath = :oldRelativePath")
+    suspend fun moveByRelativePath(oldRelativePath: String, newRelativePath: String, newUri: String, displayName: String)
+
     @Delete
     suspend fun delete(book: BookEntity)
 }

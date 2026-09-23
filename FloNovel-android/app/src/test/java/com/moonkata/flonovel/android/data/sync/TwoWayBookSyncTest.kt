@@ -53,6 +53,7 @@ class TwoWayBookSyncTest {
     }
 
     private var openBook: String? = null
+    private val movedBooks = mutableListOf<Pair<String, String>>()
 
     private fun engine(canWrite: Boolean = true, syncedOneWayBefore: Boolean = false) = TwoWayBookSync(
         files = library,
@@ -72,6 +73,7 @@ class TwoWayBookSyncTest {
             }
         },
         isInUse = { rel -> rel == openBook },
+        onBookMoved = { from, to -> movedBooks += from to to },
     )
 
     private fun sync(
@@ -334,6 +336,103 @@ class TwoWayBookSyncTest {
         dropbox.put("Bad.txt", "x")
         dropbox.failDownloadsOf += "Bad.txt"
         assertEquals(listOf("Bad.txt"), sync().failedPaths)
+    }
+
+    // ── Moves and renames ───────────────────────────────────────────────
+
+    @Test
+    fun localRename_movesOnDropbox_withoutUpload() {
+        syncedBook("Old.txt", "content")
+        val uploads = dropbox.uploadModes.size
+        library.delete("Old.txt")
+        library.put("New.txt", "content")
+
+        val result = sync()
+
+        assertEquals(1, result.moved)
+        assertEquals(listOf("Old.txt" to "New.txt"), dropbox.moves)
+        assertEquals(uploads, dropbox.uploadModes.size)
+        assertEquals(listOf("Old.txt" to "New.txt"), movedBooks)
+        assertEquals(setOf("new.txt"), dao.rows.keys)
+    }
+
+    @Test
+    fun remoteRename_movesTheLocalFile_keepingTheDocument() {
+        syncedBook("Old.txt", "content")
+        val id = library.documentId("Old.txt")
+        dropbox.remove("Old.txt")
+        dropbox.put("Series/New.txt", "content")
+        val downloads = dropbox.calls.count { it == "/2/files/download" }
+
+        val result = sync()
+
+        assertEquals(1, result.moved)
+        assertEquals(downloads, dropbox.calls.count { it == "/2/files/download" })
+        assertEquals(setOf("Series/New.txt"), library.paths())
+        assertEquals(id, library.documentId("Series/New.txt"))
+        assertEquals(listOf("Old.txt" to "Series/New.txt"), movedBooks)
+    }
+
+    @Test
+    fun renamedFolder_ofManyBooks_isNotAMassDeletion() {
+        repeat(25) { dropbox.put("Series/B$it.txt", "book $it") }
+        sync()
+        repeat(25) {
+            dropbox.remove("Series/B$it.txt")
+            dropbox.put("Renamed/B$it.txt", "book $it")
+        }
+
+        val result = sync()
+
+        assertTrue(result.withheldDeletions.isEmpty())
+        assertEquals(25, result.moved)
+        assertTrue(library.paths().all { it.startsWith("Renamed/") })
+    }
+
+    @Test
+    fun refusedMove_fallsBackToDeleteAndUpload() {
+        // The content is already preprocessed, so the fallback upload does not change it.
+        val content = TextPreprocessor.normalizeContent("본문")
+        syncedBook("Old.txt", content)
+        library.delete("Old.txt")
+        library.put("New.txt", content)
+        dropbox.failMoves = true
+
+        sync()
+
+        assertNull(dropbox.content("Old.txt"))
+        assertEquals(content, dropbox.content("New.txt"))
+    }
+
+    @Test
+    fun localRenameToAnUncleanName_isLeftToPreprocessing() {
+        // Preprocessing would rename "삼국지 三國志" to "삼국지"; moving it as is would put a name on
+        // Dropbox that the Desktop would never produce.
+        val content = TextPreprocessor.normalizeContent("본문")
+        syncedBook("Old.txt", content)
+        library.delete("Old.txt")
+        library.put("삼국지 三國志.txt", content)
+
+        sync()
+
+        assertTrue(dropbox.moves.isEmpty())
+        assertEquals(content, dropbox.content("삼국지.txt"))
+        assertNull(dropbox.content("Old.txt"))
+    }
+
+    @Test
+    fun openBook_remoteRename_waitsUntilClosed() {
+        syncedBook("Old.txt", "content")
+        dropbox.remove("Old.txt")
+        dropbox.put("New.txt", "content")
+        openBook = "Old.txt"
+
+        assertEquals(1, sync().deferred)
+        assertEquals(setOf("Old.txt"), library.paths())
+
+        openBook = null
+        sync()
+        assertEquals(setOf("New.txt"), library.paths())
     }
 
     // ── Write access ────────────────────────────────────────────────────

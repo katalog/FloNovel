@@ -44,6 +44,12 @@ class SafLibraryFilesTest {
         assertEquals(4L, files.stat(rel)!!.sizeBytes)
         assertTrue(files.list().any { it.relativePath == rel })
 
+        val moved = "$folder/Other/Renamed.txt"
+        assertTrue(files.move(rel, moved))
+        assertNull(files.stat(rel))
+        assertEquals("two!", files.openRead(moved)!!.bufferedReader().readText())
+        assertTrue(files.move(moved, rel))
+
         assertTrue(files.delete(rel))
         assertNull(files.stat(rel))
         assertFalse("emptied folders are pruned", files.list().any { it.relativePath.startsWith(folder) })

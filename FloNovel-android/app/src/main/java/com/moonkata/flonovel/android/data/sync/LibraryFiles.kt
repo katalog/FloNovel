@@ -41,4 +41,10 @@ interface LibraryFiles {
 
     /** Renames a file within its folder. False if the provider refused or picked another name. */
     fun rename(relativePath: String, newName: String): Boolean
+
+    /**
+     * Moves a file to [to] (creating folders, renaming as needed), then prunes folders left empty.
+     * False if [to] is taken or the provider refused.
+     */
+    fun move(from: String, to: String): Boolean
 }

@@ -71,6 +71,10 @@ class BookRepository(
 
     suspend fun isKnown(source: BookSource): Boolean = bookDao.findByUri(source.toStoredString()) != null
 
+    /** See [BookDao.moveByRelativePath]; relative paths are the normalized sync keys. */
+    suspend fun followMovedBook(oldRelativePath: String, newRelativePath: String, newUri: String, displayName: String) =
+        bookDao.moveByRelativePath(oldRelativePath, newRelativePath, newUri, displayName)
+
     /** See [BookDao.relocate]. */
     suspend fun relocateBook(oldUri: String, newUri: String, displayName: String, relativePath: String, charCount: Int) =
         bookDao.relocate(oldUri, newUri, displayName, relativePath, charCount)

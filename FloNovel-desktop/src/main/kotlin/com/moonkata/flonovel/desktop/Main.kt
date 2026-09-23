@@ -64,6 +64,7 @@ import com.moonkata.flonovel.desktop.library.DeleteAction
 import com.moonkata.flonovel.desktop.library.FileRemover
 import com.moonkata.flonovel.desktop.library.LibraryScanner
 import com.moonkata.flonovel.desktop.library.RemovalOutcome
+import com.moonkata.flonovel.desktop.library.RelativePath
 import com.moonkata.flonovel.desktop.library.RemovalRefusal
 import com.moonkata.flonovel.desktop.library.LibrarySortOption
 import com.moonkata.flonovel.desktop.library.ResumeManager
@@ -299,6 +300,25 @@ fun main(args: Array<String>) {
     }
     LaunchedEffect(syncEngine, settings.language) {
         syncEngine?.conflictLabel = Strings.get("sync_conflict_copy_label")
+    }
+    // Reading positions are keyed by path. When sync moves a book, copy its position to the new
+    // key; max-wins on the server means this can only move a position forward, never back.
+    LaunchedEffect(syncEngine) {
+        syncEngine?.onBookMoved = { fromRel, toRel ->
+            val secret = credentialsStore.load().cachedSupabaseSecret
+            if (SupabaseConfig.isConfigured && !secret.isNullOrBlank()) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    val client = ReadingPositionSyncClient(
+                        baseUrl = SupabaseConfig.url,
+                        publishableKey = SupabaseConfig.publishableKey,
+                        sharedSecret = secret,
+                    )
+                    client.fetch(RelativePath.normalize(fromRel))?.let { position ->
+                        client.upsert(RelativePath.normalize(toRel), position.charOffset, position.encoding)
+                    }
+                }
+            }
+        }
     }
 
     val intakePipeline = remember(homePath) {

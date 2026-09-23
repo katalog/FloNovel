@@ -63,6 +63,12 @@ sealed class DropboxDeleteResult {
     data class Failure(val statusCode: Int) : DropboxDeleteResult()
 }
 
+sealed class DropboxMoveResult {
+    data class Moved(val file: DropboxEntry.File) : DropboxMoveResult()
+    object MissingScope : DropboxMoveResult()
+    data class Failure(val statusCode: Int) : DropboxMoveResult()
+}
+
 sealed class DropboxMetadataResult {
     data class Found(val file: DropboxEntry.File) : DropboxMetadataResult()
     object NotFound : DropboxMetadataResult()
@@ -301,6 +307,30 @@ class DropboxClient(
             // Any other 409 on a conditional delete is the rev check failing, whatever the tag.
             response.status == 409 && parentRev != null -> DropboxDeleteResult.Conflict
             else -> DropboxDeleteResult.Failure(response.status)
+        }
+    }
+
+    /**
+     * Moves or renames a file on Dropbox. The destination must be free (no autorename): a taken
+     * name means this pass's picture is stale, and the caller falls back to delete plus upload.
+     */
+    suspend fun moveFile(fromPath: String, toPath: String): DropboxMoveResult = withContext(Dispatchers.IO) {
+        val request = JSONObject()
+            .put("from_path", fromPath)
+            .put("to_path", toPath)
+            .put("autorename", false)
+            .put("allow_ownership_transfer", false)
+        val response = rpcWithStatus("$apiBase/2/files/move_v2", request.toString())
+        val body = response.body.orEmpty()
+        when {
+            response.status in 200..299 -> {
+                val metadata = runCatching { JSONObject(body).getJSONObject("metadata").put(".tag", "file") }.getOrNull()
+                val parsed = metadata?.let { parseListFolderBody("""{"entries":[$it],"cursor":"","has_more":false}""") }
+                val file = (parsed as? DropboxListResult.Success)?.entries?.singleOrNull() as? DropboxEntry.File
+                if (file != null) DropboxMoveResult.Moved(file) else DropboxMoveResult.Failure(response.status)
+            }
+            body.contains("missing_scope") -> DropboxMoveResult.MissingScope
+            else -> DropboxMoveResult.Failure(response.status)
         }
     }
 

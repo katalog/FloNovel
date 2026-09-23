@@ -324,6 +324,96 @@ class DropboxSyncEngineTest {
         assertTrue("/2/files/get_metadata" in dropbox.calls)
     }
 
+    // ── Moves and renames ───────────────────────────────────────────────
+
+    @Test
+    fun localRename_movesOnDropbox_withoutUpload_andCarriesTheReadingPosition() {
+        val old = localBook("Old.txt", "0123456789")
+        val e = engine()
+        val movedPaths = mutableListOf<Pair<String, String>>()
+        e.onBookMoved = { from, to -> movedPaths += from to to }
+        sync(e)
+        bookStore.updateReadingPosition("old.txt", anchor = 7, totalCharCount = 10)
+        val uploads = dropbox.uploadModes.size
+        // Renamed in Explorer; intake registered the new name as a book of its own.
+        Files.delete(old)
+        localBook("New.txt", "0123456789")
+
+        val summary = sync(e)
+
+        assertEquals(1, summary.movedCount)
+        assertEquals(listOf("Old.txt" to "New.txt"), dropbox.moves)
+        assertEquals(uploads, dropbox.uploadModes.size)
+        assertEquals(7, bookStore.findByKey("new.txt")?.anchor)
+        assertEquals(listOf("Old.txt" to "New.txt"), movedPaths)
+        assertEquals(setOf("new.txt"), stateStore.load().bases.keys)
+    }
+
+    @Test
+    fun remoteRename_movesTheLocalFile_withoutDownload() {
+        localBook("Old.txt", "same bytes")
+        sync()
+        bookStore.updateReadingPosition("old.txt", anchor = 4, totalCharCount = 10)
+        // Another device renamed it: gone under the old name, same content under the new one.
+        dropbox.remove("Old.txt")
+        dropbox.put("Series/New.txt", "same bytes")
+        val downloads = dropbox.calls.count { it == "/2/files/download" }
+
+        val summary = sync()
+
+        assertEquals(1, summary.movedCount)
+        assertEquals(downloads, dropbox.calls.count { it == "/2/files/download" })
+        assertFalse(Files.exists(home.resolve("Old.txt")))
+        assertEquals("same bytes", home.resolve("Series/New.txt").readText())
+        assertEquals(4, bookStore.findByKey("series/new.txt")?.anchor)
+        assertTrue(Files.list(trashDir).use { it.count() } == 0L)
+    }
+
+    @Test
+    fun renamedFolder_ofManyBooks_isNotAMassDeletion() {
+        repeat(25) { localBook("Series/B$it.txt", "book $it") }
+        sync()
+        repeat(25) {
+            dropbox.remove("Series/B$it.txt")
+            dropbox.put("Renamed/B$it.txt", "book $it")
+        }
+
+        val summary = sync()
+
+        assertTrue(summary.withheldDeletions.isEmpty())
+        assertEquals(25, summary.movedCount)
+        assertFalse(Files.exists(home.resolve("Series")))
+        assertTrue(Files.exists(home.resolve("Renamed/B0.txt")))
+    }
+
+    @Test
+    fun refusedMove_fallsBackToDeleteAndUpload() {
+        val old = localBook("Old.txt", "content")
+        sync()
+        Files.delete(old)
+        localBook("New.txt", "content")
+        dropbox.failMoves = true
+
+        sync()
+
+        assertNull(dropbox.content("Old.txt"))
+        assertEquals("content", dropbox.content("New.txt"))
+    }
+
+    @Test
+    fun openBook_remoteRename_waitsUntilClosed() {
+        val path = localBook("Old.txt", "same bytes")
+        sync()
+        dropbox.remove("Old.txt")
+        dropbox.put("New.txt", "same bytes")
+
+        assertEquals(1, sync(engine(openInReader = path)).deferredCount)
+        assertTrue(Files.exists(path))
+
+        sync()
+        assertTrue(Files.exists(home.resolve("New.txt")))
+    }
+
     // ── What sync must leave alone ──────────────────────────────────────
 
     @Test

@@ -498,6 +498,7 @@ class LibraryViewModel(
                 today = { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) },
                 prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
                 isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
+                onBookMoved = { fromRel, toRel -> followMovedBook(files, fromRel, toRel, settings) },
             )
             val result = withContext(Dispatchers.IO) {
                 sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
@@ -523,6 +524,24 @@ class LibraryViewModel(
             // listing is only read when it is entered — without this, new books stay invisible until
             // the user navigates away and back (the same fix the PC sync needed).
             if (result != null && result.changed > 0) loadCurrent()
+        }
+    }
+
+    /**
+     * Sync moved or renamed a book: point its reading record at the new file, and copy its shared
+     * reading position to the new path key. Max-wins on the server means the copy can only move a
+     * position forward.
+     */
+    private suspend fun followMovedBook(files: SafLibraryFiles, fromRel: String, toRel: String, settings: ReaderSettings) {
+        val fromKey = normalizeRelativePath(fromRel.split('/'))
+        val toKey = normalizeRelativePath(toRel.split('/'))
+        files.uriOf(toRel)?.let { uri ->
+            bookRepository.followMovedBook(fromKey, toKey, uri.toString(), toRel.substringAfterLast('/'))
+        }
+        val secret = settings.supabaseSharedSecret
+        if (secret.isNotBlank() && secret == settings.supabaseVerifiedSecret) {
+            val client = ReadingPositionSyncClient(SupabaseConfig.URL, SupabaseConfig.PUBLISHABLE_KEY, secret)
+            runCatching { client.fetch(fromKey)?.let { client.upsert(toKey, it.charOffset, it.encoding) } }
         }
     }
 

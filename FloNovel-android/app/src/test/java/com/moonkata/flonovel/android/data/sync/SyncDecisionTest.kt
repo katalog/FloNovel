@@ -118,4 +118,63 @@ class SyncDecisionTest {
         assertEquals("README (c - PC - 2026-09-23)", SyncDecision.conflictCopyName("README", "c", "PC", date) { false })
         assertEquals("vol.1 (c - PC - 2026-09-23).txt", SyncDecision.conflictCopyName("vol.1.txt", "c", "PC", date) { false })
     }
+
+    // ── Moves (the same cases in both apps) ─────────────────────────────
+
+    private fun baseOf(key: String, hash: String) = SyncBase(key, key, "r", hash, 1, 1)
+
+    @Test
+    fun findMoves_localRename_isPaired() {
+        val moves = findMoves(
+            actions = mapOf("old.txt" to SyncAction.DeleteRemote("r"), "new.txt" to SyncAction.Upload(null)),
+            bases = mapOf("old.txt" to baseOf("old.txt", "H")),
+            localHashes = mapOf("new.txt" to "H"),
+        )
+        assertEquals(listOf(Move("old.txt", "new.txt", MoveKind.LOCAL)), moves)
+    }
+
+    @Test
+    fun findMoves_remoteRename_isPaired() {
+        val moves = findMoves(
+            actions = mapOf("old.txt" to SyncAction.DeleteLocal, "new.txt" to SyncAction.Download(RemoteFileState("new.txt", "r2", "H", 1))),
+            bases = mapOf("old.txt" to baseOf("old.txt", "H")),
+            localHashes = mapOf("old.txt" to "H"),
+        )
+        assertEquals(listOf(Move("old.txt", "new.txt", MoveKind.REMOTE)), moves)
+    }
+
+    @Test
+    fun findMoves_differentContent_isNotAMove() {
+        val moves = findMoves(
+            actions = mapOf("old.txt" to SyncAction.DeleteRemote("r"), "new.txt" to SyncAction.Upload(null)),
+            bases = mapOf("old.txt" to baseOf("old.txt", "H")),
+            localHashes = mapOf("new.txt" to "OTHER"),
+        )
+        assertEquals(emptyList<Move>(), moves)
+    }
+
+    @Test
+    fun findMoves_ambiguousDuplicates_areLeftAlone() {
+        // Two identical books renamed at once: which went where is a guess.
+        val moves = findMoves(
+            actions = mapOf(
+                "a1.txt" to SyncAction.DeleteRemote("r"), "a2.txt" to SyncAction.DeleteRemote("r"),
+                "b1.txt" to SyncAction.Upload(null), "b2.txt" to SyncAction.Upload(null),
+            ),
+            bases = mapOf("a1.txt" to baseOf("a1.txt", "H"), "a2.txt" to baseOf("a2.txt", "H")),
+            localHashes = mapOf("b1.txt" to "H", "b2.txt" to "H"),
+        )
+        assertEquals(emptyList<Move>(), moves)
+    }
+
+    @Test
+    fun findMoves_editedAfterUpload_isNotALocalMoveTarget() {
+        // Upload(parentRev) is an edit of a synced file, not a new file.
+        val moves = findMoves(
+            actions = mapOf("old.txt" to SyncAction.DeleteRemote("r"), "new.txt" to SyncAction.Upload("r9")),
+            bases = mapOf("old.txt" to baseOf("old.txt", "H"), "new.txt" to baseOf("new.txt", "X")),
+            localHashes = mapOf("new.txt" to "H"),
+        )
+        assertEquals(emptyList<Move>(), moves)
+    }
 }

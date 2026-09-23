@@ -188,3 +188,47 @@ object SyncDecision {
 
     private enum class Change { NONE, MODIFIED, DELETED }
 }
+
+enum class MoveKind {
+    /** Moved or renamed on this device: move it on Dropbox instead of re-uploading. */
+    LOCAL,
+
+    /** Moved or renamed on another device: move the local file instead of re-downloading. */
+    REMOTE,
+}
+
+data class Move(val from: String, val to: String, val kind: MoveKind)
+
+/**
+ * Pairs a disappearance with an appearance of the same content, so a rename or a move is carried
+ * out as one instead of a delete plus a transfer (which would also lose the reading position,
+ * keyed by path).
+ *
+ * Only one-to-one matches count: when two books share the same content, which went where is a
+ * guess, and those stay a delete plus a transfer. Keys are sync keys; [localHashes] holds the
+ * local content hash of every local file.
+ */
+fun findMoves(actions: Map<String, SyncAction>, bases: Map<String, SyncBase>, localHashes: Map<String, String>): List<Move> {
+    fun pair(sources: Map<String, String>, targets: Map<String, String>, kind: MoveKind): List<Move> {
+        val sourcesByHash = sources.entries.groupBy({ it.value }, { it.key })
+        val targetsByHash = targets.entries.groupBy({ it.value }, { it.key })
+        return sourcesByHash.mapNotNull { (hash, from) ->
+            val to = targetsByHash[hash] ?: return@mapNotNull null
+            if (hash.isBlank() || from.size != 1 || to.size != 1) null else Move(from.single(), to.single(), kind)
+        }
+    }
+
+    val localSources = actions.filter { it.value is SyncAction.DeleteRemote }.keys
+        .mapNotNull { key -> bases[key]?.let { key to it.contentHash } }.toMap()
+    val localTargets = actions.filter { (key, action) -> action == SyncAction.Upload(null) && bases[key] == null }.keys
+        .mapNotNull { key -> localHashes[key]?.let { key to it } }.toMap()
+
+    val remoteSources = actions.filter { it.value == SyncAction.DeleteLocal }.keys
+        .mapNotNull { key -> bases[key]?.takeIf { it.state == BaseState.SYNCED }?.let { key to it.contentHash } }.toMap()
+    val remoteTargets = actions.mapNotNull { (key, action) ->
+        if (action is SyncAction.Download && bases[key] == null && key !in localHashes) key to action.remote.contentHash else null
+    }.toMap()
+
+    return (pair(localSources, localTargets, MoveKind.LOCAL) + pair(remoteSources, remoteTargets, MoveKind.REMOTE))
+        .sortedBy { it.from }
+}

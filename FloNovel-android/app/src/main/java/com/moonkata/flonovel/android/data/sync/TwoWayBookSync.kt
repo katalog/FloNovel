@@ -2,6 +2,7 @@ package com.moonkata.flonovel.android.data.sync
 
 import com.moonkata.flonovel.android.data.db.SyncBaseDao
 import com.moonkata.flonovel.android.data.db.SyncBaseEntity
+import com.moonkata.flonovel.android.data.preprocess.TextPreprocessor
 
 data class TwoWaySyncResult(
     val downloaded: Int = 0,
@@ -16,6 +17,8 @@ data class TwoWaySyncResult(
     val waitingForWriteAccess: Int = 0,
     /** Changes to the book open in the reader, left until it is closed. */
     val deferred: Int = 0,
+    /** Books renamed or moved as a whole, on either side, instead of deleted and transferred. */
+    val moved: Int = 0,
     val failedPaths: List<String> = emptyList(),
 ) {
     val changed: Int get() = downloaded + uploaded + deletedLocal + deletedRemote + conflicts
@@ -54,11 +57,22 @@ class TwoWayBookSync(
     private val prepareNewBook: suspend (relativePath: String) -> String?,
     /** True for the book open in the reader: it is not replaced, deleted or renamed under it. */
     private val isInUse: (relativePath: String) -> Boolean = { false },
+    /** After a book was moved or renamed (either side): carry its reading position to the new path. */
+    private val onBookMoved: suspend (fromRel: String, toRel: String) -> Unit = { _, _ -> },
     private val deviceName: String = "Android",
 ) {
     private data class LocalEntry(val file: LibraryFile, val state: LocalFileState)
     private data class RemoteSnapshot(val files: Map<String, RemoteFileState>, val cursor: String, val isFullListing: Boolean)
-    private data class Plan(val key: String, val action: SyncAction)
+    /**
+     * One unit of work. A [move] replaces the two plans it was paired from; if the move cannot be
+     * carried out, those two ([fallback]) run instead.
+     */
+    private data class Plan(
+        val key: String,
+        val action: SyncAction,
+        val move: Move? = null,
+        val fallback: List<Plan> = emptyList(),
+    )
 
     private sealed class Outcome {
         data class Done(
@@ -67,6 +81,7 @@ class TwoWayBookSync(
             val deletedLocal: Boolean = false,
             val deletedRemote: Boolean = false,
             val conflict: Boolean = false,
+            val moved: Boolean = false,
         ) : Outcome()
         object WaitingForWriteAccess : Outcome()
         object Deferred : Outcome()
@@ -86,11 +101,21 @@ class TwoWayBookSync(
         val local = scan.files
 
         val keys = ((bases.keys + local.keys + remote.files.keys) - scan.excludedKeys).sorted()
-        val plans = keys.mapNotNull { key ->
+        val decided = keys.mapNotNull { key ->
             var action = SyncDecision.decide(bases[key], local[key]?.state, remote.files[key])
             if (upgrading) action = upgradeOverride(bases[key], action)
             if (action == SyncAction.None) null else Plan(key, action)
         }
+
+        // A rename or move is a deletion plus an addition of the same content; carried out as one it
+        // needs no transfer, keeps the reading position, and is not counted as a mass deletion.
+        // A book renamed here to a name preprocessing would change is left to preprocessing.
+        val byKey = decided.associateBy { it.key }
+        val moves = findMoves(byKey.mapValues { it.value.action }, bases, local.mapValues { it.value.state.contentHash })
+            .filter { it.kind == MoveKind.REMOTE || isCleanName(local.getValue(it.to).file.relativePath) }
+        val movedKeys = moves.flatMap { listOf(it.from, it.to) }.toSet()
+        val plans = moves.map { Plan(it.to, SyncAction.None, it, listOf(byKey.getValue(it.from), byKey.getValue(it.to))) } +
+            decided.filter { it.key !in movedKeys }
 
         val deletions = plans.filter { it.action is SyncAction.DeleteLocal || it.action is SyncAction.DeleteRemote }
         val withhold = !allowMassDeletion && deletions.isNotEmpty() &&
@@ -109,6 +134,7 @@ class TwoWayBookSync(
                     deletedLocal = result.deletedLocal + if (outcome.deletedLocal) 1 else 0,
                     deletedRemote = result.deletedRemote + if (outcome.deletedRemote) 1 else 0,
                     conflicts = result.conflicts + if (outcome.conflict) 1 else 0,
+                    moved = result.moved + if (outcome.moved) 1 else 0,
                 )
                 Outcome.WaitingForWriteAccess -> {
                     complete = false
@@ -149,6 +175,7 @@ class TwoWayBookSync(
         bases: MutableMap<String, SyncBase>,
         retried: Boolean,
     ): Outcome {
+        plan.move?.let { return applyMove(it, plan.fallback, local, remote, bases) }
         val key = plan.key
         val entry = local[key]
         return when (val action = plan.action) {
@@ -233,6 +260,74 @@ class TwoWayBookSync(
             DropboxUploadResult.MissingScope -> Outcome.WaitingForWriteAccess
             else -> Outcome.Failed
         }
+    }
+
+    private suspend fun applyMove(
+        move: Move,
+        fallback: List<Plan>,
+        local: Map<String, LocalEntry>,
+        remote: RemoteSnapshot,
+        bases: MutableMap<String, SyncBase>,
+    ): Outcome {
+        val done = when (move.kind) {
+            MoveKind.LOCAL -> moveOnDropbox(move, local, bases)
+            MoveKind.REMOTE -> moveLocally(move, local, remote, bases)
+        }
+        if (done != null) return done
+        // Could not move (name taken, file gone, ...): do what the two halves said on their own.
+        var last: Outcome = Outcome.Done()
+        for (plan in fallback) {
+            last = apply(plan, local, remote, bases, retried = false)
+            if (last !is Outcome.Done) return last
+        }
+        return last
+    }
+
+    /** Renamed or moved on this phone: move the Dropbox copy too. Null if that was refused. */
+    private suspend fun moveOnDropbox(move: Move, local: Map<String, LocalEntry>, bases: MutableMap<String, SyncBase>): Outcome? {
+        val base = bases[move.from] ?: return null
+        val target = local[move.to] ?: return null
+        if (!canWrite) return Outcome.WaitingForWriteAccess
+        return when (val result = client.moveFile(remotePathOf(base.pathDisplay), remotePathOf(target.file.relativePath))) {
+            is DropboxMoveResult.Moved -> {
+                forget(move.from, bases)
+                record(
+                    SyncBase(
+                        move.to, target.file.relativePath, result.file.rev, result.file.contentHash.ifBlank { target.state.contentHash },
+                        target.file.sizeBytes, target.file.lastModifiedMillis,
+                    ),
+                    bases,
+                )
+                onBookMoved(base.pathDisplay, target.file.relativePath)
+                Outcome.Done(moved = true)
+            }
+            DropboxMoveResult.MissingScope -> Outcome.WaitingForWriteAccess
+            is DropboxMoveResult.Failure -> null
+        }
+    }
+
+    /** Renamed or moved on another device: do the same here instead of downloading again. */
+    private suspend fun moveLocally(
+        move: Move,
+        local: Map<String, LocalEntry>,
+        remote: RemoteSnapshot,
+        bases: MutableMap<String, SyncBase>,
+    ): Outcome? {
+        val source = local[move.from] ?: return null
+        val destination = remote.files[move.to] ?: return null
+        if (isInUse(source.file.relativePath)) return Outcome.Deferred
+        if (!files.move(source.file.relativePath, destination.pathDisplay)) return null
+        val stat = files.stat(destination.pathDisplay) ?: return null
+        forget(move.from, bases)
+        record(SyncBase(move.to, destination.pathDisplay, destination.rev, destination.contentHash, stat.sizeBytes, stat.lastModifiedMillis), bases)
+        onBookMoved(source.file.relativePath, destination.pathDisplay)
+        return Outcome.Done(moved = true)
+    }
+
+    private fun isCleanName(relativePath: String): Boolean {
+        val name = relativePath.substringAfterLast('/')
+        val base = name.substringBeforeLast('.', name)
+        return TextPreprocessor.cleanFileName(base) == base
     }
 
     /** A conditional write was refused; re-read that one file and decide again, once. */

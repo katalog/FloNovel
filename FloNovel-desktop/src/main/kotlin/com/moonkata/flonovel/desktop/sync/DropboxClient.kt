@@ -66,6 +66,11 @@ sealed class DropboxDeleteResult {
     data class Failure(val message: String, val statusCode: Int = -1) : DropboxDeleteResult()
 }
 
+sealed class DropboxMoveResult {
+    data class Moved(val entry: DropboxEntry.FileEntry) : DropboxMoveResult()
+    data class Failure(val message: String) : DropboxMoveResult()
+}
+
 sealed class DropboxLongpollResult {
     /** [backoffSeconds]: how long Dropbox asks the client to wait before polling again. */
     data class Ok(val changes: Boolean, val backoffSeconds: Int) : DropboxLongpollResult()
@@ -335,6 +340,34 @@ class DropboxClient(
         if (response.statusCode() !in 200..299) return DropboxLongpollResult.Failure
         val json = runCatching { JSONObject(response.body()) }.getOrNull() ?: return DropboxLongpollResult.Failure
         return DropboxLongpollResult.Ok(json.optBoolean("changes", false), json.optInt("backoff", 0))
+    }
+
+    /**
+     * Moves or renames a file on Dropbox. The destination must be free (no autorename): a taken
+     * name means the caller's picture is stale, and it falls back to delete plus upload.
+     */
+    fun moveFile(fromPath: String, toPath: String): DropboxMoveResult {
+        val bodyJson = JSONObject()
+            .put("from_path", fromPath)
+            .put("to_path", toPath)
+            .put("autorename", false)
+            .put("allow_ownership_transfer", false)
+            .toString()
+        val response = executeStringRequest { token ->
+            HttpRequest.newBuilder()
+                .uri(URI.create("$apiBaseUrl/2/files/move_v2"))
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(bodyJson))
+                .build()
+        } ?: return DropboxMoveResult.Failure("Network or auth error")
+        if (response.statusCode() !in 200..299) {
+            return DropboxMoveResult.Failure(errorSummaryOf(response.body(), response.statusCode()))
+        }
+        val metadata = runCatching { JSONObject(response.body()).getJSONObject("metadata") }.getOrNull()
+        val entry = metadata?.let { parseEntry(it.put(".tag", "file")) } as? DropboxEntry.FileEntry
+            ?: return DropboxMoveResult.Failure("Unexpected move response")
+        return DropboxMoveResult.Moved(entry)
     }
 
     /** Metadata for one path; used to re-read a file after a conditional write was refused. */

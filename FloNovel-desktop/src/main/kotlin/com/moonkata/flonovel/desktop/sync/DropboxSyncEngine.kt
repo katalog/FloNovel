@@ -35,6 +35,8 @@ data class SyncSummary(
     val withheldDeletions: List<String> = emptyList(),
     /** Changes left for a later pass, e.g. because the book is open in the reader. */
     val deferredCount: Int = 0,
+    /** Books renamed or moved as a whole, on either side, instead of deleted and transferred. */
+    val movedCount: Int = 0,
 )
 
 data class InitialUploadProgress(
@@ -109,6 +111,13 @@ class DropboxSyncEngine(
     @Volatile
     var isOpenInReader: (Path) -> Boolean = { false }
 
+    /**
+     * Called after a book was moved or renamed (either side), with the old and new relative paths,
+     * so the app can carry its reading position over to the new path key.
+     */
+    @Volatile
+    var onBookMoved: ((fromRel: String, toRel: String) -> Unit)? = null
+
     private val isPaused = AtomicBoolean(false)
     private val isSyncing = AtomicBoolean(false)
 
@@ -180,10 +189,24 @@ class DropboxSyncEngine(
         val isFullListing: Boolean,
     )
 
-    private data class Plan(val key: String, val action: SyncAction)
+    /**
+     * One unit of work. A [move] replaces the two plans it was paired from; if the move cannot be
+     * carried out, those two ([fallback]) run instead.
+     */
+    private data class Plan(
+        val key: String,
+        val action: SyncAction,
+        val move: Move? = null,
+        val fallback: List<Plan> = emptyList(),
+    )
 
     private sealed class Outcome {
-        data class Done(val transferred: Boolean = false, val deleted: Boolean = false, val conflict: Boolean = false) : Outcome()
+        data class Done(
+            val transferred: Boolean = false,
+            val deleted: Boolean = false,
+            val conflict: Boolean = false,
+            val moved: Boolean = false,
+        ) : Outcome()
         object Deferred : Outcome()
         data class Failed(val error: String, val insufficientSpace: Boolean = false) : Outcome()
     }
@@ -205,11 +228,19 @@ class DropboxSyncEngine(
         val bases = startState.bases.toMutableMap()
 
         val keys = (bases.keys + local.files.keys + remote.files.keys) - local.excludedKeys
-        val plans = keys.sorted().mapNotNull { key ->
+        val decided = keys.sorted().mapNotNull { key ->
             var action = SyncDecision.decide(bases[key], local.files[key]?.state, remote.files[key])
             if (upgradingFromOneWay) action = upgradeOverride(key, bases[key], action)
             if (action == SyncAction.None) null else Plan(key, action)
         }
+        // A rename or move shows up as a deletion plus an addition of the same content; carried
+        // out as one it needs no transfer, keeps the reading position and deletes nothing, so it
+        // also stays out of the mass-deletion count (a renamed folder is not a mass deletion).
+        val byKey = decided.associateBy { it.key }
+        val moves = findMoves(byKey.mapValues { it.value.action }, bases, local.files.mapValues { it.value.state.contentHash })
+        val movedKeys = moves.flatMap { listOf(it.from, it.to) }.toSet()
+        val plans = moves.map { Plan(it.to, SyncAction.None, it, listOf(byKey.getValue(it.from), byKey.getValue(it.to))) } +
+            decided.filter { it.key !in movedKeys }
 
         val deletions = plans.filter { it.action is SyncAction.DeleteLocal || it.action is SyncAction.DeleteRemote }
         val remoteIsEmpty = remote.isFullListing && remote.files.isEmpty()
@@ -230,6 +261,7 @@ class DropboxSyncEngine(
         var transferred = 0
         var deleted = 0
         var conflicts = 0
+        var moved = 0
         var deferred = 0
         var processed = 0
         var processedBytes = 0L
@@ -255,6 +287,7 @@ class DropboxSyncEngine(
                     if (outcome.transferred) transferred++
                     if (outcome.deleted) deleted++
                     if (outcome.conflict) conflicts++
+                    if (outcome.moved) moved++
                 }
                 Outcome.Deferred -> deferred++
                 is Outcome.Failed -> {
@@ -298,6 +331,7 @@ class DropboxSyncEngine(
                 deletions.map { local.files[it.key]?.rel ?: bases[it.key]?.pathDisplay ?: it.key }
             } else emptyList(),
             deferredCount = deferred,
+            movedCount = moved,
         )
         lastSummary = summary
         return summary
@@ -326,6 +360,7 @@ class DropboxSyncEngine(
         bases: MutableMap<String, SyncBase>,
         retried: Boolean = false,
     ): Outcome {
+        plan.move?.let { return applyMove(it, plan.fallback, local, remote, bases) }
         val key = plan.key
         val entry = local.files[key]
         return when (val action = plan.action) {
@@ -393,6 +428,86 @@ class DropboxSyncEngine(
 
             is SyncAction.Conflict -> conflict(key, action.remote, entry, remote, bases)
         }
+    }
+
+    private fun applyMove(
+        move: Move,
+        fallback: List<Plan>,
+        local: LocalScan,
+        remote: RemoteSnapshot,
+        bases: MutableMap<String, SyncBase>,
+    ): Outcome {
+        val done = when (move.kind) {
+            MoveKind.LOCAL -> moveOnDropbox(move, local, bases)
+            MoveKind.REMOTE -> moveLocally(move, local, remote, bases)
+        }
+        if (done != null) return done
+        // Could not move (name taken, file gone, ...): do what the two halves said on their own.
+        var last: Outcome = Outcome.Done()
+        for (plan in fallback) {
+            last = apply(plan, local, remote, bases)
+            if (last !is Outcome.Done) return last
+        }
+        return last
+    }
+
+    /** Renamed or moved on this PC: move the Dropbox copy too. Null if that was refused. */
+    private fun moveOnDropbox(move: Move, local: LocalScan, bases: MutableMap<String, SyncBase>): Outcome? {
+        val base = bases[move.from] ?: return null
+        val target = local.files[move.to] ?: return null
+        val result = dropboxClient.moveFile(remotePathOf(base.pathDisplay), remotePathOf(target.rel))
+        if (result !is DropboxMoveResult.Moved) return null
+        bases.remove(move.from)
+        bases[move.to] = SyncBase(
+            move.to, target.rel, result.entry.rev, result.entry.contentHash.ifBlank { target.state.contentHash },
+            target.state.size, target.state.mtime,
+        )
+        // Intake registered the new name as a new book; give it the old one's reading position.
+        val from = bookStore.findByKey(move.from)
+        val to = bookStore.findByKey(move.to)
+        if (from != null && to != null) {
+            val anchor = from.anchor.coerceIn(0, maxOf(to.totalCharCount, 0))
+            bookStore.addOrUpdate(to.copy(anchor = anchor, progress = from.progress, lastOpenedAt = from.lastOpenedAt))
+            bookStore.flush()
+        }
+        onBookMoved?.invoke(base.pathDisplay, target.rel)
+        return Outcome.Done(moved = true)
+    }
+
+    /** Renamed or moved on another device: do the same here instead of downloading again. */
+    private fun moveLocally(move: Move, local: LocalScan, remote: RemoteSnapshot, bases: MutableMap<String, SyncBase>): Outcome? {
+        val source = local.files[move.from] ?: return null
+        val destination = remote.files[move.to] ?: return null
+        if (isOpenInReader(source.path)) return Outcome.Deferred
+        val root = homeFolder.toAbsolutePath().normalize()
+        val target = root.resolve(destination.pathDisplay).normalize()
+        if (!target.startsWith(root) || target == root || Files.exists(target)) return null
+
+        // Registered before the file appears, so the watcher sees a known, preprocessed book.
+        bookStore.findByKey(move.from)?.let { record ->
+            bookStore.addOrUpdate(
+                record.copy(
+                    path = destination.pathDisplay,
+                    key = move.to,
+                    displayName = destination.pathDisplay.substringAfterLast('/').removeSuffix(".txt"),
+                ),
+            )
+            bookStore.flush()
+        }
+        try {
+            Files.createDirectories(target.parent)
+            Files.move(source.path, target)
+        } catch (_: IOException) {
+            return null
+        }
+        pruneEmptyParents(source.path.parent)
+        bases.remove(move.from)
+        bases[move.to] = SyncBase(
+            move.to, destination.pathDisplay, destination.rev, destination.contentHash,
+            Files.size(target), Files.getLastModifiedTime(target).toMillis(),
+        )
+        onBookMoved?.invoke(source.rel, destination.pathDisplay)
+        return Outcome.Done(moved = true)
     }
 
     /**
