@@ -108,9 +108,11 @@ relativePath.replace('\\', '/')            // 1
   `/.flonovel/secret.json`). `/Apps/<이름>/...` 같은 절대경로는 쓰지 않는다 —
   앱 폴더 이름은 사용자마다 다르다.
 
-**현재** (전환 완료 전까지):
+**현재** (`main` 기준, 전환 완료 전까지):
 
 - 파일은 **단방향**이다: Desktop → Dropbox → Android. 폰은 업로드도 원격 삭제도 하지 않는다.
+- `feature/two-way-sync` 브랜치에는 양쪽 양방향 엔진이 들어가 있다. 남은 것: 폰에서 추가한 책의
+  업로드(전처리 이식 후), 동기화 시점과 UI 정리. 브랜치는 전 단계가 끝난 뒤 한 번에 머지한다.
 
 **목표** (양방향):
 
@@ -165,6 +167,7 @@ relativePath.replace('\\', '/')            // 1
 |---|---|---|
 | `TextFitter` (desktop) | `ComposeTextFitter` · `FakeTextFitter` | 정당. **reader 패키지에 주입되는 유일한 인터페이스** |
 | `FolderBrowser` (android) | `SafFolderBrowser` · `FakeFolderBrowser` | 정당 |
+| `LibraryFiles` (android) | `SafLibraryFiles` · `FakeLibraryFiles` | 정당. 양방향 동기화를 SAF 없이 JVM 테스트 |
 | `SettingsController` (android) | ViewModel 들 | 정당. 설정 시트를 특정 VM에서 분리 |
 | `BookDao` (android) | Room 생성 | Room 이 인터페이스를 요구함 |
 | `SyncBaseDao` (android) | Room 생성 | Room 이 인터페이스를 요구함 |

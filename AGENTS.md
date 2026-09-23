@@ -81,7 +81,7 @@ relativePath.replace('\\', '/')            // 1. 구분자 통일
   - (아래 파일 동기화의 충돌 규칙은 파일 내용에 대한 것으로, 이 Max-wins 규칙과 무관하다.)
 - **Dropbox & 파일 동기화** — **양방향으로 전환 중** (2026-09-23 결정, 계획: `.work/two-way-sync-plan.md`). "현재" 규칙은 해당 단계가 머지될 때까지 유효하고, "목표" 규칙은 새로 작성하는 동기화 코드가 따라야 할 계약이다. 단계가 머지될 때마다 이 절을 갱신한다.
   - Dropbox 경로는 항상 앱 폴더 기준 **상대 경로**만 사용한다 (`/books`, `/.flonovel/secret.json`). `/Apps/...` 형태의 절대 경로는 절대 사용하지 않는다.
-  - **현재**: 소설 파일 동기화는 **단방향**이다: Desktop → Dropbox → Android. 폰은 업로드도 원격 삭제도 하지 않는다.
+  - **현재** (`main` 기준): 소설 파일 동기화는 **단방향**이다: Desktop → Dropbox → Android. 폰은 업로드도 원격 삭제도 하지 않는다. `feature/two-way-sync` 브랜치에는 양쪽 양방향 엔진이 들어가 있으며, 폰에서 추가한 책의 업로드(전처리 이식 후)와 동기화 시점·UI 정리가 남았다. 브랜치는 전 단계 완료 후 한 번에 머지한다.
   - **목표 (양방향)**:
     - **Dropbox `/books`가 기준이다.** 두 앱 모두 추가·수정·삭제를 업로드하고 상대의 변경을 받는다.
     - **판정은 3자 비교다.** 기기마다 파일별 base(`rev`, `content_hash`, 로컬 크기, 로컬 수정시각)를 저장하고 **로컬↔base**, **원격↔base**를 각각 판정한다. 로컬과 원격을 직접 비교해 "한쪽에만 있으니 새 파일/삭제된 파일"로 추론하지 마라 (단방향 시절의 "로컬에 없으면 원격 삭제" / "원격에 없으면 로컬 삭제"가 이 추론이며, 양방향에서는 상대가 추가한 파일을 지운다). base 저장 위치: Desktop `sync-state.json`(설정 폴더), Android Room `sync_base`.
@@ -112,6 +112,7 @@ relativePath.replace('\\', '/')            // 1. 구분자 통일
 > 현재 허용된 인터페이스:
 > - `TextFitter` (Desktop: `ComposeTextFitter`, `FakeTextFitter`) — reader 패키지의 유일한 외부 추상화
 > - `FolderBrowser` (Android: `SafFolderBrowser`, `FakeFolderBrowser`)
+> - `LibraryFiles` (Android: `SafLibraryFiles`, `FakeLibraryFiles`) — 양방향 동기화를 SAF 없이 JVM에서 테스트
 > - `SettingsController` (Android: ViewModel 간 설정 시트 분리)
 > - `BookDao` (Android: Room 라이브러리 요구사항)
 > - `SyncBaseDao` (Android: Room 라이브러리 요구사항)
