@@ -24,7 +24,10 @@ object TextPreprocessor {
 
     private val reSpaces = Regex("$SPACE+")
 
-    /** Same list, order and meaning as the Desktop preprocessor's `reHeadingPatterns`. */
+    /**
+     * Same list, order and meaning as the Desktop preprocessor's `reHeadingPatterns`, where each is
+     * explained. 회/回 ("제1회") is deliberately not a heading marker in either app.
+     */
     private val reHeadingPatterns = listOf(
         Regex("""[제第*]?$SPACE*($DIGIT+)$SPACE*[장화章話]"""),
         Regex("""(?<!#)#(?!#)$SPACE*($DIGIT+)"""),
