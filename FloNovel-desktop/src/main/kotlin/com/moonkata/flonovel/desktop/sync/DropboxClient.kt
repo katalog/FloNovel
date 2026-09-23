@@ -21,6 +21,9 @@ sealed class DropboxEntry {
         override val pathLower: String,
         val size: Long,
         val serverModified: String,
+        // Read for two-way sync (base comparison and rev-conditional writes).
+        val rev: String = "",
+        val contentHash: String = "",
     ) : DropboxEntry()
 
     data class FolderEntry(
@@ -309,6 +312,8 @@ class DropboxClient(
                             pathLower = pathLower,
                             size = item.optLong("size", 0L),
                             serverModified = item.optString("server_modified", ""),
+                            rev = item.optString("rev", ""),
+                            contentHash = item.optString("content_hash", ""),
                         )
                     )
                     "folder" -> entries.add(
