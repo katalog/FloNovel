@@ -8,6 +8,8 @@ class FakeSyncBaseDao : SyncBaseDao {
 
     override suspend fun getAll(): List<SyncBaseEntity> = rows.values.toList()
 
+    override suspend fun getByKey(key: String): SyncBaseEntity? = rows[key]
+
     override suspend fun upsert(entity: SyncBaseEntity) {
         rows[entity.key] = entity
     }

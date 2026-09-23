@@ -56,7 +56,7 @@ cd FloNovel-desktop && ./gradlew run                 # 실행 검증
 - `preprocessedAt` 속성이 이미 존재하는 책은 **절대로 재전처리하지 않는다.**
 - 전처리는 **멱등(Idempotent)**이어야 한다. 이미 처리된 파일에 다시 수행해도 바이트 단위로 100% 동일한 결과가 나와야 한다.
 - 원본 텍스트를 비원자적으로 덮어쓰지 말며, 최초 처리 시 반드시 원본 백업을 보존한다.
-- **(양방향 목표)** 픽스처와 기대 출력은 양쪽 `src/test/resources/fixtures/parity/`에 같은 사본으로 두고 서로 바이트 비교한다(갱신: Desktop에서 `./gradlew test -PupdateGolden` 후 Android로 복사). Android 이식본은 ICU 정규식 차이 때문에 `\d` `\s` `.` `\p{IsHangul}` IGNORE_CASE를 쓰지 않고 문자 범위와 `Character.UnicodeScript`로 쓴다. SAF에는 원자적 교체가 없으므로 원본 백업(`.flonovel/original/`) → 숨김 임시 파일 → 원본 삭제 → 이름 변경 순으로 하고, URI가 바뀌므로 책을 처음 열거나 처음 올리기 전에만 한다.
+- **(양방향 목표)** 픽스처와 기대 출력은 양쪽 `src/test/resources/fixtures/parity/`에 같은 사본으로 두고 서로 바이트 비교한다(갱신: Desktop에서 `./gradlew test -PupdateGolden` 후 Android로 복사). Android 이식본은 ICU 정규식 차이 때문에 `\d` `\s` `.` `\p{IsHangul}` IGNORE_CASE를 쓰지 않고 문자 범위와 `Character.UnicodeScript`로 쓴다. SAF에는 원자적 교체가 없으므로 원본 백업(`.flonovel/original/`) → 숨김 임시 파일 → 원본 삭제 → 이름 변경 순으로 하고, URI가 바뀌므로 책을 처음 열거나 처음 올리기 전에만 한다. Dropbox에서 받아 동기화가 끝난 책(base SYNCED)은 여는 시점 확인을 건너뛴다(확인이 파일 전체를 읽고 정규화해 큰 소설은 몇 초가 더 걸렸음).
 - **(양방향 목표)** 업로드를 포함한 순서는 **전처리 → 등록 → 업로드**이며, Dropbox에는 전처리된 파일만 존재한다. 전처리기가 두 앱 모두에 존재하게 되므로, 코드를 공유하지 않는 대신 **동일 픽스처에 대해 바이트 단위로 동일한 출력**을 내는지 양쪽 테스트로 보장한다. 한쪽만 수정하면 두 기기가 같은 책을 서로 다르게 고쳐 올려 충돌 사본이 계속 생긴다.
 
 ### (4) 챕터 (Chapter Detection)

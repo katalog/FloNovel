@@ -35,6 +35,7 @@ import com.moonkata.flonovel.android.data.sync.DropboxOAuth
 import com.moonkata.flonovel.android.data.sync.DropboxSyncProgress
 import com.moonkata.flonovel.android.data.sync.OpenBook
 import com.moonkata.flonovel.android.data.sync.SafLibraryFiles
+import com.moonkata.flonovel.android.data.sync.isSyncedCopy
 import com.moonkata.flonovel.android.data.sync.shouldAutoSync
 import com.moonkata.flonovel.android.data.sync.TwoWayBookSync
 import com.moonkata.flonovel.android.data.sync.TwoWaySyncResult
@@ -285,10 +286,13 @@ class LibraryViewModel(
             // "전처리 → 등록"): the reading position is a character offset into the preprocessed
             // text, so registering the raw file first would leave it pointing at the wrong place.
             val rootUri = _browseState.value.rootUri
-            if (source is BookSource.PlainTxt && rootUri != null && !bookRepository.isKnown(source)) {
+            val relativeToRoot = (folderNames + name).joinToString("/")
+            if (source is BookSource.PlainTxt && rootUri != null && !bookRepository.isKnown(source) &&
+                !isSyncedCopy(syncBaseDao, relativeToRoot)
+            ) {
                 val files = SafLibraryFiles(getApplication(), rootUri)
                 val finalRel = withContext(Dispatchers.IO) {
-                    preprocessInLibrary(files, (folderNames + name).joinToString("/"))
+                    preprocessInLibrary(files, relativeToRoot)
                 }
                 if (finalRel == null) {
                     // Reading is never blocked by preprocessing; the raw file opens as it is.

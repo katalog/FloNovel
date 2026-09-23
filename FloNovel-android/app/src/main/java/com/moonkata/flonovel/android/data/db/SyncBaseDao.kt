@@ -9,6 +9,9 @@ interface SyncBaseDao {
     @Query("SELECT * FROM sync_base")
     suspend fun getAll(): List<SyncBaseEntity>
 
+    @Query("SELECT * FROM sync_base WHERE `key` = :key")
+    suspend fun getByKey(key: String): SyncBaseEntity?
+
     @Upsert
     suspend fun upsert(entity: SyncBaseEntity)
 
