@@ -14,4 +14,8 @@ interface SyncBaseDao {
 
     @Query("DELETE FROM sync_base WHERE `key` = :key")
     suspend fun deleteByKey(key: String)
+
+    /** Bases describe one folder against one account; a new folder or account starts over. */
+    @Query("DELETE FROM sync_base")
+    suspend fun deleteAll()
 }

@@ -41,7 +41,7 @@ class DropboxAuthTest {
         if (original.dropboxRefreshToken.isBlank()) {
             repository.unlinkDropbox()
         } else {
-            repository.linkDropbox(original.dropboxRefreshToken, original.dropboxAccountEmail)
+            repository.linkDropbox(original.dropboxRefreshToken, original.dropboxAccountEmail, original.dropboxGrantedScopes)
             repository.updateDropboxSyncState(original.dropboxCursor, original.dropboxLastSyncAtMillis)
         }
     }
@@ -101,7 +101,7 @@ class DropboxAuthTest {
 
     @Test
     fun linkStoresTheTokenAndEmailTogether() = runBlocking {
-        repository.linkDropbox("refresh-token-1", "reader@example.com")
+        repository.linkDropbox("refresh-token-1", "reader@example.com", DropboxConfig.SCOPES)
 
         val settings = repository.settingsFlow.first()
         assertEquals("refresh-token-1", settings.dropboxRefreshToken)
@@ -111,7 +111,7 @@ class DropboxAuthTest {
     /** A rotated refresh token must not wipe the account label shown in settings. */
     @Test
     fun updatingTheRefreshTokenLeavesTheEmailAndCursorAlone() = runBlocking {
-        repository.linkDropbox("refresh-token-1", "reader@example.com")
+        repository.linkDropbox("refresh-token-1", "reader@example.com", DropboxConfig.SCOPES)
         repository.updateDropboxSyncState(cursor = "CURSOR-A", lastSyncAtMillis = 1_000L)
 
         repository.updateDropboxRefreshToken("refresh-token-2")
@@ -129,7 +129,7 @@ class DropboxAuthTest {
      */
     @Test
     fun signingOutClearsTheCursorAlongWithTheToken() = runBlocking {
-        repository.linkDropbox("refresh-token-1", "reader@example.com")
+        repository.linkDropbox("refresh-token-1", "reader@example.com", DropboxConfig.SCOPES)
         repository.updateDropboxSyncState(cursor = "CURSOR-A", lastSyncAtMillis = 1_000L)
 
         repository.unlinkDropbox()

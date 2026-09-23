@@ -1,7 +1,7 @@
 package com.moonkata.flonovel.android.ui.library
 
 import com.moonkata.flonovel.android.data.sync.DropboxSyncProgress
-import com.moonkata.flonovel.android.data.sync.DropboxSyncResult
+import com.moonkata.flonovel.android.data.sync.TwoWaySyncResult
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -26,7 +26,7 @@ class SyncStatusFloatingBadgeStateTest {
     @Test
     fun resultPresent_isVisible() {
         val state = DropboxUiState(
-            result = DropboxSyncResult(downloaded = 1, updated = 0, deleted = 0, failed = 0)
+            result = TwoWaySyncResult(downloaded = 1)
         )
         val isVisible = state.isSyncing || state.result != null || state.errorMessage != null
         assertTrue(isVisible)
@@ -49,10 +49,10 @@ class SyncStatusFloatingBadgeStateTest {
 
     @Test
     fun syncResult_changedCalculation() {
-        val withChanges = DropboxSyncResult(downloaded = 2, updated = 1, deleted = 0, failed = 0)
+        val withChanges = TwoWaySyncResult(downloaded = 2, uploaded = 1)
         assertEquals(3, withChanges.changed)
 
-        val upToDate = DropboxSyncResult(downloaded = 0, updated = 0, deleted = 0, failed = 0)
+        val upToDate = TwoWaySyncResult()
         assertEquals(0, upToDate.changed)
     }
 

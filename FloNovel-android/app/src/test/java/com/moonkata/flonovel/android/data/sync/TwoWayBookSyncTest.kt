@@ -320,6 +320,34 @@ class TwoWayBookSyncTest {
     }
 
     @Test
+    fun deletedAndReAddedInOneWindow_isKept() {
+        // One delta carries both the deletion and the re-add; the re-add is the current truth.
+        syncedBook(content = "v1")
+        dropbox.remove("Book.txt")
+        dropbox.put("Book.txt", "v2")
+
+        val result = sync()
+
+        assertEquals(0, result.deletedLocal)
+        assertEquals("v2", library.content("Book.txt"))
+    }
+
+    @Test
+    fun emptiedRemoteSeenByFullRelisting_isWithheld() {
+        // Wrong account or a reset app folder looks like "everything was deleted".
+        syncedBook("A.txt", "a")
+        syncedBook("B.txt", "b")
+        dropbox.remove("A.txt")
+        dropbox.remove("B.txt")
+        dropbox.resetNextContinue = true
+
+        val result = sync()
+
+        assertEquals(2, result.withheldDeletions.size)
+        assertEquals(setOf("A.txt", "B.txt"), library.paths())
+    }
+
+    @Test
     fun cursorReset_relistsEverything() {
         syncedBook()
         dropbox.put("New.txt", "new")

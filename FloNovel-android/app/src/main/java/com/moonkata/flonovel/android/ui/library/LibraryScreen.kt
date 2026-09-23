@@ -1,7 +1,9 @@
 package com.moonkata.flonovel.android.ui.library
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.moonkata.flonovel.android.R
+import com.moonkata.flonovel.android.data.file.BookSource
 import com.moonkata.flonovel.android.model.FolderEntry
 import com.moonkata.flonovel.android.model.FolderSortOption
 import com.moonkata.flonovel.android.ui.reader.QuickSettingsSheet
@@ -79,6 +82,7 @@ fun LibraryScreen(
     var showSettings by remember { mutableStateOf(false) }
     var isPullRefreshing by remember { mutableStateOf(false) }
     var showUnlinkedNotice by remember { mutableStateOf(false) }
+    var entryToDelete by remember { mutableStateOf<FolderEntry?>(null) }
 
     val isDropboxLinked = uiState.settings.dropboxRefreshToken.isNotBlank()
     val isRefreshing = dropboxState.isSyncing || isPullRefreshing
@@ -198,6 +202,7 @@ fun LibraryScreen(
                                     entry = entry,
                                     progress = (entry as? FolderEntry.TextFile)?.let { uiState.progressByStoredUri[it.source.toStoredString()] },
                                     onClick = { viewModel.navigateInto(entry) },
+                                    onLongClick = { entryToDelete = entry }.takeIf { isDeletable(entry) },
                                 )
                                 HorizontalDivider()
                             }
@@ -217,6 +222,61 @@ fun LibraryScreen(
                     .navigationBarsPadding(),
             )
         }
+    }
+
+    entryToDelete?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { entryToDelete = null },
+            title = { Text(stringResource(R.string.library_delete_title, entry.name)) },
+            text = {
+                Text(
+                    stringResource(
+                        when {
+                            entry is FolderEntry.Folder && isDropboxLinked -> R.string.library_delete_folder_message_synced
+                            entry is FolderEntry.Folder -> R.string.library_delete_folder_message
+                            isDropboxLinked -> R.string.library_delete_file_message_synced
+                            else -> R.string.library_delete_file_message
+                        },
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    entryToDelete = null
+                    viewModel.deleteEntry(entry)
+                }) { Text(stringResource(R.string.library_delete_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { entryToDelete = null }) { Text(stringResource(R.string.library_delete_cancel)) }
+            },
+        )
+    }
+
+    // Skipping is the default: the guard exists for deletions that are a mistake (another Dropbox
+    // account, a reset app folder), so going ahead has to be a deliberate tap.
+    dropboxState.pendingMassDeletion?.let { paths ->
+        AlertDialog(
+            onDismissRequest = { viewModel.skipMassDeletion() },
+            title = { Text(stringResource(R.string.dropbox_mass_delete_title, paths.size)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.dropbox_mass_delete_message))
+                    Spacer(Modifier.height(8.dp))
+                    paths.take(8).forEach { Text("• $it", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    if (paths.size > 8) {
+                        Text(stringResource(R.string.dropbox_mass_delete_more, paths.size - 8), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.skipMassDeletion() }) { Text(stringResource(R.string.dropbox_mass_delete_skip)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.confirmMassDeletion() }) {
+                    Text(stringResource(R.string.dropbox_mass_delete_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+        )
     }
 
     if (showDropboxSync) {
@@ -274,10 +334,15 @@ private fun Breadcrumbs(path: List<BrowseLocation>, onClick: (Int) -> Unit) {
     }
 }
 
+/** A file inside a zip cannot be deleted on its own; everything else in the list can. */
+private fun isDeletable(entry: FolderEntry): Boolean =
+    entry !is FolderEntry.TextFile || entry.source is BookSource.PlainTxt
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun EntryRow(entry: FolderEntry, progress: Float?, onClick: () -> Unit) {
+private fun EntryRow(entry: FolderEntry, progress: Float?, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val icon = when (entry) {

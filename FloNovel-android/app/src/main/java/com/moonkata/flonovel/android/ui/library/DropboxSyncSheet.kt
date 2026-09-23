@@ -38,10 +38,11 @@ import androidx.compose.ui.unit.dp
 import com.moonkata.flonovel.android.R
 import com.moonkata.flonovel.android.data.datastore.ReaderSettings
 import com.moonkata.flonovel.android.data.sync.DropboxAuthSession
+import com.moonkata.flonovel.android.data.sync.DropboxConfig
 import com.moonkata.flonovel.android.data.sync.SecretResult
 
 /**
- * Dropbox file sync — sign in, then pull. Replaces the PC tray-server sheet.
+ * Dropbox file sync — sign in, then sync both ways. Replaces the PC tray-server sheet.
  *
  * There is nothing to type: Dropbox's own login *is* the pairing step, which is why the QR flow went
  * away with it (docs 06-SYNC-STRATEGY §Pairing). The sheet therefore only ever shows one of two
@@ -100,6 +101,23 @@ fun DropboxSyncSheet(viewModel: LibraryViewModel, settings: ReaderSettings, onDi
                         Text(stringResource(R.string.dropbox_sync_now))
                     }
                 }
+                // Linked before two-way sync asked for write access: downloads still work, but this
+                // phone's changes wait. One tap re-runs sign-in with the new permission.
+                if (!DropboxConfig.canWrite(settings.dropboxGrantedScopes)) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        stringResource(R.string.dropbox_reconnect_for_write),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    OutlinedButton(
+                        onClick = { viewModel.startDropboxSignIn() },
+                        enabled = !state.isConnecting,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.dropbox_reconnect))
+                    }
+                }
                 Spacer(Modifier.height(12.dp))
                 // Position sync rides on a secret only the Desktop app can create, so its state is
                 // shown next to the account: "connected to Dropbox" alone does not mean positions
@@ -153,7 +171,12 @@ fun DropboxSyncSheet(viewModel: LibraryViewModel, settings: ReaderSettings, onDi
             state.result?.let { result ->
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    stringResource(R.string.dropbox_result, result.downloaded, result.updated, result.deleted),
+                    stringResource(
+                        R.string.dropbox_result_two_way,
+                        result.downloaded,
+                        result.uploaded,
+                        result.deletedLocal + result.deletedRemote,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (result.failed > 0) {
@@ -163,13 +186,26 @@ fun DropboxSyncSheet(viewModel: LibraryViewModel, settings: ReaderSettings, onDi
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                // The sync deliberately did less than the remote asked for. Saying nothing would
-                // leave the user believing the two sides now match, when they do not.
-                if (result.withheldDeletions > 0) {
+                if (result.conflicts > 0) {
                     Text(
-                        stringResource(R.string.dropbox_withheld_deletions, result.withheldDeletions),
+                        stringResource(R.string.dropbox_result_conflicts, result.conflicts),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                // Each of these means the sync deliberately did less than it could. Saying nothing
+                // would leave the user believing the two sides now match, when they do not.
+                if (result.waitingForWriteAccess > 0) {
+                    Text(
+                        stringResource(R.string.dropbox_result_waiting_for_write, result.waitingForWriteAccess),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (result.awaitingPreprocessing > 0) {
+                    Text(
+                        stringResource(R.string.dropbox_result_awaiting_preprocessing, result.awaitingPreprocessing),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -183,10 +219,10 @@ fun DropboxSyncSheet(viewModel: LibraryViewModel, settings: ReaderSettings, onDi
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(8.dp))
-                // Says this outright because it reads exactly like a bug otherwise: sync is one-way
-                // (docs 06-SYNC-STRATEGY B2), so the phone re-fetches anything deleted here.
+                // Deleting here now reaches the PC too; say so where the user syncs, since it used to
+                // be the other way round.
                 Text(
-                    stringResource(R.string.dropbox_one_way_notice),
+                    stringResource(R.string.dropbox_two_way_notice),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

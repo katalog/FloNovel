@@ -37,7 +37,14 @@ object DropboxConfig {
      * Scopes: metadata + content read is all Android needs. Per docs 06-SYNC-STRATEGY B2 the phone
      * never uploads or deletes remotely, so no write scope is requested.
      */
-    const val SCOPES = "account_info.read files.metadata.read files.content.read"
+    // files.content.write is for two-way sync. A link made before it was requested keeps working
+    // read-only until the user reconnects; see [canWrite].
+    const val SCOPES = "account_info.read files.metadata.read files.content.read files.content.write"
+
+    const val WRITE_SCOPE = "files.content.write"
+
+    /** Whether the scopes granted at sign-in (space-separated, as Dropbox returns them) allow writes. */
+    fun canWrite(grantedScopes: String): Boolean = WRITE_SCOPE in grantedScopes.split(' ')
 
     /** Mirrors the home folder's structure; the app-folder root is already private to this app. */
     const val REMOTE_BOOKS_ROOT = "/books"

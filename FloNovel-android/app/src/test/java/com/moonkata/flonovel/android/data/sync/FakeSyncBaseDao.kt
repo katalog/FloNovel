@@ -15,4 +15,8 @@ class FakeSyncBaseDao : SyncBaseDao {
     override suspend fun deleteByKey(key: String) {
         rows.remove(key)
     }
+
+    override suspend fun deleteAll() {
+        rows.clear()
+    }
 }
