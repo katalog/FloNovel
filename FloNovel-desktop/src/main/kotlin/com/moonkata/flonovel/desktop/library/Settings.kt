@@ -208,6 +208,7 @@ data class KeymapSettings(
     val openInExplorer: String = "F7",
     val openInDefaultApp: String = "F8",
     val autoPageTurn: String = "P",
+    val deleteFile: String = "DELETE",
 ) {
     fun toJsonObject(): JSONObject {
         val obj = JSONObject()
@@ -225,6 +226,7 @@ data class KeymapSettings(
         obj.put("openInExplorer", openInExplorer)
         obj.put("openInDefaultApp", openInDefaultApp)
         obj.put("autoPageTurn", autoPageTurn)
+        obj.put("deleteFile", deleteFile)
         return obj
     }
 
@@ -246,6 +248,33 @@ data class KeymapSettings(
                 openInExplorer = obj.optString("openInExplorer", "F7"),
                 openInDefaultApp = obj.optString("openInDefaultApp", "F8"),
                 autoPageTurn = obj.optString("autoPageTurn", "P"),
+                deleteFile = obj.optString("deleteFile", "DELETE"),
+            )
+        }
+    }
+}
+
+enum class DeleteAction { TRASH, MOVE }
+
+/** What the Delete key does to a book file. Empty folders are always removed outright. */
+data class DeleteSettings(
+    val action: DeleteAction = DeleteAction.TRASH,
+    val moveFolder: String = "",
+) {
+    fun toJsonObject(): JSONObject {
+        val obj = JSONObject()
+        obj.put("action", action.name)
+        obj.put("moveFolder", moveFolder)
+        return obj
+    }
+
+    companion object {
+        fun fromJsonObject(obj: JSONObject?): DeleteSettings {
+            if (obj == null) return DeleteSettings()
+            return DeleteSettings(
+                action = runCatching { DeleteAction.valueOf(obj.optString("action", "TRASH")) }
+                    .getOrDefault(DeleteAction.TRASH),
+                moveFolder = obj.optString("moveFolder", ""),
             )
         }
     }
@@ -260,6 +289,7 @@ data class Settings(
     val sync: SyncSettings = SyncSettings(),
     val window: WindowSettings = WindowSettings(),
     val keymap: KeymapSettings = KeymapSettings(),
+    val delete: DeleteSettings = DeleteSettings(),
     val lastOpenedBookKey: String? = null,
     val librarySortOption: String = "RECENT",
 ) {
@@ -273,6 +303,7 @@ data class Settings(
         obj.put("sync", sync.toJsonObject())
         obj.put("window", window.toJsonObject())
         obj.put("keymap", keymap.toJsonObject())
+        obj.put("delete", delete.toJsonObject())
         if (lastOpenedBookKey != null) obj.put("lastOpenedBookKey", lastOpenedBookKey)
         obj.put("librarySortOption", librarySortOption)
         return obj.toString(2)
@@ -290,6 +321,7 @@ data class Settings(
                 sync = SyncSettings.fromJsonObject(obj.optJSONObject("sync")),
                 window = WindowSettings.fromJsonObject(obj.optJSONObject("window")),
                 keymap = KeymapSettings.fromJsonObject(obj.optJSONObject("keymap")),
+                delete = DeleteSettings.fromJsonObject(obj.optJSONObject("delete")),
                 lastOpenedBookKey = if (obj.has("lastOpenedBookKey") && !obj.isNull("lastOpenedBookKey")) obj.getString("lastOpenedBookKey") else null,
                 librarySortOption = obj.optString("librarySortOption", "RECENT"),
             )
