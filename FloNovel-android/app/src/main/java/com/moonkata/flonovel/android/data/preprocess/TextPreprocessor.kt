@@ -19,7 +19,7 @@ object TextPreprocessor {
 
     // What the JVM's `\s` and `.` mean without flags.
     private const val SPACE = """[ \t\n\u000B\f\r]"""
-    private const val ANY = """[^\n\r\u0085  ]"""
+    private const val ANY = """[^\n\r\u0085\u2028\u2029]"""
     private const val DIGIT = "[0-9]"
 
     private val reSpaces = Regex("$SPACE+")
