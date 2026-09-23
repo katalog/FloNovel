@@ -66,6 +66,12 @@ sealed class DropboxDeleteResult {
     data class Failure(val message: String, val statusCode: Int = -1) : DropboxDeleteResult()
 }
 
+sealed class DropboxLongpollResult {
+    /** [backoffSeconds]: how long Dropbox asks the client to wait before polling again. */
+    data class Ok(val changes: Boolean, val backoffSeconds: Int) : DropboxLongpollResult()
+    object Failure : DropboxLongpollResult()
+}
+
 sealed class DropboxMetadataResult {
     data class Found(val entry: DropboxEntry) : DropboxMetadataResult()
     object NotFound : DropboxMetadataResult()
@@ -94,6 +100,7 @@ class DropboxClient(
     val credentialsStore: CredentialsStore,
     val apiBaseUrl: String = "https://api.dropboxapi.com",
     val contentBaseUrl: String = "https://content.dropboxapi.com",
+    val notifyBaseUrl: String = "https://notify.dropboxapi.com",
     private val httpClient: HttpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15))
         .build(),
@@ -299,6 +306,35 @@ class DropboxClient(
                 DropboxDeleteResult.Conflict(errorSummaryOf(body, response.statusCode()))
             else -> DropboxDeleteResult.Failure(errorSummaryOf(body, response.statusCode()), response.statusCode())
         }
+    }
+
+    /**
+     * Blocks up to [timeoutSeconds] until something under the cursor's folder changes.
+     *
+     * This endpoint takes no `Authorization` header: the cursor itself identifies the listing, and
+     * Dropbox rejects the call when one is sent. An invalid cursor (409 reset) is reported as a
+     * change, so the caller syncs and the sync's full relisting replaces the cursor.
+     */
+    fun longpoll(cursor: String, timeoutSeconds: Int): DropboxLongpollResult {
+        val bodyJson = JSONObject().put("cursor", cursor).put("timeout", timeoutSeconds).toString()
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create("$notifyBaseUrl/2/files/list_folder/longpoll"))
+            .header("Content-Type", "application/json")
+            // Dropbox adds up to 90 s of jitter to the requested timeout.
+            .timeout(Duration.ofSeconds(timeoutSeconds + 120L))
+            .POST(HttpRequest.BodyPublishers.ofString(bodyJson))
+            .build()
+        val response = try {
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
+        } catch (_: Exception) {
+            return DropboxLongpollResult.Failure
+        }
+        if (response.statusCode() == 409 && response.body().contains("reset")) {
+            return DropboxLongpollResult.Ok(changes = true, backoffSeconds = 0)
+        }
+        if (response.statusCode() !in 200..299) return DropboxLongpollResult.Failure
+        val json = runCatching { JSONObject(response.body()) }.getOrNull() ?: return DropboxLongpollResult.Failure
+        return DropboxLongpollResult.Ok(json.optBoolean("changes", false), json.optInt("backoff", 0))
     }
 
     /** Metadata for one path; used to re-read a file after a conditional write was refused. */

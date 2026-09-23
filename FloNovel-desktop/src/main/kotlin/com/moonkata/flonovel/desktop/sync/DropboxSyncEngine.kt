@@ -31,7 +31,7 @@ data class SyncSummary(
     /** Local files sent to the recycle bin plus remote files deleted. */
     val deletedCount: Int = 0,
     val conflictCount: Int = 0,
-    /** Deletions held back by the mass-deletion guard; non-empty means the user must be asked. */
+    /** Paths of deletions held back by the mass-deletion guard; non-empty means ask the user. */
     val withheldDeletions: List<String> = emptyList(),
     /** Changes left for a later pass, e.g. because the book is open in the reader. */
     val deferredCount: Int = 0,
@@ -294,7 +294,9 @@ class DropboxSyncEngine(
             failures = failures,
             deletedCount = deleted,
             conflictCount = conflicts,
-            withheldDeletions = if (withhold) deletions.map { it.key } else emptyList(),
+            withheldDeletions = if (withhold) {
+                deletions.map { local.files[it.key]?.rel ?: bases[it.key]?.pathDisplay ?: it.key }
+            } else emptyList(),
             deferredCount = deferred,
         )
         lastSummary = summary
