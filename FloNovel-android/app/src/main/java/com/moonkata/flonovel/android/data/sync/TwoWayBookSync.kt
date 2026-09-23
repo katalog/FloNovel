@@ -12,11 +12,6 @@ data class TwoWaySyncResult(
     val failed: Int = 0,
     /** Paths of deletions held back by the mass-deletion guard; non-empty means ask the user. */
     val withheldDeletions: List<String> = emptyList(),
-    /**
-     * Books added on this phone. Dropbox holds only preprocessed files (CLAUDE.md §1), so these
-     * wait until the phone can preprocess them.
-     */
-    val awaitingPreprocessing: Int = 0,
     /** Uploads and remote deletes skipped because the link predates write access. */
     val waitingForWriteAccess: Int = 0,
 ) {
@@ -48,6 +43,12 @@ class TwoWayBookSync(
     private val conflictLabel: String,
     /** `yyyy-MM-dd`, preformatted: java.time needs API 26 and minSdk is 24. */
     private val today: () -> String,
+    /**
+     * Preprocesses a book added on this phone before its first upload (Dropbox holds only
+     * preprocessed files, CLAUDE.md §1) and returns where it now is; the name can change. Null when
+     * it could not be preprocessed, so it is not uploaded raw.
+     */
+    private val prepareNewBook: suspend (relativePath: String) -> String?,
     private val deviceName: String = "Android",
 ) {
     private data class LocalEntry(val file: LibraryFile, val state: LocalFileState)
@@ -62,7 +63,6 @@ class TwoWayBookSync(
             val deletedRemote: Boolean = false,
             val conflict: Boolean = false,
         ) : Outcome()
-        object AwaitingPreprocessing : Outcome()
         object WaitingForWriteAccess : Outcome()
         object Failed : Outcome()
     }
@@ -104,9 +104,6 @@ class TwoWayBookSync(
                     deletedRemote = result.deletedRemote + if (outcome.deletedRemote) 1 else 0,
                     conflicts = result.conflicts + if (outcome.conflict) 1 else 0,
                 )
-                // Not a failure, and nothing remote is being skipped: the file simply is not
-                // uploaded yet, so the cursor may still advance.
-                Outcome.AwaitingPreprocessing -> result.copy(awaitingPreprocessing = result.awaitingPreprocessing + 1)
                 Outcome.WaitingForWriteAccess -> {
                     complete = false
                     result.copy(waitingForWriteAccess = result.waitingForWriteAccess + 1)
@@ -172,9 +169,8 @@ class TwoWayBookSync(
 
             is SyncAction.Upload -> {
                 val e = entry ?: return Outcome.Failed
-                // A book added on this phone has not been preprocessed; see TwoWaySyncResult.
-                if (bases[key] == null && action.parentRev == null) return Outcome.AwaitingPreprocessing
                 if (!canWrite) return Outcome.WaitingForWriteAccess
+                if (bases[key] == null && action.parentRev == null) return uploadNewBook(e, bases)
                 when (val result = upload(e.file, e.file.relativePath, action.parentRev)) {
                     is DropboxUploadResult.Success -> {
                         record(SyncBase(key, e.file.relativePath, result.rev, result.contentHash.ifBlank { e.state.contentHash }, e.file.sizeBytes, e.file.lastModifiedMillis), bases)
@@ -203,6 +199,25 @@ class TwoWayBookSync(
             }
 
             is SyncAction.Conflict -> conflict(key, action.remote, entry, remote, bases)
+        }
+    }
+
+    /**
+     * A book added on this phone: preprocess, then upload under the name it ends up with. A name
+     * already taken remotely is refused by `mode=add`; the next pass then sees both copies and
+     * adopts or keeps both, like any other first meeting.
+     */
+    private suspend fun uploadNewBook(entry: LocalEntry, bases: MutableMap<String, SyncBase>): Outcome {
+        val rel = prepareNewBook(entry.file.relativePath) ?: return Outcome.Failed
+        val file = files.stat(rel) ?: return Outcome.Failed
+        val hash = files.openRead(rel)?.use { ContentHash.of(it) } ?: return Outcome.Failed
+        return when (val result = upload(file, rel, parentRev = null)) {
+            is DropboxUploadResult.Success -> {
+                record(SyncBase(syncKeyOf(rel), rel, result.rev, result.contentHash.ifBlank { hash }, file.sizeBytes, file.lastModifiedMillis), bases)
+                Outcome.Done(uploaded = true)
+            }
+            DropboxUploadResult.MissingScope -> Outcome.WaitingForWriteAccess
+            else -> Outcome.Failed
         }
     }
 

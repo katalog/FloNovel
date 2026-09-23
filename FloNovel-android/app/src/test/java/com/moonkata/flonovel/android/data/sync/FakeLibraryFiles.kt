@@ -40,8 +40,8 @@ class FakeLibraryFiles : LibraryFiles {
 
     fun paths(): Set<String> = entries.keys.toSet()
 
-    override fun list(): List<LibraryFile> = entries
-        .filterKeys { rel -> rel.endsWith(".txt", ignoreCase = true) && rel.split('/').none { it.startsWith(".") } }
+    override fun list(includeHidden: Boolean): List<LibraryFile> = entries
+        .filterKeys { rel -> rel.endsWith(".txt", ignoreCase = true) && (includeHidden || rel.split('/').none { it.startsWith(".") }) }
         .map { (rel, e) -> LibraryFile(rel, e.bytes.size.toLong(), e.mtime) }
 
     override fun stat(relativePath: String): LibraryFile? =
@@ -73,4 +73,13 @@ class FakeLibraryFiles : LibraryFiles {
     }
 
     override fun delete(relativePath: String): Boolean = entries.remove(relativePath) != null
+
+    override fun rename(relativePath: String, newName: String): Boolean {
+        val folder = relativePath.substringBeforeLast('/', "")
+        val target = if (folder.isEmpty()) newName else "$folder/$newName"
+        if (target in entries) return false
+        val entry = entries.remove(relativePath) ?: return false
+        entries[target] = entry
+        return true
+    }
 }

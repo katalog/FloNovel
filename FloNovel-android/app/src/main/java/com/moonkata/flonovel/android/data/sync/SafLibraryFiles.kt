@@ -22,11 +22,11 @@ class SafLibraryFiles(context: Context, private val treeUri: Uri) : LibraryFiles
 
     private val rootId: String = DocumentsContract.getTreeDocumentId(treeUri)
 
-    override fun list(): List<LibraryFile> {
+    override fun list(includeHidden: Boolean): List<LibraryFile> {
         val out = mutableListOf<LibraryFile>()
         fun walk(folderId: String, prefix: String) {
             for (child in children(folderId)) {
-                if (child.name.startsWith(".")) continue
+                if (!includeHidden && child.name.startsWith(".")) continue
                 val rel = if (prefix.isEmpty()) child.name else "$prefix/${child.name}"
                 if (child.isDirectory) {
                     walk(child.documentId, rel)
@@ -81,6 +81,18 @@ class SafLibraryFiles(context: Context, private val treeUri: Uri) : LibraryFiles
         if (deleted) pruneEmptyParents(relativePath)
         return deleted
     }
+
+    override fun rename(relativePath: String, newName: String): Boolean {
+        val child = find(relativePath) ?: return false
+        val renamed = runCatching {
+            DocumentsContract.renameDocument(resolver, documentUri(child.documentId), newName)
+        }.getOrNull() ?: return false
+        val folder = relativePath.substringBeforeLast('/', "")
+        return find(if (folder.isEmpty()) newName else "$folder/$newName")?.let { documentUri(it.documentId) } == renamed
+    }
+
+    /** The document URI a book at [relativePath] is stored under in the reading-position table. */
+    fun uriOf(relativePath: String): Uri? = find(relativePath)?.let { documentUri(it.documentId) }
 
     /** Removes now-empty folders above a deleted file, deepest first, never the root. */
     private fun pruneEmptyParents(deletedRelativePath: String) {

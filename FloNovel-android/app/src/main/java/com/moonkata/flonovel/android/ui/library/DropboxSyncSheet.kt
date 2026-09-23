@@ -201,13 +201,6 @@ fun DropboxSyncSheet(viewModel: LibraryViewModel, settings: ReaderSettings, onDi
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                if (result.awaitingPreprocessing > 0) {
-                    Text(
-                        stringResource(R.string.dropbox_result_awaiting_preprocessing, result.awaitingPreprocessing),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
 
             state.errorMessage?.let { message ->

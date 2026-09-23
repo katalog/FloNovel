@@ -30,6 +30,16 @@ interface BookDao {
     @Query("UPDATE books SET relativePath = :relativePath WHERE id = :id")
     suspend fun updateRelativePath(id: Long, relativePath: String)
 
+    /**
+     * Follows a book whose file was preprocessed after it had been opened: new file, new URI, and
+     * text of a new length, so the saved position is clamped into it.
+     */
+    @Query(
+        "UPDATE books SET documentUri = :newUri, displayName = :displayName, relativePath = :relativePath, " +
+            "lastReadCharOffset = MIN(lastReadCharOffset, :charCount), totalCharCount = :charCount WHERE documentUri = :oldUri",
+    )
+    suspend fun relocate(oldUri: String, newUri: String, displayName: String, relativePath: String, charCount: Int)
+
     @Delete
     suspend fun delete(book: BookEntity)
 }

@@ -25,6 +25,7 @@ import com.moonkata.flonovel.android.data.file.FolderBrowser
 import com.moonkata.flonovel.android.data.file.SafFolderBrowser
 import com.moonkata.flonovel.android.data.font.FontCatalogEntry
 import com.moonkata.flonovel.android.data.font.FontDownloadManager
+import com.moonkata.flonovel.android.data.preprocess.LibraryPreprocessor
 import com.moonkata.flonovel.android.data.repository.BookRepository
 import com.moonkata.flonovel.android.data.sync.DropboxAuthRedirect
 import com.moonkata.flonovel.android.data.sync.DropboxAuthSession
@@ -275,15 +276,57 @@ class LibraryViewModel(
 
     private fun openTextFile(entry: FolderEntry.TextFile) {
         viewModelScope.launch {
-            // A file inside a zip has no direct path VSCode could open, so it's not a sync-matching target (§3) — leave it blank.
-            val relativePath = if (entry.source is BookSource.PlainTxt) {
-                val folderNames = _browseState.value.path.drop(1).map { it.name }
-                normalizeRelativePath(folderNames + entry.name)
-            } else {
-                ""
+            val folderNames = _browseState.value.path.drop(1).map { it.name }
+            var source = entry.source
+            var name = entry.name
+            // Preprocess before the first open, as the Desktop does on arrival (CLAUDE.md §1
+            // "전처리 → 등록"): the reading position is a character offset into the preprocessed
+            // text, so registering the raw file first would leave it pointing at the wrong place.
+            val rootUri = _browseState.value.rootUri
+            if (source is BookSource.PlainTxt && rootUri != null && !bookRepository.isKnown(source)) {
+                val files = SafLibraryFiles(getApplication(), rootUri)
+                val finalRel = withContext(Dispatchers.IO) {
+                    preprocessInLibrary(files, (folderNames + name).joinToString("/"))
+                }
+                if (finalRel == null) {
+                    // Reading is never blocked by preprocessing; the raw file opens as it is.
+                    val app = getApplication<Application>()
+                    Toast.makeText(app, app.getString(R.string.library_preprocess_failed, name), Toast.LENGTH_SHORT).show()
+                } else {
+                    files.uriOf(finalRel)?.let { source = BookSource.PlainTxt(it) }
+                    name = finalRel.substringAfterLast('/')
+                    if (name != entry.name) loadCurrent()
+                }
             }
-            val id = bookRepository.findOrCreateBook(entry.source, entry.name, entry.sizeBytes, relativePath)
+            // A file inside a zip has no direct path VSCode could open, so it's not a sync-matching target (§3) — leave it blank.
+            val relativePath = if (source is BookSource.PlainTxt) normalizeRelativePath(folderNames + name) else ""
+            val id = bookRepository.findOrCreateBook(source, name, entry.sizeBytes, relativePath)
             _openBookEvents.tryEmit(id)
+        }
+    }
+
+    /**
+     * Preprocesses a library file in place and moves any reading record to the file it ends up as.
+     * Returns the final relative path, or null when preprocessing failed.
+     */
+    private suspend fun preprocessInLibrary(files: SafLibraryFiles, relativePath: String): String? {
+        val oldUri = files.uriOf(relativePath)?.toString()
+        return when (val result = LibraryPreprocessor(files).preprocess(relativePath)) {
+            is LibraryPreprocessor.Result.Unchanged -> relativePath
+            is LibraryPreprocessor.Result.Processed -> {
+                val newUri = files.uriOf(result.to)
+                if (oldUri != null && newUri != null) {
+                    bookRepository.relocateBook(
+                        oldUri = oldUri,
+                        newUri = newUri.toString(),
+                        displayName = result.to.substringAfterLast('/'),
+                        relativePath = normalizeRelativePath(result.to.split('/')),
+                        charCount = result.charCount,
+                    )
+                }
+                result.to
+            }
+            is LibraryPreprocessor.Result.Failed -> null
         }
     }
 
@@ -438,8 +481,11 @@ class LibraryViewModel(
             fetchAndVerifySharedSecret()
             val settings = settingsRepository.settingsFlow.first()
             val app = getApplication<Application>()
+            val files = SafLibraryFiles(app, rootUri)
+            // Finishes preprocessing runs cut short last time before anything is compared.
+            withContext(Dispatchers.IO) { LibraryPreprocessor(files).recover() }
             val sync = TwoWayBookSync(
-                files = SafLibraryFiles(app, rootUri),
+                files = files,
                 client = dropboxClient,
                 baseDao = syncBaseDao,
                 loadCursor = { settingsRepository.settingsFlow.first().dropboxCursor },
@@ -448,6 +494,7 @@ class LibraryViewModel(
                 syncedOneWayBefore = settings.dropboxLastSyncAtMillis > 0L,
                 conflictLabel = app.getString(R.string.dropbox_conflict_copy_label),
                 today = { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) },
+                prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
             )
             val result = withContext(Dispatchers.IO) {
                 sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }

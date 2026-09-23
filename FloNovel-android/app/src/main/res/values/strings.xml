@@ -152,7 +152,6 @@
     <string name="dropbox_result_two_way">Downloaded %1$d, uploaded %2$d, deleted %3$d.</string>
     <string name="dropbox_result_conflicts">%1$d books were changed on two devices; both versions were kept as conflicted copies.</string>
     <string name="dropbox_result_waiting_for_write">%1$d changes from this phone are waiting. Reconnect Dropbox to send them.</string>
-    <string name="dropbox_result_awaiting_preprocessing">%1$d books added on this phone stay here until the phone can prepare them for syncing.</string>
     <string name="dropbox_reconnect_for_write">This link was made before the phone could upload. Reconnect once so changes made here reach the PC.</string>
     <string name="dropbox_reconnect">Reconnect Dropbox</string>
     <string name="dropbox_two_way_notice">Deleting a book here also deletes it from Dropbox and the PC (the PC keeps it in its Recycle Bin).</string>
@@ -170,6 +169,7 @@
     <string name="library_delete_folder_message_synced">The folder and everything in it are deleted from this phone, Dropbox and the PC. The PC keeps them in its Recycle Bin.</string>
     <string name="library_delete_confirm">Delete</string>
     <string name="library_delete_cancel">Cancel</string>
+    <string name="library_preprocess_failed">Could not prepare \"%1$s\" for syncing; opening it as it is.</string>
     <string name="library_delete_failed">Could not delete \"%1$s\".</string>
     <string name="dropbox_sign_in">Connect Dropbox</string>
     <string name="dropbox_sign_out">Disconnect</string>

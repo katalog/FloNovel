@@ -68,4 +68,10 @@ class BookRepository(
     }
 
     suspend fun deleteBook(book: BookEntity) = bookDao.delete(book)
+
+    suspend fun isKnown(source: BookSource): Boolean = bookDao.findByUri(source.toStoredString()) != null
+
+    /** See [BookDao.relocate]. */
+    suspend fun relocateBook(oldUri: String, newUri: String, displayName: String, relativePath: String, charCount: Int) =
+        bookDao.relocate(oldUri, newUri, displayName, relativePath, charCount)
 }

@@ -18,8 +18,11 @@ data class LibraryFile(
  * outside a device.
  */
 interface LibraryFiles {
-    /** Every `.txt` file, skipping anything under a dot-prefixed name. */
-    fun list(): List<LibraryFile>
+    /**
+     * Every `.txt` file, skipping anything under a dot-prefixed name unless [includeHidden]
+     * (preprocessing looks for its own hidden temporary files that way).
+     */
+    fun list(includeHidden: Boolean = false): List<LibraryFile>
 
     fun stat(relativePath: String): LibraryFile?
 
@@ -35,4 +38,7 @@ interface LibraryFiles {
 
     /** Deletes the file, then any folders above it that are now empty (never the root). */
     fun delete(relativePath: String): Boolean
+
+    /** Renames a file within its folder. False if the provider refused or picked another name. */
+    fun rename(relativePath: String, newName: String): Boolean
 }

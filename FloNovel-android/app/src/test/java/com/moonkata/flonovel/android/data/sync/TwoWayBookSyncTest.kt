@@ -1,6 +1,8 @@
 package com.moonkata.flonovel.android.data.sync
 
 import com.moonkata.flonovel.android.data.db.SyncBaseEntity
+import com.moonkata.flonovel.android.data.preprocess.LibraryPreprocessor
+import com.moonkata.flonovel.android.data.preprocess.TextPreprocessor
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -60,6 +62,13 @@ class TwoWayBookSyncTest {
         syncedOneWayBefore = syncedOneWayBefore,
         conflictLabel = "conflicted copy",
         today = { "2026-09-23" },
+        prepareNewBook = { rel ->
+            when (val r = LibraryPreprocessor(library).preprocess(rel)) {
+                is LibraryPreprocessor.Result.Unchanged -> r.relativePath
+                is LibraryPreprocessor.Result.Processed -> r.to
+                is LibraryPreprocessor.Result.Failed -> null
+            }
+        },
     )
 
     private fun sync(
@@ -84,13 +93,31 @@ class TwoWayBookSyncTest {
     }
 
     @Test
-    fun bookAddedOnPhone_waitsForPreprocessing_notUploaded() {
-        library.put("Mine.txt", "raw")
+    fun bookAddedOnPhone_isPreprocessedThenUploadedUnderItsCleanedName() {
+        val raw = "  제1화 시작\n본문\n"
+        library.put("Series/삼국지 三國志.txt", raw)
+
         val result = sync()
-        assertEquals(1, result.awaitingPreprocessing)
+
+        val processed = TextPreprocessor.normalizeContent(raw)
+        assertEquals(1, result.uploaded)
+        assertEquals(processed, library.content("Series/삼국지.txt"))
+        assertEquals(processed, dropbox.content("Series/삼국지.txt"))
+        assertNull(dropbox.content("Series/삼국지 三國志.txt"))
+        assertEquals("add", dropbox.uploadModes.single())
+        assertEquals("SYNCED", dao.rows["series/삼국지.txt"]?.state)
+        // The next pass has nothing to do.
+        assertEquals(0, sync().changed)
+    }
+
+    @Test
+    fun bookAddedOnPhone_thatCannotBePreprocessed_isNotUploadedRaw() {
+        library.put("Mine.txt", "raw")
+        library.unreadable += "Mine.txt"
+
+        sync()
+
         assertNull(dropbox.content("Mine.txt"))
-        // Not a failure: the rest of the pass is complete, so the cursor moves on.
-        assertTrue(cursor.isNotBlank())
     }
 
     @Test
