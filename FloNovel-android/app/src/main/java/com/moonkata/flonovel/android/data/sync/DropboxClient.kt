@@ -21,6 +21,9 @@ sealed class DropboxEntry {
         override val pathLower: String,
         val pathDisplay: String,
         val size: Long,
+        // Read for two-way sync (base comparison and rev-conditional writes).
+        val rev: String = "",
+        val contentHash: String = "",
     ) : DropboxEntry()
 
     data class Deleted(override val pathLower: String) : DropboxEntry()
@@ -245,6 +248,8 @@ internal fun parseListFolderBody(body: String): DropboxListResult = runCatching 
                         pathLower = pathLower,
                         pathDisplay = item.optString("path_display", pathLower),
                         size = item.optLong("size", 0L),
+                        rev = item.optString("rev", ""),
+                        contentHash = item.optString("content_hash", ""),
                     ),
                 )
                 "deleted" -> add(DropboxEntry.Deleted(pathLower))
