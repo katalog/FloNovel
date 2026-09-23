@@ -125,6 +125,9 @@ tasks.register<JavaExec>("preprocessReport") {
 
 tasks.test {
     useJUnitPlatform()
+    // `./gradlew test -PupdateGolden` rewrites the preprocessing parity expectations (see
+    // PreprocessParityTest); copy them to the Android app's fixtures afterwards.
+    systemProperty("flonovel.updateGolden", project.hasProperty("updateGolden").toString())
     if (dropboxAppKey.isNotEmpty()) {
         systemProperty("flonovel.dropbox.app_key", dropboxAppKey)
     }
