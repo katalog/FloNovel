@@ -855,6 +855,9 @@ fun main(args: Array<String>) {
                         initialProgress = null
                         syncFailedFiles = syncEngine?.failedFiles ?: emptyList()
                         booksData = bookStore.load()
+                        // Two-way sync deletes, moves and downloads local files; the folder view
+                        // must re-read the disk (booksData alone does not change when files go).
+                        directoryRevision++
                         reportSyncSummary(summary, false)
                     }
                 },
@@ -870,6 +873,7 @@ fun main(args: Array<String>) {
                         syncFailedFiles = syncEngine?.failedFiles ?: emptyList()
                         isInitialUploadRequired = syncEngine?.isInitialUploadRequired ?: false
                         booksData = bookStore.load()
+                        directoryRevision++
                         reportSyncSummary(summary, false)
                     }
                 },
@@ -884,6 +888,7 @@ fun main(args: Array<String>) {
                         syncStatus = syncEngine?.status ?: SyncStatus.IDLE
                         syncFailedFiles = syncEngine?.failedFiles ?: emptyList()
                         booksData = bookStore.load()
+                        directoryRevision++
                     }
                 },
                 onStartDropboxOAuth = {
