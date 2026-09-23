@@ -55,6 +55,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.moonkata.flonovel.desktop.font.FontCategory
 import com.moonkata.flonovel.desktop.font.CustomFont
 import com.moonkata.flonovel.desktop.library.ChapterSettings
+import com.moonkata.flonovel.desktop.library.DeleteAction
+import com.moonkata.flonovel.desktop.library.DeleteSettings
+import com.moonkata.flonovel.desktop.library.FileRemover
+import com.moonkata.flonovel.desktop.library.RemovalRefusal
+import com.moonkata.flonovel.desktop.platform.FolderPicker
+import java.nio.file.Path
 import com.moonkata.flonovel.desktop.library.KeymapSettings
 import com.moonkata.flonovel.desktop.library.ViewSettings
 import java.awt.GraphicsEnvironment
@@ -86,6 +92,7 @@ fun getAvailableSystemFonts(): List<String> {
 enum class SettingsTab {
     VIEW,
     SHORTCUTS,
+    FILES,
     SYNC,
 }
 
@@ -106,6 +113,10 @@ fun SettingsDialog(
     onLanguageChanged: ((String) -> Unit)? = null,
     currentKeymap: KeymapSettings = KeymapSettings(),
     onKeymapChanged: ((KeymapSettings) -> Unit)? = null,
+    deleteSettings: DeleteSettings = DeleteSettings(),
+    onDeleteSettingsChanged: ((DeleteSettings) -> Unit)? = null,
+    // Needed to reject a move folder inside the library before it is saved.
+    libraryFolder: String = "",
     initialTab: SettingsTab = SettingsTab.VIEW,
     isDropboxLinked: Boolean = false,
     cachedSupabaseSecret: String? = null,
@@ -136,6 +147,7 @@ fun SettingsDialog(
     var showRegenConfirmDialog by remember { mutableStateOf(false) }
     var showForcePushConfirmDialog by remember { mutableStateOf(false) }
     var recordingAction by remember { mutableStateOf<String?>(null) }
+    var moveFolderPickError by remember { mutableStateOf<RemovalRefusal?>(null) }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
@@ -177,6 +189,7 @@ fun SettingsDialog(
                             "openInExplorer" -> currentKeymap.copy(openInExplorer = newKey)
                             "openInDefaultApp" -> currentKeymap.copy(openInDefaultApp = newKey)
                             "autoPageTurn" -> currentKeymap.copy(autoPageTurn = newKey)
+                            "deleteFile" -> currentKeymap.copy(deleteFile = newKey)
                             else -> currentKeymap
                         }
                         onKeymapChanged(updated)
@@ -238,6 +251,7 @@ fun SettingsDialog(
                     listOf(
                         SettingsTab.VIEW to stringResource("settings_tab_view"),
                         SettingsTab.SHORTCUTS to stringResource("settings_tab_shortcuts"),
+                        SettingsTab.FILES to stringResource("settings_tab_files"),
                         SettingsTab.SYNC to stringResource("settings_tab_sync"),
                     ).forEach { (tab, label) ->
                         val isSelected = currentTab == tab
@@ -1245,6 +1259,15 @@ fun SettingsDialog(
                                 focusRequester.requestFocus()
                             },
                         )
+                        ShortcutRow(
+                            title = stringResource("settings_shortcut_delete_file"),
+                            keyDisplayName = KeymapHelper.toDisplayName(currentKeymap.deleteFile),
+                            isRecording = recordingAction == "deleteFile",
+                            onClick = {
+                                recordingAction = if (recordingAction == "deleteFile") null else "deleteFile"
+                                focusRequester.requestFocus()
+                            },
+                        )
 
                         Spacer(modifier = Modifier.height(16.dp))
                         Row(
@@ -1265,6 +1288,85 @@ fun SettingsDialog(
                                 Text(stringResource("settings_shortcut_reset"), fontSize = 12.sp)
                             }
                         }
+                    }
+                } else if (currentTab == SettingsTab.FILES) {
+                    item {
+                        SettingSectionTitle(stringResource("settings_delete_title"))
+                        Text(
+                            text = stringResource("settings_delete_desc"),
+                            color = Color(0xFF9CA3AF),
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            listOf(
+                                DeleteAction.TRASH to stringResource("settings_delete_action_trash"),
+                                DeleteAction.MOVE to stringResource("settings_delete_action_move"),
+                            ).forEach { (action, label) ->
+                                ThemeButton(
+                                    name = label,
+                                    selected = deleteSettings.action == action,
+                                    onClick = {
+                                        moveFolderPickError = null
+                                        onDeleteSettingsChanged?.invoke(deleteSettings.copy(action = action))
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+
+                        if (deleteSettings.action == DeleteAction.MOVE) {
+                            val libraryPath = libraryFolder.takeIf { it.isNotBlank() }
+                                ?.let { runCatching { Path.of(it) }.getOrNull() }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = deleteSettings.moveFolder.ifBlank { stringResource("settings_delete_move_folder_none") },
+                                    color = if (deleteSettings.moveFolder.isBlank()) Color(0xFF9CA3AF) else Color.White,
+                                    fontSize = 12.sp,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Button(
+                                    onClick = {
+                                        val picked = FolderPicker.chooseFolder(deleteSettings.moveFolder)
+                                        if (picked != null) {
+                                            val problem = FileRemover.checkMoveFolder(picked, libraryPath)
+                                            moveFolderPickError = problem
+                                            if (problem == null) {
+                                                onDeleteSettingsChanged?.invoke(deleteSettings.copy(moveFolder = picked))
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2563EB), contentColor = Color.White),
+                                    shape = RoundedCornerShape(6.dp),
+                                ) {
+                                    Text(stringResource("settings_delete_move_folder_choose"), fontSize = 12.sp)
+                                }
+                            }
+                            // A rejected pick is shown until the next pick; otherwise re-check the
+                            // saved folder, which may have been deleted since it was chosen.
+                            val problem = moveFolderPickError
+                                ?: FileRemover.checkMoveFolder(deleteSettings.moveFolder, libraryPath)
+                            if (problem != null) {
+                                Text(
+                                    text = removalRefusalMessage(problem),
+                                    color = Color(0xFFF87171),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 8.dp),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 } else if (currentTab == SettingsTab.SYNC) {
                     item {

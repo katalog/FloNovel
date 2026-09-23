@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +68,7 @@ import com.moonkata.flonovel.desktop.font.FontCatalog
 import com.moonkata.flonovel.desktop.font.FontDownloader
 import com.moonkata.flonovel.desktop.font.FontManager
 import com.moonkata.flonovel.desktop.library.ChapterSettings
+import com.moonkata.flonovel.desktop.library.DeleteSettings
 import com.moonkata.flonovel.desktop.library.KeymapSettings
 import com.moonkata.flonovel.desktop.library.ViewSettings
 import com.moonkata.flonovel.desktop.reader.ChapterJumpNavigator
@@ -179,6 +181,7 @@ fun handleKeyAction(
     onBack: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
     onOpenInDefaultApp: (() -> Unit)? = null,
+    onDeleteFile: (() -> Unit)? = null,
     autoPageTurnEnabled: Boolean = false,
     onToggleAutoPageTurn: (() -> Unit)? = null,
 ): Boolean {
@@ -203,6 +206,12 @@ fun handleKeyAction(
     // 1c. Open the current file with the OS default application for it (F8 by default)
     if (KeymapHelper.matches(keymap.openInDefaultApp, key, codePoint)) {
         onOpenInDefaultApp?.invoke()
+        return true
+    }
+
+    // 1d. Delete the current file, or move it to the configured folder (Del by default)
+    if (KeymapHelper.matches(keymap.deleteFile, key, codePoint)) {
+        onDeleteFile?.invoke()
         return true
     }
 
@@ -311,6 +320,7 @@ fun handleReaderKeyEvent(
     onBack: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
     onOpenInDefaultApp: (() -> Unit)? = null,
+    onDeleteFile: (() -> Unit)? = null,
     autoPageTurnEnabled: Boolean = false,
     onToggleAutoPageTurn: (() -> Unit)? = null,
 ): Boolean {
@@ -346,6 +356,7 @@ fun handleReaderKeyEvent(
         onBack = onBack,
         onOpenInExplorer = onOpenInExplorer,
         onOpenInDefaultApp = onOpenInDefaultApp,
+        onDeleteFile = onDeleteFile,
         autoPageTurnEnabled = autoPageTurnEnabled,
         onToggleAutoPageTurn = onToggleAutoPageTurn,
     )
@@ -377,6 +388,10 @@ fun ReaderView(
     onHome: (() -> Unit)? = null,
     onOpenInExplorer: (() -> Unit)? = null,
     onOpenInDefaultApp: (() -> Unit)? = null,
+    onDeleteFile: (() -> Unit)? = null,
+    deleteSettings: DeleteSettings = DeleteSettings(),
+    onDeleteSettingsChanged: ((DeleteSettings) -> Unit)? = null,
+    libraryFolder: String = "",
     keymap: KeymapSettings = KeymapSettings(),
     onKeymapChanged: ((KeymapSettings) -> Unit)? = null,
     currentLanguage: String = "SYSTEM",
@@ -420,6 +435,9 @@ fun ReaderView(
     val radioPlaybackState by RadioPlayer.state
     var lastChapterJumpOffset by remember { mutableStateOf<Int?>(null) }
     var toastMessage by remember { mutableStateOf<String?>(null) }
+    // The window-level dispatcher below is only rebuilt when its keys change, so read the
+    // callback through updated state instead of capturing the first composition's lambda.
+    val currentOnDeleteFile by rememberUpdatedState(onDeleteFile)
 
     var isHeaderVisible by remember { mutableStateOf(true) }
     var isHoveringTopRight by remember { mutableStateOf(false) }
@@ -772,6 +790,7 @@ fun ReaderView(
                     },
                     onOpenInExplorer = { onOpenInExplorer?.invoke() },
                     onOpenInDefaultApp = { onOpenInDefaultApp?.invoke() },
+                    onDeleteFile = { currentOnDeleteFile?.invoke() },
                     autoPageTurnEnabled = viewSettings.autoPageTurnEnabled,
                     onToggleAutoPageTurn = {
                         onViewSettingsChanged?.invoke(viewSettings.copy(autoPageTurnEnabled = !viewSettings.autoPageTurnEnabled))
@@ -1263,6 +1282,9 @@ fun ReaderView(
                 onLanguageChanged = onLanguageChanged,
                 currentKeymap = keymap,
                 onKeymapChanged = onKeymapChanged,
+                deleteSettings = deleteSettings,
+                onDeleteSettingsChanged = onDeleteSettingsChanged,
+                libraryFolder = libraryFolder,
                 currentChapterSettings = chapterSettings,
                 onChapterSettingsChanged = onChapterSettingsChanged,
                 isDropboxLinked = isDropboxLinked,

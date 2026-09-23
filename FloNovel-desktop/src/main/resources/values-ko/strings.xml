@@ -244,6 +244,7 @@
     <!-- Shortcut Settings -->
     <string name="settings_tab_view">독서 화면</string>
     <string name="settings_tab_shortcuts">단축키</string>
+    <string name="settings_tab_files">파일</string>
     <string name="settings_tab_sync">클라우드 동기화</string>
     <string name="settings_shortcuts_title">단축키 설정</string>
     <string name="settings_shortcuts_desc">항목을 클릭한 뒤 원하는 키를 누르면 단축키가 변경됩니다. 설정 대기 중 ESC를 누르면 단축키가 해제(삭제)됩니다.</string>
@@ -261,6 +262,7 @@
     <string name="settings_shortcut_open_in_explorer">파일 탐색기에서 위치 열기</string>
     <string name="settings_shortcut_open_in_default_app">기본 앱으로 파일 열기</string>
     <string name="settings_shortcut_auto_page_turn">자동 페이지 넘기기 켜기/끄기</string>
+    <string name="settings_shortcut_delete_file">파일 삭제 / 옮기기</string>
     <string name="settings_shortcut_press_key">키 입력 대기 중...</string>
     <string name="settings_shortcut_reset">기본값으로 초기화</string>
 
@@ -276,4 +278,31 @@
     <string name="radio_stop_playback">재생 중지</string>
     <string name="radio_minutes_unit">%d분</string>
     <string name="radio_error_toast">라디오 재생 실패: %s</string>
+    <!-- Delete key: settings, confirmation, results -->
+    <string name="settings_delete_title">Delete 키</string>
+    <string name="settings_delete_desc">라이브러리나 리더에서 Delete 키를 눌렀을 때 책을 어떻게 처리할지 정합니다. 빈 폴더는 항상 삭제됩니다. 지운 책은 Dropbox와 휴대폰에서도 사라집니다.</string>
+    <string name="settings_delete_action_trash">휴지통으로</string>
+    <string name="settings_delete_action_move">지정 폴더로 옮기기</string>
+    <string name="settings_delete_move_folder_none">선택한 폴더 없음</string>
+    <string name="settings_delete_move_folder_choose">폴더 선택</string>
+    <string name="removal_confirm_trash_title">휴지통으로 보낼까요?</string>
+    <string name="removal_confirm_trash_message">"%s" 파일을 휴지통으로 보냅니다. Dropbox와 휴대폰에서도 사라집니다.</string>
+    <string name="removal_confirm_trash_button">휴지통으로 보내기</string>
+    <string name="removal_confirm_move_title">파일을 옮길까요?</string>
+    <string name="removal_confirm_move_message">"%s" 파일을 %s 폴더로 옮깁니다. Dropbox와 휴대폰에서도 사라집니다.</string>
+    <string name="removal_confirm_move_button">옮기기</string>
+    <string name="removal_confirm_folder_title">빈 폴더를 삭제할까요?</string>
+    <string name="removal_confirm_folder_message">빈 폴더 "%s"을(를) 삭제합니다.</string>
+    <string name="removal_confirm_delete_button">삭제</string>
+    <string name="removal_done_trashed">휴지통으로 보냄: %s</string>
+    <string name="removal_done_moved">옮김: %s</string>
+    <string name="removal_done_folder">폴더 삭제: %s</string>
+    <string name="removal_failed">파일을 처리하지 못했습니다: %s</string>
+    <string name="removal_refused_not_found">파일이 더 이상 없습니다.</string>
+    <string name="removal_refused_folder_not_empty">빈 폴더만 삭제할 수 있습니다.</string>
+    <string name="removal_refused_trash_unsupported">이 시스템에는 휴지통이 없습니다. 설정의 파일 탭에서 "지정 폴더로 옮기기"를 선택하세요.</string>
+    <string name="removal_refused_trash_failed">파일을 휴지통으로 보내지 못했습니다.</string>
+    <string name="removal_refused_move_folder_not_set">옮길 폴더가 지정되지 않았습니다. 설정의 파일 탭에서 지정하세요.</string>
+    <string name="removal_refused_move_folder_missing">옮길 폴더가 없습니다. 설정의 파일 탭에서 다시 지정하세요.</string>
+    <string name="removal_refused_move_folder_inside_library">라이브러리 폴더 안쪽은 옮길 폴더로 지정할 수 없습니다.</string>
 </resources>
