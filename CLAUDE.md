@@ -208,7 +208,7 @@ relativePath.replace('\\', '/')            // 1
 | 경로 | `java.nio.file.Path`. 문자열 연결 금지 |
 | 플랫폼 분기 | `platform/` 안에서만 (`ConfigDir.kt` · `FolderPicker.kt`) |
 | 주석 | **"왜"** 를 쓴다. "무엇"은 코드가 말한다 |
-| UI 문자열 | Android 는 `values/`(영어) + `values-ko/`. **Desktop 은 아직 한국어 하드코딩** — 현지화 작업 예정 |
+| UI 문자열 | 양쪽 모두 `values/strings.xml`(영어, 기본값) + `values-ko/strings.xml`. Android 는 `res/`, Desktop 은 `src/main/resources/` 에 있고 `i18n/Strings.kt` 가 읽는다. **새 문자열은 두 파일에 함께 넣는다** |
 
 이 코드베이스는 주석에 **실제로 겪은 문제**를 남기는 관행이 있다. 이어가고, 기존
 것을 지우지 마라.
