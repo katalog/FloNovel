@@ -199,7 +199,7 @@ class DropboxClient(
      *
      * [updateRev] set means `mode=update(rev)`: replace the file only if it is still at that rev.
      * Book sync always uses `add` or `update`, never `overwrite`, which would silently discard a
-     * change another device made in the meantime (CLAUDE.md §1).
+     * change another device made in the meantime (AGENTS.md §1).
      */
     fun uploadFile(
         path: String,

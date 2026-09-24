@@ -10,7 +10,7 @@ import org.json.JSONObject
  * The base of every synced file plus the Dropbox cursor, in one file.
  *
  * They live together so they are written together: a cursor saved ahead of the bases it covers
- * would make the next sync skip changes that were never applied (CLAUDE.md §1, cursor rule).
+ * would make the next sync skip changes that were never applied (AGENTS.md §1, cursor rule).
  */
 data class SyncState(
     val cursor: String? = null,

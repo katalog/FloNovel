@@ -282,7 +282,7 @@ class LibraryViewModel(
             val folderNames = _browseState.value.path.drop(1).map { it.name }
             var source = entry.source
             var name = entry.name
-            // Preprocess before the first open, as the Desktop does on arrival (CLAUDE.md §1
+            // Preprocess before the first open, as the Desktop does on arrival (AGENTS.md §1
             // "전처리 → 등록"): the reading position is a character offset into the preprocessed
             // text, so registering the raw file first would leave it pointing at the wrong place.
             val rootUri = _browseState.value.rootUri
@@ -553,7 +553,7 @@ class LibraryViewModel(
 
     /**
      * The library came to the front: app launch, back from another app, or back from the reader.
-     * Syncs so the other device's changes show up, at most once a minute (CLAUDE.md §1: Android
+     * Syncs so the other device's changes show up, at most once a minute (AGENTS.md §1: Android
      * syncs on launch and foreground, no background sync). Silent when sync is not set up.
      */
     fun onLibraryResumed() {

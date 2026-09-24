@@ -302,7 +302,7 @@ sync feature at runtime.
 Issues and pull requests are welcome. A few things worth knowing before you start:
 
 - The two apps deliberately **share no code**. They interoperate through a contract covering reading
-  position, path normalization, preprocessing and the sync protocol; [CLAUDE.md](CLAUDE.md) spells it
+  position, path normalization, preprocessing and the sync protocol; [AGENTS.md](AGENTS.md) spells it
   out, and breaking one side silently breaks the other.
 - Changing the preprocessor means changing it in **both** apps. Regenerate the expected output on
   the desktop with `./gradlew test -PupdateGolden` and copy it to the Android fixtures; each side's

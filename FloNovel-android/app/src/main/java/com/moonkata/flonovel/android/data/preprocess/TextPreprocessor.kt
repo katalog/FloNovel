@@ -2,7 +2,7 @@ package com.moonkata.flonovel.android.data.preprocess
 
 /**
  * The Desktop app's text preprocessor, ported. Both apps must turn the same input into the same
- * bytes (CLAUDE.md §1); the shared fixtures in `fixtures/parity/` hold both to that.
+ * bytes (AGENTS.md §1); the shared fixtures in `fixtures/parity/` hold both to that.
  *
  * Every pattern spells out its character classes instead of using `\d`, `\s`, `.` or
  * `\p{IsHangul}`, and matches Latin letters case by case instead of with IGNORE_CASE. The Desktop

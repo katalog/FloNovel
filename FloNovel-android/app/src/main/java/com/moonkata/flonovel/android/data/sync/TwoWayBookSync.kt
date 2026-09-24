@@ -25,7 +25,7 @@ data class TwoWaySyncResult(
 }
 
 /**
- * Two-way sync of the library folder with Dropbox `/books` (CLAUDE.md §1, "동기화 — 파일"). The
+ * Two-way sync of the library folder with Dropbox `/books` (AGENTS.md §1, "동기화 — 파일"). The
  * same pass as the Desktop engine, adapted to the phone:
  *
  * - Downloads write in place (the reading position is keyed by the document URI) and mark the
@@ -51,7 +51,7 @@ class TwoWayBookSync(
     private val today: () -> String,
     /**
      * Preprocesses a book added on this phone before its first upload (Dropbox holds only
-     * preprocessed files, CLAUDE.md §1) and returns where it now is; the name can change. Null when
+     * preprocessed files, AGENTS.md §1) and returns where it now is; the name can change. Null when
      * it could not be preprocessed, so it is not uploaded raw.
      */
     private val prepareNewBook: suspend (relativePath: String) -> String?,
