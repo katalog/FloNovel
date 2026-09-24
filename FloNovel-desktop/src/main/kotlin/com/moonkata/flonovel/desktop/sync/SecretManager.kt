@@ -67,7 +67,6 @@ class SecretManager(
         val uploadResult = dropboxClient.uploadFile(
             path = remotePath,
             content = jsonContent.toByteArray(StandardCharsets.UTF_8),
-            overwrite = false,
         )
 
         if (uploadResult is DropboxUploadResult.Success) {

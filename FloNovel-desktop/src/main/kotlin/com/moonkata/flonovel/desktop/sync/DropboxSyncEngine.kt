@@ -536,7 +536,7 @@ class DropboxSyncEngine(
         } catch (e: IOException) {
             return DropboxUploadResult.Failure(e.message ?: "Read error")
         }
-        return dropboxClient.uploadFile(remotePathOf(entry.rel), bytes, overwrite = false, updateRev = parentRev)
+        return dropboxClient.uploadFile(remotePathOf(entry.rel), bytes, updateRev = parentRev)
     }
 
     private fun download(

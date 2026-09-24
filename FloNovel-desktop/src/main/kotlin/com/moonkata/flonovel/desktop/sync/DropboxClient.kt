@@ -198,13 +198,15 @@ class DropboxClient(
      * Uploads file content to Dropbox.
      *
      * [updateRev] set means `mode=update(rev)`: replace the file only if it is still at that rev.
-     * Book sync always uses `add` or `update`, never `overwrite`, which would silently discard a
-     * change another device made in the meantime (AGENTS.md §1).
+     * Otherwise the mode is `add`, unless [overwrite] is asked for. Book sync always uses `add` or
+     * `update`, never `overwrite`, which would silently discard a change another device made in the
+     * meantime (AGENTS.md §1). That is why `overwrite` has to be asked for by name: it used to be
+     * the default, so any new caller that left it out would have overwritten without a word.
      */
     fun uploadFile(
         path: String,
         content: ByteArray,
-        overwrite: Boolean = true,
+        overwrite: Boolean = false,
         updateRev: String? = null,
     ): DropboxUploadResult {
         val normPath = if (path.startsWith("/")) path else "/$path"
