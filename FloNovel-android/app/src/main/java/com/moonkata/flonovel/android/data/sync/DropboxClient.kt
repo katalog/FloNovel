@@ -86,7 +86,7 @@ sealed class DropboxListResult {
 
 /**
  * The Dropbox HTTP API, limited to what the phone does: list, download, and for two-way sync
- * (CLAUDE.md §1) conditional upload and delete. Book writes are always `add` or `update(rev)`,
+ * (AGENTS.md §1) conditional upload and delete. Book writes are always `add` or `update(rev)`,
  * never `overwrite`, so a change another device made in the meantime is refused, not lost.
  *
  * Hand-written against `HttpURLConnection` + `org.json` to match [ReadingPositionSyncClient] and the

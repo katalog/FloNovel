@@ -77,7 +77,7 @@ data class ReaderSettings(
      * is naturally required without any separate invalidation logic. */
     val supabaseVerifiedSecret: String = "",
 
-    // Dropbox file sync, two-way (CLAUDE.md §1).
+    // Dropbox file sync, two-way (AGENTS.md §1).
     /** OAuth refresh token. Long-lived, so it is excluded from cloud backup — see backup_rules.xml. */
     val dropboxRefreshToken: String = "",
     /** Shown in settings so it is obvious *which* account is linked; not used for any request. */

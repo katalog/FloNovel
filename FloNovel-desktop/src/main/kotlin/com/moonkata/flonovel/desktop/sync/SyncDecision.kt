@@ -3,7 +3,7 @@ package com.moonkata.flonovel.desktop.sync
 import java.time.LocalDate
 
 /**
- * Pure decision rules for two-way file sync (CLAUDE.md §1, "동기화 — 파일", target rules).
+ * Pure decision rules for two-way file sync (AGENTS.md §1, "동기화 — 파일", target rules).
  *
  * Every decision compares local against the last agreed state (the base) and remote against the
  * base, separately. Comparing local against remote directly cannot tell "the other device added

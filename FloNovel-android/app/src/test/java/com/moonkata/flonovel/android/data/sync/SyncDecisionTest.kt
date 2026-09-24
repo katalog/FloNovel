@@ -28,7 +28,7 @@ class SyncDecisionTest {
     @Test fun noBase_bothSameContent_adopt() = check(SyncAction.AdoptBase(remote("A")), null, local("A"), remote("A"))
     @Test fun noBase_bothDifferentContent_conflict() = check(SyncAction.Conflict(remote("B")), null, local("A"), remote("B"))
 
-    // ── Base present: the table in CLAUDE.md §1 ─────────────────────────
+    // ── Base present: the table in AGENTS.md §1 ─────────────────────────
 
     @Test fun unchanged_unchanged_none() = check(SyncAction.None, base, local("A"), remote("A"))
     @Test fun unchanged_modified_download() = check(SyncAction.Download(remote("B", "r2")), base, local("A"), remote("B", "r2"))

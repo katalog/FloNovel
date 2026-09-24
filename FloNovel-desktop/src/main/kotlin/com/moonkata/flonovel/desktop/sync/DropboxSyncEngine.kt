@@ -56,7 +56,7 @@ enum class SyncStatus {
 }
 
 /**
- * Two-way sync between the home folder and Dropbox `/books` (CLAUDE.md §1, "동기화 — 파일").
+ * Two-way sync between the home folder and Dropbox `/books` (AGENTS.md §1, "동기화 — 파일").
  *
  * Each pass: build the remote view (base overlaid with the listing delta), scan local `.txt`
  * files, run [SyncDecision.decide] per key, then apply the actions one file at a time. A failure
@@ -579,7 +579,7 @@ class DropboxSyncEngine(
 
     /**
      * Records the downloaded book as already preprocessed before it appears in the library.
-     * Dropbox holds only preprocessed files (CLAUDE.md §1), so running the preprocessor again would
+     * Dropbox holds only preprocessed files (AGENTS.md §1), so running the preprocessor again would
      * only rewrite identical bytes and leave a pointless backup in `.flonovel/original`.
      */
     private fun registerDownloaded(key: String, rel: String, content: Path) {

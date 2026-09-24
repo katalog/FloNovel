@@ -13,7 +13,7 @@ object OpenBook {
 
 /**
  * Whether a book is a copy sync fully brought down from Dropbox. Dropbox holds only preprocessed
- * files (CLAUDE.md §1), so such a book needs no preprocessing check when it is first opened; that
+ * files (AGENTS.md §1), so such a book needs no preprocessing check when it is first opened; that
  * check reads and normalizes the whole file, which takes seconds for a large novel on a phone.
  * A download still in progress does not count.
  */

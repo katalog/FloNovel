@@ -4,7 +4,7 @@ import com.moonkata.flonovel.android.data.file.EncodingDetector
 import com.moonkata.flonovel.android.data.sync.LibraryFiles
 
 /**
- * Preprocesses a book file in the library in place, the phone's side of CLAUDE.md §1
+ * Preprocesses a book file in the library in place, the phone's side of AGENTS.md §1
  * "전처리 → 등록 → 업로드".
  *
  * SAF cannot replace a file atomically, and the contract forbids overwriting an original
