@@ -2,6 +2,8 @@ package com.moonkata.flonovel.android.ui.library
 
 import android.app.Application
 import android.net.Uri
+import android.provider.DocumentsContract
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -23,15 +25,20 @@ import com.moonkata.flonovel.android.data.file.FolderBrowser
 import com.moonkata.flonovel.android.data.file.SafFolderBrowser
 import com.moonkata.flonovel.android.data.font.FontCatalogEntry
 import com.moonkata.flonovel.android.data.font.FontDownloadManager
+import com.moonkata.flonovel.android.data.preprocess.LibraryPreprocessor
 import com.moonkata.flonovel.android.data.repository.BookRepository
 import com.moonkata.flonovel.android.data.sync.DropboxAuthRedirect
 import com.moonkata.flonovel.android.data.sync.DropboxAuthSession
 import com.moonkata.flonovel.android.data.sync.DropboxClient
 import com.moonkata.flonovel.android.data.sync.DropboxConfig
-import com.moonkata.flonovel.android.data.sync.DropboxFileSync
 import com.moonkata.flonovel.android.data.sync.DropboxOAuth
 import com.moonkata.flonovel.android.data.sync.DropboxSyncProgress
-import com.moonkata.flonovel.android.data.sync.DropboxSyncResult
+import com.moonkata.flonovel.android.data.sync.OpenBook
+import com.moonkata.flonovel.android.data.sync.SafLibraryFiles
+import com.moonkata.flonovel.android.data.sync.isSyncedCopy
+import com.moonkata.flonovel.android.data.sync.shouldAutoSync
+import com.moonkata.flonovel.android.data.sync.TwoWayBookSync
+import com.moonkata.flonovel.android.data.sync.TwoWaySyncResult
 import com.moonkata.flonovel.android.data.sync.ReadingPositionSyncClient
 import com.moonkata.flonovel.android.data.sync.SecretResult
 import com.moonkata.flonovel.android.data.sync.SecretStore
@@ -53,6 +60,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /** One step of where the folder view is currently looking — either a real SAF folder or inside a zip archive. */
 sealed class BrowseLocation {
@@ -75,8 +87,10 @@ data class DropboxUiState(
     val isSyncing: Boolean = false,
     val isConnecting: Boolean = false,
     val progress: DropboxSyncProgress? = null,
-    val result: DropboxSyncResult? = null,
+    val result: TwoWaySyncResult? = null,
     val errorMessage: String? = null,
+    /** Deletions the last sync held back (display paths); non-null asks the user to confirm. */
+    val pendingMassDeletion: List<String>? = null,
     /** Null until a fetch has been attempted. Drives the "position sync" line in the sheet. */
     val secretState: SecretResult? = null,
 )
@@ -129,7 +143,11 @@ class LibraryViewModel(
     // --- Dropbox file sync (docs 06-SYNC-STRATEGY Part B) ---
 
     private val dropboxClient = DropboxClient(settingsRepository)
-    private val dropboxFileSync = DropboxFileSync(getApplication(), dropboxClient, settingsRepository)
+    private val syncBaseDao by lazy { AppDatabase.getDatabase(getApplication()).syncBaseDao() }
+
+    // The set the user last chose to skip. Every later sync holds the same deletions back again;
+    // asking about an unchanged set each time would turn the guard into nagging.
+    private var skippedMassDeletion: List<String> = emptyList()
     private val secretStore = SecretStore(dropboxClient)
 
     private val _dropboxState = MutableStateFlow(DropboxUiState())
@@ -193,6 +211,9 @@ class LibraryViewModel(
             val newUriString = uri.toString()
             if (previousUri != null && previousUri != newUriString) {
                 settingsRepository.updateDropboxSyncState(cursor = "", lastSyncAtMillis = 0L)
+                // The bases describe what the *old* folder agreed with Dropbox. Against a new
+                // folder, every book missing from it would read as "deleted on this phone".
+                syncBaseDao.deleteAll()
             }
         }
         openRoot(uri)
@@ -258,15 +279,60 @@ class LibraryViewModel(
 
     private fun openTextFile(entry: FolderEntry.TextFile) {
         viewModelScope.launch {
-            // A file inside a zip has no direct path VSCode could open, so it's not a sync-matching target (§3) — leave it blank.
-            val relativePath = if (entry.source is BookSource.PlainTxt) {
-                val folderNames = _browseState.value.path.drop(1).map { it.name }
-                normalizeRelativePath(folderNames + entry.name)
-            } else {
-                ""
+            val folderNames = _browseState.value.path.drop(1).map { it.name }
+            var source = entry.source
+            var name = entry.name
+            // Preprocess before the first open, as the Desktop does on arrival (CLAUDE.md §1
+            // "전처리 → 등록"): the reading position is a character offset into the preprocessed
+            // text, so registering the raw file first would leave it pointing at the wrong place.
+            val rootUri = _browseState.value.rootUri
+            val relativeToRoot = (folderNames + name).joinToString("/")
+            if (source is BookSource.PlainTxt && rootUri != null && !bookRepository.isKnown(source) &&
+                !isSyncedCopy(syncBaseDao, relativeToRoot)
+            ) {
+                val files = SafLibraryFiles(getApplication(), rootUri)
+                val finalRel = withContext(Dispatchers.IO) {
+                    preprocessInLibrary(files, relativeToRoot)
+                }
+                if (finalRel == null) {
+                    // Reading is never blocked by preprocessing; the raw file opens as it is.
+                    val app = getApplication<Application>()
+                    Toast.makeText(app, app.getString(R.string.library_preprocess_failed, name), Toast.LENGTH_SHORT).show()
+                } else {
+                    files.uriOf(finalRel)?.let { source = BookSource.PlainTxt(it) }
+                    name = finalRel.substringAfterLast('/')
+                    if (name != entry.name) loadCurrent()
+                }
             }
-            val id = bookRepository.findOrCreateBook(entry.source, entry.name, entry.sizeBytes, relativePath)
+            // A file inside a zip has no direct path VSCode could open, so it's not a sync-matching target (§3) — leave it blank.
+            val relativePath = if (source is BookSource.PlainTxt) normalizeRelativePath(folderNames + name) else ""
+            val id = bookRepository.findOrCreateBook(source, name, entry.sizeBytes, relativePath)
             _openBookEvents.tryEmit(id)
+        }
+    }
+
+    /**
+     * Preprocesses a library file in place and moves any reading record to the file it ends up as.
+     * Returns the final relative path, or null when preprocessing failed.
+     */
+    private suspend fun preprocessInLibrary(files: SafLibraryFiles, relativePath: String): String? {
+        val oldUri = files.uriOf(relativePath)?.toString()
+        return when (val result = LibraryPreprocessor(files).preprocess(relativePath)) {
+            is LibraryPreprocessor.Result.Unchanged -> relativePath
+            is LibraryPreprocessor.Result.Processed -> {
+                val newUri = files.uriOf(result.to)
+                if (oldUri != null && newUri != null) {
+                    bookRepository.relocateBook(
+                        oldUri = oldUri,
+                        newUri = newUri.toString(),
+                        displayName = result.to.substringAfterLast('/'),
+                        relativePath = normalizeRelativePath(result.to.split('/')),
+                        charCount = result.charCount,
+                    )
+                }
+                result.to
+            }
+            is LibraryPreprocessor.Result.Failed -> null
         }
     }
 
@@ -319,7 +385,17 @@ class LibraryViewModel(
                 return@launch
             }
             dropboxClient.cacheAccessToken(tokens.accessToken, tokens.expiresInSeconds)
-            settingsRepository.linkDropbox(refreshToken, dropboxClient.accountEmail().orEmpty())
+            val email = dropboxClient.accountEmail().orEmpty()
+            val previous = settingsRepository.settingsFlow.first()
+            // Reconnecting (for write access) keeps the sync state; a different account must not
+            // inherit it, or its missing books would read as deletions.
+            if (previous.dropboxAccountEmail.isNotBlank() && previous.dropboxAccountEmail != email) {
+                settingsRepository.updateDropboxSyncState(cursor = "", lastSyncAtMillis = 0L)
+                syncBaseDao.deleteAll()
+            }
+            // Dropbox reports the granted scopes; if a response ever omits them, assume what was
+            // asked for. A refused write still surfaces as "reconnect" at sync time.
+            settingsRepository.linkDropbox(refreshToken, email, tokens.scope.ifBlank { DropboxConfig.SCOPES })
             _dropboxState.update { it.copy(isConnecting = false) }
             // Signing in is the only pairing step there is, so the secret is picked up right here
             // rather than making the user press a second button whose purpose they cannot guess.
@@ -375,6 +451,7 @@ class LibraryViewModel(
         viewModelScope.launch {
             dropboxClient.forgetAccessToken()
             settingsRepository.unlinkDropbox()
+            syncBaseDao.deleteAll()
             settingsRepository.updateSupabaseSharedSecret("", verifiedSecret = "")
             _dropboxState.value = DropboxUiState()
         }
@@ -384,7 +461,7 @@ class LibraryViewModel(
      * The "Sync now" button. Needs a library folder because every downloaded file is written into
      * that SAF tree — there is nowhere to put them otherwise.
      */
-    fun syncFromDropbox() {
+    fun syncFromDropbox(allowMassDeletion: Boolean = false) {
         val rootUri = _browseState.value.rootUri
         if (rootUri == null) {
             _dropboxState.update { it.copy(errorMessage = getApplication<Application>().getString(R.string.dropbox_select_folder_first)) }
@@ -408,12 +485,37 @@ class LibraryViewModel(
             // Picks up a secret the Desktop regenerated since last time. It is one small download,
             // and the Supabase check behind it is skipped unless the value actually changed.
             fetchAndVerifySharedSecret()
-            val result = dropboxFileSync.sync(rootUri) { progress ->
-                _dropboxState.update { it.copy(progress = progress) }
+            val settings = settingsRepository.settingsFlow.first()
+            val app = getApplication<Application>()
+            val files = SafLibraryFiles(app, rootUri)
+            // Finishes preprocessing runs cut short last time before anything is compared.
+            withContext(Dispatchers.IO) { LibraryPreprocessor(files).recover() }
+            val sync = TwoWayBookSync(
+                files = files,
+                client = dropboxClient,
+                baseDao = syncBaseDao,
+                loadCursor = { settingsRepository.settingsFlow.first().dropboxCursor },
+                saveCursor = { settingsRepository.updateDropboxSyncState(cursor = it, lastSyncAtMillis = System.currentTimeMillis()) },
+                canWrite = DropboxConfig.canWrite(settings.dropboxGrantedScopes),
+                syncedOneWayBefore = settings.dropboxLastSyncAtMillis > 0L,
+                conflictLabel = app.getString(R.string.dropbox_conflict_copy_label),
+                today = { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) },
+                prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
+                isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
+                onBookMoved = { fromRel, toRel -> followMovedBook(files, fromRel, toRel, settings) },
+            )
+            val result = withContext(Dispatchers.IO) {
+                sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
             }
+            val withheld = result?.withheldDeletions.orEmpty()
             _dropboxState.update {
                 if (result != null) {
-                    it.copy(isSyncing = false, progress = null, result = result)
+                    it.copy(
+                        isSyncing = false,
+                        progress = null,
+                        result = result,
+                        pendingMassDeletion = withheld.takeIf { list -> list.isNotEmpty() && list != skippedMassDeletion },
+                    )
                 } else {
                     it.copy(
                         isSyncing = false,
@@ -426,6 +528,78 @@ class LibraryViewModel(
             // listing is only read when it is entered — without this, new books stay invisible until
             // the user navigates away and back (the same fix the PC sync needed).
             if (result != null && result.changed > 0) loadCurrent()
+        }
+    }
+
+    /**
+     * Sync moved or renamed a book: point its reading record at the new file, and copy its shared
+     * reading position to the new path key. Max-wins on the server means the copy can only move a
+     * position forward.
+     */
+    private suspend fun followMovedBook(files: SafLibraryFiles, fromRel: String, toRel: String, settings: ReaderSettings) {
+        val fromKey = normalizeRelativePath(fromRel.split('/'))
+        val toKey = normalizeRelativePath(toRel.split('/'))
+        files.uriOf(toRel)?.let { uri ->
+            bookRepository.followMovedBook(fromKey, toKey, uri.toString(), toRel.substringAfterLast('/'))
+        }
+        val secret = settings.supabaseSharedSecret
+        if (secret.isNotBlank() && secret == settings.supabaseVerifiedSecret) {
+            val client = ReadingPositionSyncClient(SupabaseConfig.URL, SupabaseConfig.PUBLISHABLE_KEY, secret)
+            runCatching { client.fetch(fromKey)?.let { client.upsert(toKey, it.charOffset, it.encoding) } }
+        }
+    }
+
+    private var lastAutoSyncAt = 0L
+
+    /**
+     * The library came to the front: app launch, back from another app, or back from the reader.
+     * Syncs so the other device's changes show up, at most once a minute (CLAUDE.md §1: Android
+     * syncs on launch and foreground, no background sync). Silent when sync is not set up.
+     */
+    fun onLibraryResumed() {
+        val now = System.currentTimeMillis()
+        if (!shouldAutoSync(lastAutoSyncAt, now) || _dropboxState.value.isSyncing) return
+        val rootUri = _browseState.value.rootUri ?: return
+        if (!getApplication<Application>().hasPersistedWritePermission(rootUri)) return
+        viewModelScope.launch {
+            if (!dropboxClient.isLinked()) return@launch
+            lastAutoSyncAt = now
+            syncFromDropbox()
+        }
+    }
+
+    fun confirmMassDeletion() {
+        skippedMassDeletion = emptyList()
+        _dropboxState.update { it.copy(pendingMassDeletion = null) }
+        syncFromDropbox(allowMassDeletion = true)
+    }
+
+    fun skipMassDeletion() {
+        skippedMassDeletion = _dropboxState.value.pendingMassDeletion.orEmpty()
+        _dropboxState.update { it.copy(pendingMassDeletion = null) }
+    }
+
+    /**
+     * Deletes a book, a zip, or a whole folder from the library, then syncs so the deletion reaches
+     * Dropbox (and from there the PC). A file inside a zip cannot be deleted on its own.
+     */
+    fun deleteEntry(entry: FolderEntry) {
+        val uri = when (entry) {
+            is FolderEntry.Folder -> entry.uri
+            is FolderEntry.ZipArchive -> entry.uri
+            is FolderEntry.TextFile -> (entry.source as? BookSource.PlainTxt)?.uri ?: return
+        }
+        val app = getApplication<Application>()
+        viewModelScope.launch {
+            val deleted = withContext(Dispatchers.IO) {
+                runCatching { DocumentsContract.deleteDocument(app.contentResolver, uri) }.getOrDefault(false)
+            }
+            if (!deleted) {
+                Toast.makeText(app, app.getString(R.string.library_delete_failed, entry.name), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            loadCurrent()
+            if (dropboxClient.isLinked()) syncFromDropbox()
         }
     }
 

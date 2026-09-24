@@ -129,9 +129,9 @@ fun SyncStatusFloatingBadge(
                                 modifier = Modifier.size(18.dp),
                             )
                             val result = state.result
-                            val changed = result.downloaded + result.updated
+                            val changed = result.changed
                             val summary = if (changed > 0) {
-                                "${stringResource(R.string.dropbox_sync_status_completed)} · ${stringResource(R.string.dropbox_sync_status_downloaded, changed)}"
+                                "${stringResource(R.string.dropbox_sync_status_completed)} · ${stringResource(R.string.dropbox_sync_status_changed, changed)}"
                             } else {
                                 "${stringResource(R.string.dropbox_sync_status_completed)} (${stringResource(R.string.dropbox_sync_status_up_to_date)})"
                             }

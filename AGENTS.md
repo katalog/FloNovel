@@ -56,6 +56,8 @@ cd FloNovel-desktop && ./gradlew run                 # 실행 검증
 - `preprocessedAt` 속성이 이미 존재하는 책은 **절대로 재전처리하지 않는다.**
 - 전처리는 **멱등(Idempotent)**이어야 한다. 이미 처리된 파일에 다시 수행해도 바이트 단위로 100% 동일한 결과가 나와야 한다.
 - 원본 텍스트를 비원자적으로 덮어쓰지 말며, 최초 처리 시 반드시 원본 백업을 보존한다.
+- 픽스처와 기대 출력은 양쪽 `src/test/resources/fixtures/parity/`에 같은 사본으로 두고 서로 바이트 비교한다(갱신: Desktop에서 `./gradlew test -PupdateGolden` 후 Android로 복사). Android 이식본은 ICU 정규식 차이 때문에 `\d` `\s` `.` `\p{IsHangul}` IGNORE_CASE를 쓰지 않고 문자 범위와 `Character.UnicodeScript`로 쓴다. SAF에는 원자적 교체가 없으므로 원본 백업(`.flonovel/original/`) → 숨김 임시 파일 → 원본 삭제 → 이름 변경 순으로 하고, URI가 바뀌므로 책을 처음 열거나 처음 올리기 전에만 한다. Dropbox에서 받아 동기화가 끝난 책(base SYNCED)은 여는 시점 확인을 건너뛴다(확인이 파일 전체를 읽고 정규화해 큰 소설은 몇 초가 더 걸렸음).
+- 업로드를 포함한 순서는 **전처리 → 등록 → 업로드**이며, Dropbox에는 전처리된 파일만 존재한다. 전처리기가 두 앱 모두에 존재하게 되므로, 코드를 공유하지 않는 대신 **동일 픽스처에 대해 바이트 단위로 동일한 출력**을 내는지 양쪽 테스트로 보장한다. 한쪽만 수정하면 두 기기가 같은 책을 서로 다르게 고쳐 올려 충돌 사본이 계속 생긴다.
 
 ### (4) 챕터 (Chapter Detection)
 - 챕터 목록은 DB나 파일에 **저장하지 않는다.** 책을 열 때마다 원문에서 실시간으로 탐지한다.
@@ -77,9 +79,23 @@ relativePath.replace('\\', '/')            // 1. 구분자 통일
   - **Supabase 요청에 `Authorization` 헤더를 절대 포함하지 마라.** (JWT 파싱 실패를 유발함. 단, Dropbox의 `Authorization: Bearer`는 정상).
   - **요청 본문에 `user_key`를 보내지 마라.** 서버 트리거가 `hex(sha256(x-flonovel-secret))`로 자동 계산하여 유저 파티션을 격리한다.
   - **Push 전에 클라이언트가 원격을 조회해 임의로 충돌을 해결하지 마라.** 서버 트리거가 update 시 `greatest(new, old)`로 `char_offset`을 클램프하여 Max-wins 정책을 강제한다.
-- **Dropbox & 파일 동기화**:
-  - 소설 파일 동기화는 **단방향**이다: Desktop → Dropbox → Android.
+  - (아래 파일 동기화의 충돌 규칙은 파일 내용에 대한 것으로, 이 Max-wins 규칙과 무관하다.)
+- **Dropbox & 파일 동기화** — **양방향이다** (2026-09-23 결정, 2026-09-24 `main` 머지. 계획: `.work/two-way-sync-plan.md`). 단방향(Desktop → Dropbox → Android) 시절 규칙은 폐지됐다.
   - Dropbox 경로는 항상 앱 폴더 기준 **상대 경로**만 사용한다 (`/books`, `/.flonovel/secret.json`). `/Apps/...` 형태의 절대 경로는 절대 사용하지 않는다.
+  - **양방향 규칙**:
+    - **Dropbox `/books`가 기준이다.** 두 앱 모두 추가·수정·삭제를 업로드하고 상대의 변경을 받는다.
+    - **판정은 3자 비교다.** 기기마다 파일별 base(`rev`, `content_hash`, 로컬 크기, 로컬 수정시각)를 저장하고 **로컬↔base**, **원격↔base**를 각각 판정한다. 로컬과 원격을 직접 비교해 "한쪽에만 있으니 새 파일/삭제된 파일"로 추론하지 마라 (단방향 시절의 "로컬에 없으면 원격 삭제" / "원격에 없으면 로컬 삭제"가 이 추론이며, 양방향에서는 상대가 추가한 파일을 지운다). base 저장 위치: Desktop `sync-state.json`(설정 폴더), Android Room `sync_base`.
+    - **내용 비교는 Dropbox `content_hash`로 한다.** 수정시각은 해시 재계산 여부 판단에만 쓰며, **수정시각으로 최신 쪽을 정하지 마라.**
+    - **업로드는 `mode=update(rev)`, 신규는 `mode=add`, 삭제는 `parent_rev`를 건다.** `overwrite`는 다른 기기의 변경을 조용히 덮으므로 사용하지 않는다. 거부되면 다음 판정에서 충돌로 처리한다.
+    - **충돌은 둘 다 남긴다.** 원격이 원래 이름을 유지하고, 로컬 쪽은 `<이름> (충돌 사본 - <기기> - <yyyy-MM-dd>).<확장자>`로 바꿔 올린다 (`충돌 사본`은 UI 언어를 따름 — 영어는 `conflicted copy`, 기기: `PC` / `Android`, 중복 시 `_1`, `_2`). 수정 vs 삭제는 **수정이 이긴다.**
+    - **커서는 적용과 base 기록이 모두 끝난 뒤에만 저장한다.** 하나라도 실패하면 이전 커서를 유지한다.
+    - **원격 삭제를 PC에 반영할 때는 항상 휴지통으로 보낸다** (Delete 키 설정과 무관).
+    - **대량 삭제는 자동으로 하지 않는다.** 한 번에 20개 이상, 또는 5개 이상이면서 추적 파일의 30% 이상 삭제, 또는 원격 `/books`가 비어 있으면 멈추고 사용자 확인을 받는다 (양방향 모두).
+    - **다운로드 중인 파일은 업로드하지 않는다.** Android는 다운로드 전에 base에 `DOWNLOADING`을 기록하고, 이 상태의 파일은 다시 받는다 (잘린 파일이 원격을 덮는 것을 방지).
+    - **배포는 Desktop이 먼저다.** 옛 Desktop은 원격에만 있는 파일을 지운다.
+    - **동기화 시점**: Desktop은 Dropbox longpoll과 창 복귀(1분에 한 번까지). Android는 백그라운드 동기화 없이 라이브러리 화면이 앞으로 올 때(앱 실행, 앱 복귀, 리더에서 복귀) 1분에 한 번까지.
+    - **이동과 이름 변경**: 사라진 파일(base 있음)과 새 파일(base 없음)이 내용 해시로 1:1 짝지어지면 이동으로 처리한다(로컬 이동 → Dropbox `move_v2`, 원격 이동 → 로컬 파일 이동, 재전송 없음). 짝이 애매하면 삭제+추가. 로컬 읽기 기록을 따라 옮기고 Supabase 위치를 새 경로 키로 복사한다. 이동은 대량 삭제로 세지 않는다. Android에서 전처리가 바꿀 이름으로 옮긴 경우는 전처리를 거친다.
+    - **리더로 열어 둔 책은 건드리지 않는다.** 그 책의 다운로드·삭제·충돌은 닫을 때까지 미루고 커서도 저장하지 않는다.
 
 ---
 
@@ -99,8 +115,10 @@ relativePath.replace('\\', '/')            // 1. 구분자 통일
 > 현재 허용된 인터페이스:
 > - `TextFitter` (Desktop: `ComposeTextFitter`, `FakeTextFitter`) — reader 패키지의 유일한 외부 추상화
 > - `FolderBrowser` (Android: `SafFolderBrowser`, `FakeFolderBrowser`)
+> - `LibraryFiles` (Android: `SafLibraryFiles`, `FakeLibraryFiles`) — 양방향 동기화를 SAF 없이 JVM에서 테스트
 > - `SettingsController` (Android: ViewModel 간 설정 시트 분리)
 > - `BookDao` (Android: Room 라이브러리 요구사항)
+> - `SyncBaseDao` (Android: Room 라이브러리 요구사항)
 
 ---
 
@@ -162,7 +180,7 @@ relativePath.replace('\\', '/')            // 1. 구분자 통일
 
 코드베이스 외부에 존재하는 리소스이므로, 이름을 변경할 경우 외부 환경과 동기화해야 한다:
 - **Supabase**: 테이블, 트리거, RLS 정책은 Supabase 대시보드/SQL에서 관리된다.
-- **Dropbox**: 앱 키 및 리디렉트 URI는 개발자 콘솔 종속이며, 앱 폴더명은 최초 연동 시 고정된다.
+- **Dropbox**: 앱 키 및 리디렉트 URI는 개발자 콘솔 종속이며, 앱 폴더명은 최초 연동 시 고정된다. 권한(scope)도 콘솔에서 켜야 하며, 양방향 전환으로 Android가 `files.content.write`를 요청하게 되면 **이미 연결한 폰은 재연결해야** 새 권한이 토큰에 반영된다.
 - **GitHub Secrets**: CI/CD 배포 워크플로가 참조하는 7개 시크릿.
 - **서명 키스토어**: `local.properties`가 가리키며, 누락 시 디버그 서명으로 조용히 대체되므로 릴리스 시 인증서를 직접 검증해야 한다.
 

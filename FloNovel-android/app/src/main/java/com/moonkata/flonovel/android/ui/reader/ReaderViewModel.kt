@@ -30,6 +30,7 @@ import com.moonkata.flonovel.android.data.parser.Paginator
 import com.moonkata.flonovel.android.data.parser.ParagraphSplitter
 import com.moonkata.flonovel.android.data.file.BookSource
 import com.moonkata.flonovel.android.data.repository.BookRepository
+import com.moonkata.flonovel.android.data.sync.OpenBook
 import com.moonkata.flonovel.android.data.sync.ReadingPositionSyncClient
 import com.moonkata.flonovel.android.data.sync.SupabaseConfig
 import com.moonkata.flonovel.android.data.sync.relativePathFromSafDocumentUri
@@ -182,6 +183,8 @@ class ReaderViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             var book = bookRepository.observeBook(bookId).first() ?: return@launch
+            // Tells a sync still running from the library to leave this file alone.
+            OpenBook.documentUri = book.documentUri
             book = backfillRelativePathIfNeeded(book)
             val result = bookRepository.openBookContent(book)
             val settings = _uiState.value.settings
@@ -803,6 +806,7 @@ class ReaderViewModel(
         consumePendingOffset()?.let { offset -> runBlocking { persistPositionLocal(offset) } }
         // The moment the reader screen is left entirely, e.g. via back press — push immediately without waiting for the remote checkpoint either.
         syncNowToRemote()
+        OpenBook.documentUri = null
         pageComputeJob?.cancel()
         autoPageTurnController.stop()
         ttsController?.shutdown()

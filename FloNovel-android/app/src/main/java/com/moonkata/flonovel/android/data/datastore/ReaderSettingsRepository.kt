@@ -57,6 +57,7 @@ class ReaderSettingsRepository(private val context: Context) {
         val DROPBOX_ACCOUNT_EMAIL = stringPreferencesKey("dropbox_account_email")
         val DROPBOX_CURSOR = stringPreferencesKey("dropbox_cursor")
         val DROPBOX_LAST_SYNC_AT_MILLIS = longPreferencesKey("dropbox_last_sync_at_millis")
+        val DROPBOX_GRANTED_SCOPES = stringPreferencesKey("dropbox_granted_scopes")
     }
 
     val settingsFlow: Flow<ReaderSettings> = context.dataStore.data.map { prefs ->
@@ -108,6 +109,7 @@ class ReaderSettingsRepository(private val context: Context) {
             dropboxAccountEmail = prefs[Keys.DROPBOX_ACCOUNT_EMAIL] ?: defaults.dropboxAccountEmail,
             dropboxCursor = prefs[Keys.DROPBOX_CURSOR] ?: defaults.dropboxCursor,
             dropboxLastSyncAtMillis = prefs[Keys.DROPBOX_LAST_SYNC_AT_MILLIS] ?: defaults.dropboxLastSyncAtMillis,
+            dropboxGrantedScopes = prefs[Keys.DROPBOX_GRANTED_SCOPES] ?: defaults.dropboxGrantedScopes,
         )
     }
 
@@ -171,9 +173,10 @@ class ReaderSettingsRepository(private val context: Context) {
     }
 
     /** Sign-in result. The email is stored alongside the token so the two can never disagree. */
-    suspend fun linkDropbox(refreshToken: String, accountEmail: String) = edit {
+    suspend fun linkDropbox(refreshToken: String, accountEmail: String, grantedScopes: String) = edit {
         it[Keys.DROPBOX_REFRESH_TOKEN] = refreshToken
         it[Keys.DROPBOX_ACCOUNT_EMAIL] = accountEmail
+        it[Keys.DROPBOX_GRANTED_SCOPES] = grantedScopes
     }
 
     /** Only for a rotated refresh token — leaves the email and the cursor alone. */
@@ -191,6 +194,7 @@ class ReaderSettingsRepository(private val context: Context) {
         it.remove(Keys.DROPBOX_ACCOUNT_EMAIL)
         it.remove(Keys.DROPBOX_CURSOR)
         it.remove(Keys.DROPBOX_LAST_SYNC_AT_MILLIS)
+        it.remove(Keys.DROPBOX_GRANTED_SCOPES)
     }
 
     suspend fun updateDropboxSyncState(cursor: String, lastSyncAtMillis: Long) = edit {

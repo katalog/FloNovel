@@ -61,6 +61,12 @@ android {
     namespace = "com.moonkata.flonovel.android"
     compileSdk = 36
 
+    sourceSets {
+        // The preprocessing parity fixtures live with the unit tests; the device test reads the
+        // same files, so ICU's regex engine is held to the Desktop's output too.
+        getByName("androidTest") { assets.srcDir("src/test/resources") }
+    }
+
     defaultConfig {
         applicationId = "com.moonkata.flonovel.android"
         minSdk = 24

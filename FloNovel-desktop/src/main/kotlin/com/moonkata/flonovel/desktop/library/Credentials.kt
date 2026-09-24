@@ -13,7 +13,6 @@ data class Credentials(
     val dropboxRefreshToken: String? = null,
     val cachedSupabaseSecret: String? = null,
     val dropboxAccountId: String? = null,
-    val dropboxCursor: String? = null,
     val verifiedSupabaseSecret: String? = null,
 ) {
     fun toJsonString(): String {
@@ -22,7 +21,6 @@ data class Credentials(
         if (dropboxRefreshToken != null) obj.put("dropboxRefreshToken", dropboxRefreshToken) else obj.put("dropboxRefreshToken", JSONObject.NULL)
         if (cachedSupabaseSecret != null) obj.put("cachedSupabaseSecret", cachedSupabaseSecret) else obj.put("cachedSupabaseSecret", JSONObject.NULL)
         if (dropboxAccountId != null) obj.put("dropboxAccountId", dropboxAccountId) else obj.put("dropboxAccountId", JSONObject.NULL)
-        if (dropboxCursor != null) obj.put("dropboxCursor", dropboxCursor) else obj.put("dropboxCursor", JSONObject.NULL)
         if (verifiedSupabaseSecret != null) obj.put("verifiedSupabaseSecret", verifiedSupabaseSecret) else obj.put("verifiedSupabaseSecret", JSONObject.NULL)
         return obj.toString(2)
     }
@@ -35,7 +33,6 @@ data class Credentials(
                 dropboxRefreshToken = if (obj.has("dropboxRefreshToken") && !obj.isNull("dropboxRefreshToken")) obj.getString("dropboxRefreshToken") else null,
                 cachedSupabaseSecret = if (obj.has("cachedSupabaseSecret") && !obj.isNull("cachedSupabaseSecret")) obj.getString("cachedSupabaseSecret") else null,
                 dropboxAccountId = if (obj.has("dropboxAccountId") && !obj.isNull("dropboxAccountId")) obj.getString("dropboxAccountId") else null,
-                dropboxCursor = if (obj.has("dropboxCursor") && !obj.isNull("dropboxCursor")) obj.getString("dropboxCursor") else null,
                 verifiedSupabaseSecret = if (obj.has("verifiedSupabaseSecret") && !obj.isNull("verifiedSupabaseSecret")) obj.getString("verifiedSupabaseSecret") else null,
             )
         }

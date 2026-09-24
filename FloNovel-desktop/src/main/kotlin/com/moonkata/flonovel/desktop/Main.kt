@@ -64,6 +64,7 @@ import com.moonkata.flonovel.desktop.library.DeleteAction
 import com.moonkata.flonovel.desktop.library.FileRemover
 import com.moonkata.flonovel.desktop.library.LibraryScanner
 import com.moonkata.flonovel.desktop.library.RemovalOutcome
+import com.moonkata.flonovel.desktop.library.RelativePath
 import com.moonkata.flonovel.desktop.library.RemovalRefusal
 import com.moonkata.flonovel.desktop.library.LibrarySortOption
 import com.moonkata.flonovel.desktop.library.ResumeManager
@@ -84,6 +85,9 @@ import com.moonkata.flonovel.desktop.sync.DropboxClient
 import com.moonkata.flonovel.desktop.sync.DropboxConfig
 import com.moonkata.flonovel.desktop.sync.DropboxOAuth
 import com.moonkata.flonovel.desktop.sync.DropboxSyncEngine
+import com.moonkata.flonovel.desktop.sync.RemoteChangeWatcher
+import com.moonkata.flonovel.desktop.sync.SyncStateStore
+import com.moonkata.flonovel.desktop.sync.SyncSummary
 import com.moonkata.flonovel.desktop.sync.ForcePushOutcome
 import com.moonkata.flonovel.desktop.sync.InitialUploadProgress
 import com.moonkata.flonovel.desktop.sync.ReadingPositionSyncClient
@@ -96,6 +100,7 @@ import com.moonkata.flonovel.desktop.sync.SyncStatus
 import com.moonkata.flonovel.desktop.text.TextLoader
 import com.moonkata.flonovel.desktop.ui.AutoDismissMessage
 import com.moonkata.flonovel.desktop.ui.LibraryView
+import com.moonkata.flonovel.desktop.ui.MassDeletionDialog
 import com.moonkata.flonovel.desktop.ui.RemovalConfirmDialog
 import com.moonkata.flonovel.desktop.ui.RemovalRequest
 import com.moonkata.flonovel.desktop.ui.removalOutcomeMessage
@@ -173,9 +178,9 @@ fun main(args: Array<String>) {
             DropboxSyncEngine(
                 homeFolder = homePath,
                 bookStore = bookStore,
-                credentialsStore = credentialsStore,
                 settingsStore = settingsStore,
                 dropboxClient = dropboxClient,
+                syncStateStore = SyncStateStore(appConfigDir.resolve("sync-state.json")),
             )
         } else null
     }
@@ -191,37 +196,72 @@ fun main(args: Array<String>) {
     var showLibrarySettingsDialog by remember { mutableStateOf(false) }
     var directoryRevision by remember { mutableStateOf(0L) }
 
-    val triggerAutoSync: (String) -> Unit = { _ ->
-        if (dropboxClient.isLinked && !isInitialUploadRequired) {
-            autoSyncJob?.cancel()
-            autoSyncJob = coroutineScope.launch(Dispatchers.IO) {
-                delay(1200L) // Debounce batch changes in explorer
-                syncStatus = SyncStatus.SYNCING
-                val summary = syncEngine?.syncIncremental { prog ->
-                    initialProgress = prog
-                    syncStatus = syncEngine.status
-                }
-                syncStatus = syncEngine?.status ?: SyncStatus.IDLE
-                initialProgress = null
-                syncFailedFiles = syncEngine?.failedFiles ?: emptyList()
-                booksData = bookStore.load()
-                directoryRevision++
+    // Deletions the sync held back for confirmation (display paths), or null when none are waiting.
+    var pendingMassDeletion by remember { mutableStateOf<List<String>?>(null) }
+    // The set the user last chose to skip. Every later sync holds the same deletions back again;
+    // asking about an unchanged set on each of them would turn the guard into nagging.
+    var skippedMassDeletion by remember { mutableStateOf<List<String>>(emptyList()) }
 
-                if (summary != null && (summary.successCount > 0 || summary.deletedCount > 0)) {
-                    val countMsg = when {
-                        summary.successCount > 0 && summary.deletedCount > 0 ->
-                            Strings.get("sync_toast_uploaded_and_deleted", summary.successCount, summary.deletedCount)
-                        summary.deletedCount > 0 ->
-                            Strings.get("sync_toast_deleted_only", summary.deletedCount)
-                        else ->
-                            Strings.get("sync_toast_synced_only", summary.successCount)
-                    }
-                    syncCompletedMessage.show(countMsg)
-                    floatingToast.show(Strings.get("sync_toast_prefix", countMsg))
+    val reportSyncSummary: (SyncSummary?, Boolean) -> Unit = { summary, showFloating ->
+        if (summary != null) {
+            if (summary.successCount > 0 || summary.deletedCount > 0) {
+                val countMsg = when {
+                    summary.successCount > 0 && summary.deletedCount > 0 ->
+                        Strings.get("sync_toast_uploaded_and_deleted", summary.successCount, summary.deletedCount)
+                    summary.deletedCount > 0 ->
+                        Strings.get("sync_toast_deleted_only", summary.deletedCount)
+                    else ->
+                        Strings.get("sync_toast_synced_only", summary.successCount)
                 }
+                syncCompletedMessage.show(countMsg)
+                if (showFloating) floatingToast.show(Strings.get("sync_toast_prefix", countMsg))
             }
+            // A conflict copy appears in the library unasked; say why, whichever way sync started.
+            if (summary.conflictCount > 0) {
+                floatingToast.show(Strings.get("sync_toast_conflicts", summary.conflictCount))
+            }
+            val withheld = summary.withheldDeletions
+            if (withheld.isNotEmpty() && withheld != skippedMassDeletion) pendingMassDeletion = withheld
         }
     }
+
+    val runAutoSync: (Boolean) -> Unit = { allowMassDeletion ->
+        autoSyncJob?.cancel()
+        autoSyncJob = coroutineScope.launch(Dispatchers.IO) {
+            if (!allowMassDeletion) delay(1200L) // Debounce batch changes in explorer
+            syncStatus = SyncStatus.SYNCING
+            val summary = syncEngine?.syncIncremental(allowMassDeletion) { prog ->
+                initialProgress = prog
+                syncStatus = syncEngine.status
+            }
+            syncStatus = syncEngine?.status ?: SyncStatus.IDLE
+            initialProgress = null
+            syncFailedFiles = syncEngine?.failedFiles ?: emptyList()
+            booksData = bookStore.load()
+            directoryRevision++
+            reportSyncSummary(summary, true)
+        }
+    }
+
+    val triggerAutoSync: (String) -> Unit = { _ ->
+        if (dropboxClient.isLinked && !isInitialUploadRequired) runAutoSync(false)
+    }
+
+    // Changes made on other devices (the phone) arrive through Dropbox long-polling; without it
+    // the PC would only see them on restart or a manual sync.
+    DisposableEffect(syncEngine, credentials.dropboxRefreshToken, isInitialUploadRequired) {
+        val watcher = if (syncEngine != null && dropboxClient.isLinked && !isInitialUploadRequired) {
+            RemoteChangeWatcher(
+                client = dropboxClient,
+                cursor = { syncEngine.syncStateStore.load().cursor },
+                onChange = { triggerAutoSync("remote") },
+            ).also { it.start() }
+        } else null
+        onDispose { watcher?.close() }
+    }
+    // A backstop for when long-polling is down (network change, sleep): sync on returning to the
+    // window, at most once a minute.
+    val lastFocusSyncAt = remember { java.util.concurrent.atomic.AtomicLong(0L) }
 
     val initialResumeTarget = remember(settings.homeFolder) {
         if (settings.homeFolder.isNotEmpty()) {
@@ -251,6 +291,35 @@ fun main(args: Array<String>) {
     var lastClosedBookPath by remember { mutableStateOf<String?>(null) }
 
     var activeTarget by remember { mutableStateOf<ResumeTarget?>(initialResumeTarget) }
+
+    // Sync runs off the UI thread; it asks here which file the reader holds, and leaves it alone.
+    LaunchedEffect(syncEngine) {
+        syncEngine?.isOpenInReader = { path ->
+            activeTarget?.filePath?.toAbsolutePath()?.normalize() == path.toAbsolutePath().normalize()
+        }
+    }
+    LaunchedEffect(syncEngine, settings.language) {
+        syncEngine?.conflictLabel = Strings.get("sync_conflict_copy_label")
+    }
+    // Reading positions are keyed by path. When sync moves a book, copy its position to the new
+    // key; max-wins on the server means this can only move a position forward, never back.
+    LaunchedEffect(syncEngine) {
+        syncEngine?.onBookMoved = { fromRel, toRel ->
+            val secret = credentialsStore.load().cachedSupabaseSecret
+            if (SupabaseConfig.isConfigured && !secret.isNullOrBlank()) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    val client = ReadingPositionSyncClient(
+                        baseUrl = SupabaseConfig.url,
+                        publishableKey = SupabaseConfig.publishableKey,
+                        sharedSecret = secret,
+                    )
+                    client.fetch(RelativePath.normalize(fromRel))?.let { position ->
+                        client.upsert(RelativePath.normalize(toRel), position.charOffset, position.encoding)
+                    }
+                }
+            }
+        }
+    }
 
     val intakePipeline = remember(homePath) {
         if (homePath != null && Files.exists(homePath)) {
@@ -512,7 +581,20 @@ fun main(args: Array<String>) {
         icon = painterResource("icon.png"),
         onPreviewKeyEvent = { keyEvent ->
             val removal = pendingRemoval
-            if (removal != null) {
+            val massDeletion = pendingMassDeletion
+            if (massDeletion != null) {
+                if (keyEvent.type == androidx.compose.ui.input.key.KeyEventType.KeyDown &&
+                    keyEvent.key in setOf(
+                        androidx.compose.ui.input.key.Key.Enter,
+                        androidx.compose.ui.input.key.Key.NumPadEnter,
+                        androidx.compose.ui.input.key.Key.Escape,
+                    )
+                ) {
+                    skippedMassDeletion = massDeletion
+                    pendingMassDeletion = null
+                }
+                true
+            } else if (removal != null) {
                 // Modal: nothing behind the confirmation may react, so every key is consumed.
                 if (keyEvent.type == androidx.compose.ui.input.key.KeyEventType.KeyDown) {
                     when (keyEvent.key) {
@@ -540,6 +622,11 @@ fun main(args: Array<String>) {
             val focusListener = object : java.awt.event.WindowFocusListener {
                 override fun windowGainedFocus(e: java.awt.event.WindowEvent?) {
                     readingSyncCoordinator.onWindowFocusGained()
+                    val now = System.currentTimeMillis()
+                    val last = lastFocusSyncAt.get()
+                    if (now - last > 60_000L && lastFocusSyncAt.compareAndSet(last, now)) {
+                        triggerAutoSync("focus")
+                    }
                 }
                 override fun windowLostFocus(e: java.awt.event.WindowEvent?) {
                     readingSyncCoordinator.onWindowFocusLost()
@@ -768,18 +855,10 @@ fun main(args: Array<String>) {
                         initialProgress = null
                         syncFailedFiles = syncEngine?.failedFiles ?: emptyList()
                         booksData = bookStore.load()
-
-                        if (summary != null && (summary.successCount > 0 || summary.deletedCount > 0)) {
-                            val countMsg = when {
-                                summary.successCount > 0 && summary.deletedCount > 0 ->
-                                    Strings.get("sync_toast_uploaded_and_deleted", summary.successCount, summary.deletedCount)
-                                summary.deletedCount > 0 ->
-                                    Strings.get("sync_toast_deleted_only", summary.deletedCount)
-                                else ->
-                                    Strings.get("sync_toast_synced_only", summary.successCount)
-                            }
-                            syncCompletedMessage.show(countMsg)
-                        }
+                        // Two-way sync deletes, moves and downloads local files; the folder view
+                        // must re-read the disk (booksData alone does not change when files go).
+                        directoryRevision++
+                        reportSyncSummary(summary, false)
                     }
                 },
                 onStartInitialUpload = {
@@ -794,18 +873,8 @@ fun main(args: Array<String>) {
                         syncFailedFiles = syncEngine?.failedFiles ?: emptyList()
                         isInitialUploadRequired = syncEngine?.isInitialUploadRequired ?: false
                         booksData = bookStore.load()
-
-                        if (summary != null && (summary.successCount > 0 || summary.deletedCount > 0)) {
-                            val countMsg = when {
-                                summary.successCount > 0 && summary.deletedCount > 0 ->
-                                    Strings.get("sync_toast_uploaded_and_deleted", summary.successCount, summary.deletedCount)
-                                summary.deletedCount > 0 ->
-                                    Strings.get("sync_toast_deleted_only", summary.deletedCount)
-                                else ->
-                                    Strings.get("sync_toast_synced_only", summary.successCount)
-                            }
-                            syncCompletedMessage.show(countMsg)
-                        }
+                        directoryRevision++
+                        reportSyncSummary(summary, false)
                     }
                 },
                 onPauseInitialUpload = {
@@ -819,6 +888,7 @@ fun main(args: Array<String>) {
                         syncStatus = syncEngine?.status ?: SyncStatus.IDLE
                         syncFailedFiles = syncEngine?.failedFiles ?: emptyList()
                         booksData = bookStore.load()
+                        directoryRevision++
                     }
                 },
                 onStartDropboxOAuth = {
@@ -1089,6 +1159,21 @@ fun main(args: Array<String>) {
                     }
                 }
             }
+        }
+
+        pendingMassDeletion?.let { paths ->
+            MassDeletionDialog(
+                paths = paths,
+                onDelete = {
+                    pendingMassDeletion = null
+                    skippedMassDeletion = emptyList()
+                    runAutoSync(true)
+                },
+                onSkip = {
+                    skippedMassDeletion = paths
+                    pendingMassDeletion = null
+                },
+            )
         }
 
         pendingRemoval?.let { request ->

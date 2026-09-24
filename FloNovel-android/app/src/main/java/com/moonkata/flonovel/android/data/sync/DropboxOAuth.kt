@@ -18,6 +18,8 @@ data class OAuthTokens(
     val refreshToken: String?,
     val accountId: String?,
     val expiresInSeconds: Long,
+    /** Space-separated scopes Dropbox actually granted; blank when the response did not say. */
+    val scope: String = "",
 )
 
 /**
@@ -103,6 +105,7 @@ object DropboxOAuth {
             refreshToken = json.optStringOrNull("refresh_token"),
             accountId = json.optStringOrNull("account_id"),
             expiresInSeconds = json.optLong("expires_in", DEFAULT_EXPIRY_SECONDS),
+            scope = json.optStringOrNull("scope").orEmpty(),
         )
     }
 

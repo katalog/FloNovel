@@ -30,8 +30,8 @@ object TextPreprocessor {
      * Chapter-heading shapes to check a line against. A single pattern is not enough: real files use
      * several genuinely different conventions, sometimes more than one within the same file.
      *
-     * - cjk marker: "제45화", "第184章". The old pattern only covered 장/화 (and their Hanja) -- it
-     *   silently missed 회/回 ("제1회"), which several real files use as their only marker.
+     * - cjk marker: "제45화", "第184章" -- 장/화 and their Hanja only. 회/回 ("제1회") is
+     *   deliberately not a heading marker, in this app or in the Android port.
      * - hash: "#42 Title" -- a bare "#" is not this app's own "## " marker.
      * - latin: "Chapter 12", "Episode 5".
      *
@@ -40,7 +40,7 @@ object TextPreprocessor {
      * - "N. Title" (bare number + dot) matched 510 ordinary prose lines in a single file (numbered
      *   lists, timestamps, anything that happens to start with a digit and a period).
      * - Widening the CJK marker to also accept 편/권/절 (and their Hanja 篇/卷/節) looked like a small
-     *   step from 회/回, but those three are common standalone Korean/Chinese words on their own
+     *   step, but those three are common standalone Korean/Chinese words on their own
      *   ("한 편의 이야기", "책 한 권") and added 200-500 false headings to files that do not use them
      *   as chapter markers at all, against single-digit gains on files that might have.
      *
