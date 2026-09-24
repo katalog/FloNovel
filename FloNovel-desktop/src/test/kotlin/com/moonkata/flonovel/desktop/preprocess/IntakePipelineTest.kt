@@ -235,8 +235,9 @@ class IntakePipelineTest {
     }
 
     // --- I11: Reconciliation backfills chapterCount on pre-existing records WITHOUT touching
-    //          preprocessedAt/uploadedAt -- otherwise Dropbox's checkIfUploadNeeded would read the
-    //          preprocessedAt bump as "content changed locally" and re-upload every legacy book. ---
+    //          preprocessedAt/uploadedAt -- otherwise the first sync after upgrading from one-way
+    //          sync (DropboxSyncEngine.upgradeOverride) would read the preprocessedAt bump as an
+    //          unsent local change and upload every legacy book over its remote copy. ---
     @Test
     fun i11_reconciliationBackfillsChapterCountWithoutTriggeringReupload() {
         val novelFile = homeFolder.resolve("legacy_novel.txt")

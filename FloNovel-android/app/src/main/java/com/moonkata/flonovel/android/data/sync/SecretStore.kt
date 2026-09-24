@@ -24,16 +24,15 @@ sealed class SecretResult {
  * Reads the Supabase shared secret out of the Dropbox app folder.
  *
  * **Read-only, on purpose.** Desktop generates the secret (24 random bytes, hex) and writes
- * `/.flonovel/secret.json`; the phone only ever consumes it. Two reasons, and both matter:
- *
- * 1. Android requests no Dropbox write scope (docs 06-SYNC-STRATEGY B2), so it *cannot* upload.
- * 2. If both ends could create the file, a phone that ran first would mint a secret the Desktop
- *    never saw, and each end would then write reading positions into a different Supabase
- *    partition — the sync would look connected and silently share nothing.
+ * `/.flonovel/secret.json`; the phone only ever consumes it. The phone may hold the Dropbox write
+ * scope for two-way book sync, so this is a choice, not a limitation: if both ends could create the
+ * file, a phone that ran first would mint a secret the Desktop never saw, and each end would then
+ * write reading positions into a different Supabase partition — the sync would look connected and
+ * silently share nothing.
  *
  * The file name differs per build (`secret.json` vs `secret-dev.json`, see [DropboxConfig.secretPath])
  * so a dev build can never write into the real partition. The server forbids offset regression, so a
- * stray dev value there could never be undone (docs G21).
+ * stray dev value there could never be undone.
  *
  * The secret is never logged — failures report the *kind* of failure only.
  */

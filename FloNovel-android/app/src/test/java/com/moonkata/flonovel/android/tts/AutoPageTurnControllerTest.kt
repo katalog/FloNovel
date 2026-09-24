@@ -10,8 +10,8 @@ import org.junit.Test
 /**
  * Verifies the tick timing of timer-based auto page-turning. Instead of actually waiting several
  * seconds, this uses kotlinx-coroutines-test's virtual time (TestScope/advanceTimeBy) to verify
- * it instantly and deterministically — TESTING.md's note that "real timing of timer auto-advance
- * is excluded as unreliable" refers to using real time; virtual time lets it be verified reliably.
+ * it instantly and deterministically — real timing of timer auto-advance is unreliable to test, but
+ * that is only true of real time; virtual time lets it be verified reliably.
  * AutoPageTurnController itself is pure coroutine code with no Android dependency, so this is a
  * plain JUnit test.
  */

@@ -27,10 +27,11 @@ val releaseKeyPassword = (System.getenv("RELEASE_KEY_PASSWORD")
 
 // The Supabase URL/publishable key are also injected here instead of as a source literal — the
 // value itself isn't secret (RLS is the real defense, see SupabaseConfig.kt), but this avoids it
-// sitting permanently in the public repo's history (SYNC_MULTIUSER_PLAN.md stage 3). For local dev,
-// put these two keys in local.properties (gitignored); CI passes them as env vars (see release.yml).
+// sitting permanently in the public repo's history. For local dev,
+// put these two keys in local.properties (gitignored); CI passes them as env vars (see
+// .github/workflows/android-release.yml).
 // If neither is set, the build still succeeds with empty strings — matching this project's existing
-// principle, only the VSCode sync feature is silently disabled at runtime (the
+// principle, only reading-position sync is silently disabled at runtime (the
 // ReadingPositionSyncClient call fails and runCatching swallows it — judged, like release signing,
 // as an "optional feature with no reason to block the build itself").
 // The .trim() matters — pasting a GitHub Actions secret into the web UI can easily leave a trailing
@@ -83,7 +84,7 @@ android {
         // Name of the shared-secret file inside the Dropbox app folder. The debug
         // buildType overrides it so a dev build talks to a different Supabase
         // partition — the server forbids offset regression, so a stray test value
-        // written to the real partition could never be undone. (docs G21)
+        // written to the real partition could never be undone.
         buildConfigField("String", "SECRET_FILE_NAME", "\"secret.json\"")
         buildConfigField("String", "DROPBOX_APP_KEY", "\"$dropboxAppKey\"")
         // The OAuth redirect lands back in the app through this scheme, and the manifest needs it as
@@ -111,7 +112,7 @@ android {
         debug {
             // Lets the in-development app sit alongside the released one on the
             // same phone. Without it the installs collide and the signature
-            // mismatch blocks it outright. (docs G21)
+            // mismatch blocks it outright.
             applicationIdSuffix = ".dev"
             buildConfigField("String", "SECRET_FILE_NAME", "\"secret-dev.json\"")
         }

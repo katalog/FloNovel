@@ -26,7 +26,7 @@ class BookStore(
         return try {
             BooksData.fromJsonString(content)
         } catch (_: Exception) {
-            // Corrupted JSON: start empty as specified in 07-ERROR-HANDLING.md §6
+            // Corrupted JSON: start empty rather than refuse to open the library (AGENTS.md §3)
             BooksData()
         }
     }

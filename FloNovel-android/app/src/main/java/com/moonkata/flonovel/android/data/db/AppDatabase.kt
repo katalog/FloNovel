@@ -25,7 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        /** For reading-position sync (docs 06-SYNC-STRATEGY Part A) — adds a column storing the path
+        /** For reading-position sync (AGENTS.md §1) — adds a column storing the path
          * relative to the sync root. Existing rows are filled with an empty string and get populated
          * naturally the next time that book is tapped in the library (no forced backfill). */
         private val MIGRATION_2_3 = object : Migration(2, 3) {

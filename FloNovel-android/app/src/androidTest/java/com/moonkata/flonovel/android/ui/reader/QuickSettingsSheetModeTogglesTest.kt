@@ -26,8 +26,8 @@ import org.junit.runner.RunWith
 
 /**
  * `QuickSettingsSheetTest` only covers font/margins/theme/transition animation, but the sheet also
- * has three more toggles documented as real user scenarios (USER_SCENARIOS.md §11) — reading mode
- * switching, line-break reflow mode, and keep-screen-on. These paths had zero automated tests
+ * has three more toggles that real users rely on — page-turn mode, keep-screen-on, and
+ * orientation lock. These paths had zero automated tests
  * until now, so they're targeted separately here.
  */
 @RunWith(AndroidJUnit4::class)

@@ -43,7 +43,7 @@ class ChapterRealFileComparisonTest {
         }
         println("=========================================================================================")
 
-        // Verification of §2-(4) contract:
+        // Verification of the chapter contract (AGENTS.md §1):
         // The preset hash rule must NOT enforce a 60-character limit,
         // and fixture titles exceeding 60 characters must be detected.
         assertTrue(total > limited, "Unlimited rules must capture long chapter titles dropped by 60-char limit")

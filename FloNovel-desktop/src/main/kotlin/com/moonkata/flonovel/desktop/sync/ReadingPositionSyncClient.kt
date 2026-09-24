@@ -17,7 +17,7 @@ data class RemoteReadingPosition(
 
 /**
  * Direct HTTP client for Supabase PostgREST reading position sync.
- * Table: flonovel_sync (06-SYNC-STRATEGY.md PART A)
+ * Table: flonovel_sync (AGENTS.md §1, reading-position sync)
  *
  * Strict contract:
  * - Table name: flonovel_sync

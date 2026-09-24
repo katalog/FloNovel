@@ -13,7 +13,7 @@ import java.net.URLEncoder
 data class RemoteReadingPosition(val charOffset: Int, val source: String, val encoding: String?)
 
 /**
- * Calls Supabase PostgREST directly (docs 06-SYNC-STRATEGY Part A).
+ * Calls Supabase PostgREST directly (AGENTS.md §1).
  *
  * Every failure — network drop, config error, parse failure — is treated as null/ignored. Position
  * sync is best-effort, so nothing thrown here may ever block the reader's own local load/save.
@@ -89,7 +89,7 @@ class ReadingPositionSyncClient(
     /**
      * For the "test connection" button on the settings screen — attempts an upsert against a fixed dummy
      * path to confirm the secret passes RLS. A plain read can't verify this — a SELECT blocked by RLS
-     * isn't an error, it just returns an empty array (confirmed during the §1 curl verification), so there's
+     * isn't an error, it just returns an empty array (confirmed with curl against the real project), so there's
      * no way to distinguish "empty because there are no rows" from "empty because the secret is wrong."
      * An upsert (INSERT) that violates RLS gets a clear 401/403 rejection from PostgREST, so that
      * difference is used here.
@@ -137,7 +137,7 @@ class ReadingPositionSyncClient(
             connectTimeout = 10_000
             readTimeout = 10_000
             // The new Supabase key scheme (publishable/secret) only goes in the apikey header — putting it
-            // in Authorization: Bearer as well causes it to be rejected as an attempted JWT parse (see §1).
+            // in Authorization: Bearer as well causes it to be rejected as an attempted JWT parse (AGENTS.md §1).
             setRequestProperty("apikey", publishableKey)
             setRequestProperty("x-flonovel-secret", sharedSecret)
         }
@@ -161,7 +161,7 @@ internal fun supabaseRestEndpoint(baseUrl: String): String =
     "${baseUrl.trim().trimEnd('/').removeSuffix("/rest/v1")}/rest/v1/$SUPABASE_TABLE"
 
 /**
- * Renamed from `reading_positions` in T-26. Existing rows were deliberately not migrated (docs G2) —
+ * Renamed from `reading_positions` in T-26. Existing rows were deliberately not migrated —
  * positions rebuild themselves the first time each book is opened.
  */
 internal const val SUPABASE_TABLE = "flonovel_sync"

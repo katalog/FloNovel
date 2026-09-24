@@ -29,7 +29,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 /**
- * Items 7 and 8 of USER_SCENARIOS.md §1 (entering a zip, returning via breadcrumb) had no
+ * Entering a zip and returning via the breadcrumb had no
  * automated tests until now — [LibraryFolderBrowseScenarioTest] only covers plain folder entry.
  * Uses a real zip file so that opening a file inside the zip can actually be verified (the listing
  * itself is faked via [FakeFolderBrowser], but `BookContentReader`, which reads the actual file

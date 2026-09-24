@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 
 /**
  * Drives `ReaderViewModel` directly without rendering the screen, to verify two pieces of wiring
- * that had no tests until now (USER_SCENARIOS.md §5, §14):
+ * that had no tests until now:
  * 1. In vertical scroll mode, `nextPage()`/`previousPage()` must emit `RequestNextPage`/
  *    `RequestPreviousPage` (and `nextChapterJump()`/`previousChapterJump()` must emit
  *    `JumpToOffset`) via `navEvents`, rather than computing via `Paginator` — the actual scrolling

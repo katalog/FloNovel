@@ -5,7 +5,7 @@ import android.provider.DocumentsContract
 import java.text.Normalizer
 
 /**
- * Matching-key normalization for reading-position sync (docs 06-SYNC-STRATEGY D2).
+ * Matching-key normalization for reading-position sync (AGENTS.md §1).
  * Order: unify separators → NFC normalize → lowercase. **The desktop app must apply the exact same
  * order**, or the two ends never match a single book and neither reports an error.
  */
@@ -18,7 +18,7 @@ fun normalizeRelativePath(rawSegments: List<String>): String {
  * `LibraryViewModel` only computes and passes along a relativePath while browsing folders (the
  * BrowseLocation stack), but it was found in actual use that paths like the "continue reading" dialog or
  * reloading an already-registered book don't go through that stack, leaving relativePath perpetually empty
- * (a follow-up to §Open Question 6 — contrary to the assumption that this was "a niche revisit case,"
+ * (contrary to the original assumption that this was "a niche revisit case,"
  * "continue reading" turned out to be the most common entry path instead). This is a fallback that
  * reverse-derives relativePath by exploiting the fact that an SAF document URI's documentId string is
  * usually hierarchical, in the form "primary:folder/subfolder/file.txt" — stripping the saved tree root's

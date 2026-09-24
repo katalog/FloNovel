@@ -300,7 +300,7 @@ fun LibraryScreen(
     if (showSettings) {
         // There's no open book on the library screen, so a ReaderViewModel can't be created —
         // LibraryViewModel implements SettingsController so the same settings sheet can be reused
-        // here too (font/margins/theme/VSCode sync etc. are app-wide settings unrelated to any
+        // here too (font/margins/theme/position sync etc. are app-wide settings unrelated to any
         // particular book, so they should be changeable without opening one first — added from
         // real-usage feedback).
         QuickSettingsSheet(

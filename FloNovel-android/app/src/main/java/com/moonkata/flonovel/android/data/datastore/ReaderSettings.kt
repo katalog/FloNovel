@@ -67,10 +67,10 @@ data class ReaderSettings(
     val swipeUpAction: PageGestureAction = PageGestureAction.NEXT_CHAPTER_JUMP,
     val swipeDownAction: PageGestureAction = PageGestureAction.PREVIOUS_CHAPTER_JUMP,
     val pageTransitionAnimation: PageTransitionAnimation = PageTransitionAnimation.NONE,
-    // Reading-position sync (docs 06-SYNC-STRATEGY Part A) — the Supabase URL/publishable key are
-    // fine to be public anyway (RLS is the actual line of defense), so they're hardcoded in
+    // Reading-position sync (AGENTS.md §1) — the Supabase URL/publishable key are fine to be
+    // public anyway (RLS is the actual line of defense), so they come from BuildConfig via
     // SupabaseConfig; this settings class holds only the shared secret that actually needs
-    // protecting (§1 "secret management" decision).
+    // protecting.
     val supabaseSharedSecret: String = "",
     /** The secret value that last passed a connection test — shown as "connected" only when it matches
      * [supabaseSharedSecret]. Changing the secret automatically makes this differ, so re-verification
