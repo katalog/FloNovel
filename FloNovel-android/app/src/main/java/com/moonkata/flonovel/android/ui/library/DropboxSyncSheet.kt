@@ -45,7 +45,7 @@ import com.moonkata.flonovel.android.data.sync.SecretResult
  * Dropbox file sync — sign in, then sync both ways. Replaces the PC tray-server sheet.
  *
  * There is nothing to type: Dropbox's own login *is* the pairing step, which is why the QR flow went
- * away with it (docs 06-SYNC-STRATEGY §Pairing). The sheet therefore only ever shows one of two
+ * away with it. The sheet therefore only ever shows one of two
  * states — signed out, or signed in with a "sync now" button.
  */
 @OptIn(ExperimentalMaterial3Api::class)

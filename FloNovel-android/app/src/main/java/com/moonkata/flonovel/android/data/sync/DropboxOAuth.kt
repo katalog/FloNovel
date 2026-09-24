@@ -23,7 +23,7 @@ data class OAuthTokens(
 )
 
 /**
- * Dropbox OAuth 2 for a public client, PKCE only (docs 06-SYNC-STRATEGY B1).
+ * Dropbox OAuth 2 for a public client, PKCE only.
  *
  * The Desktop app runs the same flow against a loopback redirect; Android uses a custom scheme
  * ([DropboxConfig.redirectUri]) so the browser hands control straight back to the app.

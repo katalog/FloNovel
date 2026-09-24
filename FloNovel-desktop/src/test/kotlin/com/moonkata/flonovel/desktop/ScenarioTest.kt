@@ -32,7 +32,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * T-27 — the user scenarios from `docs/09-TEST-STRATEGY.md` §8, exercised as whole flows rather
+ * T-27 — the user scenarios U1–U14, exercised as whole flows rather
  * than as component slices.
  *
  * Most of U1–U14 were already covered while their features were built. This file adds the six that
@@ -57,8 +57,8 @@ import kotlin.test.assertTrue
  * | U14 | Whole flow without a mouse | `KeyboardNavigationTest` |
  *
  * What these cannot show: anything that only exists once a window is on screen. Rendering, focus,
- * and the actual key-event plumbing are excluded by construction — see `docs/03-ARCHITECTURE.md`
- * A9-1, written after a green suite sat next to an app whose keyboard did nothing at all.
+ * and the actual key-event plumbing are excluded by construction. That limit was learned the hard
+ * way: a green suite once sat next to an app whose keyboard did nothing at all.
  */
 class ScenarioTest {
 
@@ -227,7 +227,7 @@ class ScenarioTest {
         assertFalse(settingsStore.load().sync.dropboxLinked, "File sync must be off before sign-in")
 
         // Sign-in: the refresh token arrives from OAuth, and the secret is read from the app folder
-        // that same token unlocked (docs 06-SYNC-STRATEGY Part C). No second prompt in between.
+        // that same token unlocked. No second prompt in between.
         credentialsStore.save(
             Credentials(
                 dropboxRefreshToken = "refresh-token",

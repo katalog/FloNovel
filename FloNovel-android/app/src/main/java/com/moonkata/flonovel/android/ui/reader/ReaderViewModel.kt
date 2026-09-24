@@ -66,8 +66,8 @@ data class ReaderUiState(
     val currentPage: PageBreak? = null,
     val currentOffset: Int = 0,
     val settings: ReaderSettings = ReaderSettings(),
-    /** Offset when a PC (VSCode) or another device has read further into this book — null means no popup.
-     * See docs 06-SYNC-STRATEGY Part A. */
+    /** Offset when the Desktop app or another device has read further into this book — null means no popup.
+     * See AGENTS.md §1. */
     val externalFurtherOffset: Int? = null,
 )
 
@@ -112,7 +112,7 @@ class ReaderViewModel(
      * If the reading position stays put this long (5 minutes) without moving, also leave a checkpoint
      * remotely — see §remote sync. This was originally 1 minute; anticipating more users, the interval
      * was widened to reduce remote write frequency while keeping the immediate-push path on screen exit
-     * unchanged (SYNC_MULTIUSER_PLAN.md stage 2).
+     * unchanged.
      */
     private val remoteSyncIdleMs = 300_000L
 
@@ -120,7 +120,7 @@ class ReaderViewModel(
      * Minimum interval between remote fetches (§checkRemoteAndMaybeNotify) — if the screen repeatedly
      * goes background↔foreground in a short span (e.g. opening the recent-apps list and immediately
      * closing it), ON_START fires every time and can trigger duplicate fetches, so no fetch is repeated
-     * within this window of the last one (SYNC_MULTIUSER_PLAN.md stage 2).
+     * within this window of the last one.
      */
     private val remoteFetchCooldownMs = 30_000L
 
@@ -129,9 +129,10 @@ class ReaderViewModel(
 
     /**
      * Only show the "you've read further" popup when the remote is ahead by more than this many
-     * characters — the VSCode cursor offset and the Android page offset point at fundamentally
-     * different units (character offset vs. page start position), so even when reading the same spot
-     * they can drift by a few hundred characters. Same value as the VSCode side (see §remote sync).
+     * characters — each device saves the start of its own page, and pages break at different
+     * characters under different layouts, so even when reading the same spot they can drift by a few
+     * hundred characters. Same value as the Desktop side
+     * (ReadingPositionSyncCoordinator.NOTIFICATION_THRESHOLD).
      */
     private val minOffsetDiffToNotify = 500
 
@@ -213,7 +214,7 @@ class ReaderViewModel(
     }
 
     /**
-     * Checks whether another device such as VSCode has read further into this book — checked once when
+     * Checks whether another device such as the Desktop app has read further into this book — checked once when
      * the book is opened (loadBook), and again each time the reader screen becomes visible again (unlocking
      * the screen, returning from another app, etc., see §onReaderResumed). Does not keep polling while
      * reading — the other device's position only matters again at the moment the screen is seen again.
@@ -243,7 +244,7 @@ class ReaderViewModel(
      * `LibraryViewModel` only computes and passes along relativePath while browsing folders (the
      * BrowseLocation stack), but it was found in real usage that opening via the "continue reading"
      * dialog or reopening an already-registered book doesn't go through that stack, so relativePath
-     * kept ending up empty — contrary to the premise in §Open question 6 that treated this as a "niche
+     * kept ending up empty — contrary to the original premise that treated this as a "niche
      * revisit," "continue reading" turned out to be the most common entry path instead. Every time a
      * book is opened, if relativePath is empty it's backfilled via a fallback that derives it from the
      * SAF document URI (see RelativePath.kt).

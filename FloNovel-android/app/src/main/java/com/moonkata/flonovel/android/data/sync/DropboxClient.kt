@@ -170,7 +170,7 @@ class DropboxClient(
 
     /**
      * Streams [path] into [output] without buffering the whole file — the real library holds a 48.6MB
-     * novel (docs 06-SYNC-STRATEGY B6), which is well past what should sit in memory on a phone.
+     * novel, which is well past what should sit in memory on a phone.
      * [output] is not closed here; the caller owns it.
      */
     suspend fun downloadFile(path: String, output: OutputStream): DropboxDownloadResult =

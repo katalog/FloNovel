@@ -21,7 +21,7 @@ sealed class ForcePushOutcome {
 }
 
 /**
- * Coordinates Supabase reading position sync (06-SYNC-STRATEGY.md PART A):
+ * Coordinates Supabase reading position sync (AGENTS.md §1):
  * - Checkpoint idle: 5 minutes (300_000ms)
  * - Fetch cooldown: 30 seconds (30_000ms)
  * - Notification threshold: remote - local > 500 characters

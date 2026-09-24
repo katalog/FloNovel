@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.Flow
  * actually need — all "app-wide setting" operations that stay meaningful even without a book open
  * (e.g. from the library screen). Both `ReaderViewModel` and `LibraryViewModel` implement this interface
  * so the same settings sheets can be reused on both the reader screen and the library screen — added
- * based on real-usage feedback that users should be able to configure font/margins/theme/VSCode sync
+ * based on real-usage feedback that users should be able to configure font/margins/theme/position sync
  * etc. without opening a book from the library screen.
  *
  * The reader-side implementation layers on side effects beyond just persisting the value (e.g. starting

@@ -11,8 +11,8 @@ import java.util.concurrent.TimeUnit
 
 /**
  * `TtsController` is a thin wrapper around the real `android.speech.tts.TextToSpeech` engine. The
- * actual speech-synthesis completion timing varies by device/installed voice data, and TESTING.md
- * already marks it out of scope for automation (the callback never fires on devices with no engine
+ * actual speech-synthesis completion timing varies by device/installed voice data, and it is out of
+ * scope for automation (the callback never fires on devices with no engine
  * or no Korean voice data installed) — so this file doesn't assert on that real completion timing
  * either. Instead it verifies (1) that the ready-state exposure before/after engine init is correct,
  * (2) that calling methods before the engine is ready doesn't crash, and (3) that once the engine

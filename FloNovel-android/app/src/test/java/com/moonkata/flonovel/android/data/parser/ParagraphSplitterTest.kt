@@ -54,7 +54,7 @@ class ParagraphSplitterTest {
 
     /**
      * The whole point of keeping offsets: they index the original decoded text, so a saved position
-     * still means the same character no matter how the text is laid out (docs 04-DATA-MODEL O-b).
+     * still means the same character no matter how the text is laid out (AGENTS.md §1).
      */
     @Test
     fun offsetsIndexTheOriginalText() {

@@ -18,10 +18,10 @@ class BookRepository(
     /**
      * Called when a file is tapped in the folder view — returns the existing record if it's already
      * been opened before, or creates a new one on first open.
-     * [relativePath] is the VSCode sync matching key (§3) — an empty string when it can't be computed
+     * [relativePath] is the position-sync matching key (AGENTS.md §1) — an empty string when it can't be computed
      * (e.g. a file inside a zip). Even for an already-registered book, if relativePath differs (it was
      * empty, or the folder was moved), it's updated on the spot — the design lets it fill in naturally
-     * on revisit instead of a forced backfill (§Open Question 6).
+     * on revisit instead of a forced backfill.
      */
     suspend fun findOrCreateBook(source: BookSource, displayName: String, sizeBytes: Long, relativePath: String = ""): Long {
         val storedUri = source.toStoredString()

@@ -30,7 +30,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `ChapterPatternSheet` (USER_SCENARIOS.md §8) had no tests until now — only the pure logic,
+ * `ChapterPatternSheet` had no tests until now — only the pure logic,
  * `ChapterPatternCatalog`/`ChapterDetector`, was verified. Here, the sheet UI is actually
  * manipulated to confirm settings change (and, as a result, that chapter re-detection genuinely happens).
  */

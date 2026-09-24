@@ -19,8 +19,8 @@ data class BookEntity(
     val fileSizeBytes: Long = 0,
     val addedAt: Long,
     val lastOpenedAt: Long? = null,
-    /** Path relative to the sync root folder (already normalized — the matching key for VSCode reading-
-     * position sync). Empty means either this book hasn't had it computed yet (registered before the
+    /** Path relative to the sync root folder (already normalized — the matching key for reading-
+     * position sync, AGENTS.md §1). Empty means either this book hasn't had it computed yet (registered before the
      * migration) or it's a file inside a zip and therefore not eligible for sync. */
     val relativePath: String = "",
 )

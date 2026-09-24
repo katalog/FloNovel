@@ -27,7 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Added based on real-world feedback that settings (font/margins/theme/VSCode sync, etc.) should
+ * Added based on real-world feedback that settings (font/margins/theme/position sync, etc.) should
  * be changeable from the library screen even with no book open — previously QuickSettingsSheet
  * was tied to ReaderViewModel, so there was no way to bring up the settings screen at all without
  * first opening a book (extracted the SettingsController interface, which LibraryViewModel now

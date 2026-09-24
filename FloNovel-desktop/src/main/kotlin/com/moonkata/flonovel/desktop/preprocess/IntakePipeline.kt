@@ -101,8 +101,9 @@ class IntakePipeline(
      * - Discovers files added or deleted while the app was closed.
      * - A record missing only chapterCount (predates that field, content otherwise unchanged) is
      *   backfilled directly, NOT through the intake queue: going through the normal update path
-     *   would bump preprocessedAt, which Dropbox's checkIfUploadNeeded reads as "content changed
-     *   locally" and would re-upload every pre-existing book on the next sync for no reason.
+     *   would bump preprocessedAt past uploadedAt, which the first sync after upgrading from one-way
+     *   sync (DropboxSyncEngine.upgradeOverride) reads as an unsent local change and uploads over
+     *   the remote copy.
      */
     fun reconcile(): Int {
         if (!Files.exists(homeFolder)) return 0

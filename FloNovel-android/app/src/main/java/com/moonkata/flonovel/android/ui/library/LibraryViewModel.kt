@@ -140,7 +140,7 @@ class LibraryViewModel(
         _resumeCandidate.value = null
     }
 
-    // --- Dropbox file sync (docs 06-SYNC-STRATEGY Part B) ---
+    // --- Dropbox file sync (AGENTS.md §1) ---
 
     private val dropboxClient = DropboxClient(settingsRepository)
     private val syncBaseDao by lazy { AppDatabase.getDatabase(getApplication()).syncBaseDao() }
@@ -304,7 +304,7 @@ class LibraryViewModel(
                     if (name != entry.name) loadCurrent()
                 }
             }
-            // A file inside a zip has no direct path VSCode could open, so it's not a sync-matching target (§3) — leave it blank.
+            // A file inside a zip has no relative path another device could match, so it's not a sync target — leave it blank.
             val relativePath = if (source is BookSource.PlainTxt) normalizeRelativePath(folderNames + name) else ""
             val id = bookRepository.findOrCreateBook(source, name, entry.sizeBytes, relativePath)
             _openBookEvents.tryEmit(id)

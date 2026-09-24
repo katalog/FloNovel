@@ -27,7 +27,7 @@ class RelativePathNormalizeTest {
     fun `NFC-normalizes so decomposed and precomposed Hangul produce the same key`() {
         // U+AC01 ("각") is a single precomposed codepoint. U+1100+U+1161+U+11A8 is the same
         // character decomposed into 3 separate leading/vowel/trailing jamo — they render
-        // identically but are distinct strings at the byte level. Android/PC/VSCode can hand us
+        // identically but are distinct strings at the byte level. Android and the PC can hand us
         // filenames in different normalization forms (macOS in particular uses the decomposed
         // form), so normalizing to NFC is what guarantees the same comparison key for the same
         // file every time. Writing literal Hangul directly in source risks the normalization form
