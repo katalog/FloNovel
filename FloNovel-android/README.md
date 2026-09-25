@@ -2,344 +2,338 @@
 
 # FloNovel for Android
 
-**Read your own `.txt` novels on your phone: correct encodings, real chapters, read-aloud, and one
-library shared with your desktop.**
+**내가 가진 `.txt` 소설을 폰에서 읽습니다. 올바른 인코딩, 진짜 챕터, 소리 내어 읽기, 그리고
+데스크톱과 함께 쓰는 하나의 서재.**
 
 ![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-[Download](#install) · [Getting started](#getting-started) · [Settings](#settings-reference) · [Sync](#about-dropbox-sync) · [FAQ](#faq)
+[English](README.en.md) · **한국어**
+
+[다운로드](#설치) · [시작하기](#시작하기) · [설정](#설정-안내) · [동기화](#dropbox-동기화) · [자주 묻는 질문](#자주-묻는-질문)
 
 </div>
 
 ---
 
-The Android half of **[FloNovel](../README.md)**. Point it at a folder of text files, or let Dropbox
-fill one from your desktop, and read.
+**[FloNovel](../README.md)** 의 Android 쪽입니다. 텍스트 파일이 든 폴더를 지정하거나, Dropbox 가
+데스크톱에서 폴더를 채워 주게 두고, 읽으면 됩니다.
 
 <!-- Screenshots go here. Recommended: library with breadcrumbs, the reader mid-page, the
      quick-settings sheet, and the table of contents. -->
 
 ---
 
-## Features
+## 기능
 
-### 📖 Handles books that break other readers
+### 📖 다른 리더가 못 여는 책도 엽니다
 
-Ten-million-character novels open without being split. Jump to any chapter, search the whole book, or
-drag straight to 73% without a loading screen.
+천만 자짜리 소설도 쪼개지 않고 열립니다. 로딩 화면 없이 원하는 챕터로 가고, 책 전체를 검색하고,
+73% 지점으로 곧장 끌어서 이동할 수 있습니다.
 
-### 🔤 No encoding menu, ever
+### 🔤 인코딩 메뉴는 영원히 없습니다
 
-UTF-8, EUC-KR and CP949 are detected automatically, including the extended Korean characters that
-usually come out as boxes. It just opens correctly.
+UTF-8, EUC-KR, CP949 를 자동으로 판별합니다. 흔히 네모로 나오는 확장 한글 글자까지요. 그냥
+제대로 열립니다.
 
-### 🧹 Books cleaned up before you read them
+### 🧹 읽기 전에 정리되는 책
 
-A book you add on the phone is tidied up before it's first opened: line endings unified, duplicated
-lines and runaway blank space removed, chapter headings marked, overlong filenames shortened. It's
-the **exact same cleanup** the desktop app does, byte for byte, so a book looks identical wherever it
-was added. The original is backed up to `.flonovel/original/` first, and books that arrive from
-Dropbox are already clean, so they open straight away.
+폰에서 추가한 책은 처음 열기 전에 정리됩니다. 줄바꿈 통일, 중복 줄과 과도한 빈 줄 제거, 챕터 제목
+표시, 너무 긴 파일명 줄이기. 데스크톱 앱과 바이트 단위까지 **똑같은 정리**라서, 어디서 추가했든
+책이 똑같아 보입니다. 원본은 먼저 `.flonovel/original/` 에 백업되고, Dropbox 에서 온 책은 이미
+정리된 상태라 바로 열립니다.
 
-### 🗂️ Reads your folders as they are
+### 🗂️ 폴더를 있는 그대로 읽습니다
 
-Pick a folder once and browse it with breadcrumbs, subfolders and all. `.zip` archives open like
-folders, and the text files inside are read **without unpacking anything** to your storage. Sort by
-name, date or size in either direction, see how far into each book you are, and long-press a book or
-folder to delete it. On launch, FloNovel offers to take you back to the book you were reading.
+폴더를 한 번 고르면 경로 표시(breadcrumb)와 하위 폴더까지 그대로 둘러볼 수 있습니다. `.zip` 은
+폴더처럼 열리고, 안의 텍스트 파일은 저장 공간에 **아무것도 풀지 않고** 읽습니다. 이름·날짜·크기
+순으로 오름차순·내림차순 정렬하고, 책마다 얼마나 읽었는지 보고, 책이나 폴더를 길게 눌러 지울 수
+있습니다. 앱을 켜면 읽던 책으로 돌아갈지 물어봅니다.
 
-### 👆 Page turns that work the way you want
+### 👆 원하는 대로 넘기는 페이지
 
-Two reading modes, **page flip** or **continuous scroll**, with none, slide or cover transitions.
+**페이지 넘김**과 **연속 스크롤** 두 가지 읽기 방식에, 전환 효과는 없음·슬라이드·덮기 중에서
+고릅니다.
 
-- **Tap zones:** the standard left / middle / right layout, or a **3×3 grid** where each of the nine
-  cells gets its own action.
-- **Swipes:** left, right, up and down, each assigned separately.
-- **Volume keys:** turn pages without touching the screen.
+- **터치 영역:** 일반적인 왼쪽/가운데/오른쪽 배치, 또는 아홉 칸마다 동작을 따로 정하는 **3×3 그리드**.
+- **스와이프:** 왼쪽·오른쪽·위·아래를 각각 따로 지정.
+- **볼륨 키:** 화면을 건드리지 않고 페이지 넘기기.
 
-Any tap or swipe can go to the previous or next page, chapter, or chapter jump point, open the
-menu, or do nothing at all.
+어떤 탭이나 스와이프든 이전/다음 페이지, 챕터, 챕터 점프 지점으로 이동하거나, 메뉴를 열거나,
+아무것도 하지 않게 할 수 있습니다.
 
-### 📑 Chapters on unstructured files
+### 📑 구조 없는 파일에도 챕터를
 
-Chapter headings are detected fresh every time you open a book, so the table of contents works even on
-files that were never formatted for it, and it scrolls straight to where you are. Long chapters can
-be split into evenly spaced jump points so a 40-minute chapter is still navigable. Add your own
-patterns if your books use a different style.
+책을 열 때마다 챕터 제목을 새로 찾으므로, 애초에 그렇게 만들어지지 않은 파일에서도 목차가 동작하고
+지금 위치로 바로 스크롤됩니다. 긴 챕터는 일정한 간격의 점프 지점으로 나눠서 40분짜리 챕터도
+이동하기 편하게 만들 수 있습니다. 다른 형식의 제목을 쓰는 책이라면 패턴을 직접 추가하세요.
 
-### 🔊 Read aloud
+### 🔊 소리 내어 읽기
 
-Hands-free narration through your phone's text-to-speech voice, with adjustable speed and pitch. The
-page turns when the sentence actually finishes, not on a guess. There's a plain timer mode too, if you
-just want pages to advance while you eat.
+폰의 TTS 음성으로 손을 쓰지 않고 들을 수 있고, 속도와 음높이를 조절할 수 있습니다. 페이지는 짐작이
+아니라 문장이 실제로 끝났을 때 넘어갑니다. 밥 먹는 동안 페이지만 넘어가면 되는 경우를 위한 단순
+타이머 모드도 있습니다.
 
-### 🎨 Comfortable for long sessions
+### 🎨 오래 읽어도 편안하게
 
-Six curated themes (Warm Ivory, Sepia Cream, Dark Navy, Soft Gray, Cool Light, Soft Dark Brown), or
-your own background and text colors. Adjust font size, line height, letter spacing and each margin
-independently, and download Korean reading fonts (Pretendard, Noto Sans KR, Nanum Gothic, Nanum
-Myeongjo, RIDIBatang) from inside the app. Keep the screen on, override the system brightness, and
-lock the orientation. The interface is in **English and Korean**, following your system language.
+여섯 가지 테마(웜 아이보리, 세피아 크림, 다크 네이비, 소프트 그레이, 쿨 라이트, 소프트 다크
+브라운), 또는 배경색과 글자색을 직접 지정할 수 있습니다. 글자 크기, 줄 간격, 자간, 여백을 각각
+조절하고, 한글 독서용 글꼴(Pretendard, Noto Sans KR, 나눔고딕, 나눔명조, 리디바탕)을 앱 안에서
+내려받을 수 있습니다. 화면 꺼짐 방지, 시스템 밝기 대신 직접 밝기 조절, 화면 방향 고정도 됩니다.
+인터페이스는 시스템 언어를 따라 **한국어와 영어**로 나옵니다.
 
-### ☁️ One library with your PC
+### ☁️ PC 와 하나의 서재
 
-Connect Dropbox and your library syncs **both ways** with the desktop app: books added, changed,
-renamed or deleted on either side reach the other. Syncing happens whenever you come back to the
-library, with no background job draining your battery. When the desktop has read further in a book,
-the reader offers to jump there, showing both positions, instead of moving you without asking.
+Dropbox 를 연결하면 서재가 데스크톱 앱과 **양방향으로** 동기화됩니다. 어느 쪽에서든 추가·수정·
+이름 변경·삭제한 책이 다른 쪽에 전달됩니다. 동기화는 서재로 돌아올 때마다 일어나며, 배터리를
+소모하는 백그라운드 작업은 없습니다. 데스크톱에서 더 앞까지 읽은 책이면, 리더가 묻지 않고 옮기는
+대신 두 위치를 보여 주며 이동을 제안합니다.
 
 ---
 
-## Install
+## 설치
 
-Download the latest `.apk` from the **[Releases page](../../../releases)** and open it.
+**[Releases 페이지](../../../releases)** 에서 최신 `.apk` 를 받아 엽니다.
 
-- Requires **Android 7.0 (API 24) or newer**
-- Your phone will ask you to allow installs from your browser or file manager the first time
-- No Play Store listing, no telemetry, no ads
+- **Android 7.0(API 24) 이상** 필요
+- 처음 설치할 때 브라우저나 파일 관리자의 설치 허용을 요청받습니다
+- Play 스토어 등록 없음, 원격 측정(telemetry) 없음, 광고 없음
 
-> **Tip:** [Obtainium](https://github.com/ImranR98/Obtainium) can watch this repository and notify
-> you when a new version ships.
-
----
-
-## Getting started
-
-**1. Add a folder.**
-Tap **Add folder** and pick the folder holding your `.txt` files. Android asks you to grant access.
-The grant is remembered, so you only do this once.
-
-**2. Open a book.**
-Tap a title. Tap the right side of the page to go forward, the left to go back, and the middle to
-bring up the toolbar with the table of contents, search and settings.
-
-**3. Make it yours.**
-The settings sheet (⚙️ in the reader) covers font, theme, margins, gestures and read-aloud. Nothing
-is buried more than one tap deep.
-
-**4. Connect Dropbox** *(optional).*
-In the library, open the Dropbox sheet and sign in with the same account your desktop app uses. Tap
-**Sync now** and your library arrives. From then on it syncs each time you return to the library.
+> **팁:** [Obtainium](https://github.com/ImranR98/Obtainium) 으로 이 저장소를 지켜보다가 새 버전이
+> 나오면 알림을 받을 수 있습니다.
 
 ---
 
-## Settings reference
+## 시작하기
+
+**1. 폴더를 추가합니다.**
+**폴더 추가**를 누르고 `.txt` 파일이 있는 폴더를 고릅니다. Android 가 접근 권한을 묻습니다. 권한은
+기억되므로 한 번만 하면 됩니다.
+
+**2. 책을 엽니다.**
+제목을 누릅니다. 페이지 오른쪽을 누르면 앞으로, 왼쪽을 누르면 뒤로 가고, 가운데를 누르면 목차·
+검색·설정이 있는 도구 모음이 나옵니다.
+
+**3. 내 취향대로.**
+설정 시트(리더의 ⚙️)에서 글자, 테마, 여백, 제스처, 소리 내어 읽기를 다룹니다. 어떤 설정도 한 번
+누른 것보다 깊이 숨어 있지 않습니다.
+
+**4. Dropbox 를 연결합니다** *(선택)*.
+서재에서 Dropbox 시트를 열고 데스크톱 앱과 같은 계정으로 로그인합니다. **지금 동기화**를 누르면
+서재가 도착합니다. 그 뒤로는 서재로 돌아올 때마다 동기화됩니다.
+
+---
+
+## 설정 안내
 
 <details>
-<summary><b>Font</b></summary>
+<summary><b>글자</b></summary>
 
-Size, line height, letter spacing, and a font picker with downloadable fonts. Applying a font
-re-lays-out the book in place; you don't lose your position.
+크기, 줄 간격, 자간, 그리고 내려받을 수 있는 글꼴이 포함된 글꼴 선택. 글꼴을 적용하면 책을 그
+자리에서 다시 배치하며, 읽던 위치는 잃지 않습니다.
 </details>
 
 <details>
-<summary><b>Margins</b></summary>
+<summary><b>여백</b></summary>
 
-Left/right, top and bottom set independently.
+좌우, 위, 아래를 각각 따로 설정합니다.
 </details>
 
 <details>
-<summary><b>Theme</b></summary>
+<summary><b>테마</b></summary>
 
-Six curated themes (Warm Ivory, Sepia Cream, Dark Navy, Soft Gray, Cool Light, Soft Dark Brown), or
-fully custom background and text colors.
+여섯 가지 테마(웜 아이보리, 세피아 크림, 다크 네이비, 소프트 그레이, 쿨 라이트, 소프트 다크
+브라운), 또는 배경색과 글자색을 완전히 직접 지정.
 </details>
 
 <details>
-<summary><b>Page-turn mode</b></summary>
+<summary><b>넘김 방식</b></summary>
 
-**Page turn** (horizontal flip) or **Scroll** (continuous vertical). Transition animation: none,
-slide or cover.
+**페이지 넘김**(가로로 넘기기) 또는 **스크롤**(세로로 연속). 전환 애니메이션: 없음, 슬라이드,
+덮기.
 </details>
 
 <details>
-<summary><b>Touch &amp; swipe gestures</b></summary>
+<summary><b>터치 영역 및 스와이프 제스처</b></summary>
 
-**Touch zones:** *Standard 3-column* (left: previous page, middle: menu, right: next page), or a
-*3×3 grid* where you tap each cell to set its action.
+**터치 영역:** *표준 3분할*(왼쪽: 이전 페이지, 가운데: 메뉴, 오른쪽: 다음 페이지), 또는 칸을 눌러
+각각 동작을 정하는 *3×3 그리드*.
 
-**Swipes:** left, right, up and down, each set separately. By default, horizontal swipes move a whole
-chapter and vertical swipes move between chapter jump points.
+**스와이프:** 왼쪽, 오른쪽, 위, 아래를 각각 설정합니다. 기본값은 가로 스와이프가 챕터 단위로,
+세로 스와이프가 챕터 점프 지점 단위로 이동합니다.
 
-**Actions available:** previous/next page, previous/next chapter, previous/next chapter jump point,
-toggle menu, no action.
+**지정할 수 있는 동작:** 이전/다음 페이지, 이전/다음 챕터, 이전/다음 챕터 점프 지점, 메뉴 토글,
+동작 없음.
 
-Swipe up/down only apply in page-turn mode; in scroll mode a vertical drag scrolls.
+위/아래 스와이프는 페이지 넘김 방식에서만 적용됩니다. 스크롤 방식에서는 세로로 끌면 스크롤됩니다.
 </details>
 
 <details>
-<summary><b>Chapter jump</b></summary>
+<summary><b>챕터 점프</b></summary>
 
-How many jump points to split each chapter into, plus the pattern list used to detect chapter
-headings. The built-in `##` preset matches what the preprocessor writes; add your own regular
-expressions for anything else.
+각 챕터를 몇 개의 점프 지점으로 나눌지, 그리고 챕터 제목을 찾는 데 쓰는 패턴 목록. 기본 제공되는
+`##` 프리셋이 전처리기가 붙인 표식과 맞고, 그 밖의 형식은 정규식을 직접 추가하면 됩니다.
 </details>
 
 <details>
-<summary><b>Screen</b></summary>
+<summary><b>화면</b></summary>
 
-Keep screen on, page with volume keys, manual brightness override, and orientation lock
-(auto / portrait / landscape).
+화면 꺼짐 방지, 볼륨키로 넘기기, 밝기 직접 조절, 화면 방향 고정(자동 / 세로 / 가로).
 </details>
 
 <details>
-<summary><b>Auto-advance / TTS</b></summary>
+<summary><b>자동 넘김 / TTS</b></summary>
 
-Off, **Timer** (turn the page every N seconds), or **TTS** (read aloud and turn when the passage
-ends). Speech rate and pitch are adjustable.
+끄기, **타이머**(N초마다 페이지 넘김), 또는 **TTS**(소리 내어 읽고 구절이 끝나면 넘김). 말하기
+속도와 음높이를 조절할 수 있습니다.
 </details>
 
 <details>
-<summary><b>Reading-position sync</b></summary>
+<summary><b>읽기 위치 동기화</b></summary>
 
-Turns on once Dropbox is connected. The shared key comes from your Dropbox app folder, so there's
-nothing to type.
+Dropbox 를 연결하면 켜집니다. 공유 키는 Dropbox 앱 폴더에서 가져오므로 입력할 것이 없습니다.
 </details>
 
 ---
 
-## About Dropbox sync
+## Dropbox 동기화
 
-Books sync **both ways**. Your Dropbox app folder is the shared library, and the phone both uploads
-and downloads.
+책은 **양방향으로** 동기화됩니다. Dropbox 앱 폴더가 공유 서재이고, 폰은 올리기와 받기를 모두
+합니다.
 
-- **Add a book on the phone** and it's cleaned up, then uploaded, and appears on your PC.
-- **Delete a book on the phone** (long-press it) and it's deleted from Dropbox and the PC too. The PC
-  keeps it in its Recycle Bin, and the confirmation tells you so before anything happens.
-- **Changed on both devices?** Both versions are kept. The Dropbox one keeps the original name; the
-  phone's is saved as `Book (conflicted copy - Android - 2026-09-23).txt`.
-- **Renamed or moved on the PC?** The phone moves its copy, and your reading position follows it.
-- **The book you have open is left alone.** Changes to it are applied once you close it.
-- **Mass deletions ask first.** If a sync would delete an unusual number of books, or finds your
-  remote library empty, it stops and asks. That almost always means a different Dropbox account is
-  connected.
-- **Interrupted downloads are safe.** A half-downloaded book is fetched again rather than mistaken for
-  an edit and uploaded.
+- **폰에서 책을 추가하면** 정리된 뒤 업로드되어 PC 에 나타납니다.
+- **폰에서 책을 지우면**(길게 누르기) Dropbox 와 PC 에서도 지워집니다. PC 는 휴지통에 보관하며,
+  무언가 일어나기 전에 확인 창이 이를 알려 줍니다.
+- **두 기기에서 모두 바뀌었다면?** 두 버전을 다 남깁니다. Dropbox 쪽이 원래 이름을 갖고, 폰 쪽은
+  `책 (충돌 사본 - Android - 2026-09-23).txt` 로 저장됩니다.
+- **PC 에서 이름을 바꾸거나 옮겼다면?** 폰도 자기 사본을 옮기고, 읽기 위치도 따라갑니다.
+- **열어 둔 책은 건드리지 않습니다.** 그 책의 변경은 닫은 뒤에 적용됩니다.
+- **대량 삭제는 먼저 묻습니다.** 한 번의 동기화가 평소보다 많은 책을 지우게 되거나 원격 서재가
+  비어 있으면, 멈추고 확인합니다. 거의 항상 다른 Dropbox 계정이 연결됐다는 뜻입니다.
+- **다운로드가 끊겨도 안전합니다.** 반쯤 받은 책은 수정된 것으로 오인해 올리지 않고 다시 받습니다.
 
-Sync runs when the library comes to the front (opening the app, coming back from the reader or
-another app), at most once a minute, and whenever you tap **Sync now**. There's no background sync.
+동기화는 서재가 앞으로 올 때(앱을 열거나, 리더나 다른 앱에서 돌아올 때) 최대 1분에 한 번, 그리고
+**지금 동기화**를 누를 때마다 실행됩니다. 백그라운드 동기화는 없습니다.
 
-Only `.txt` files are synced; books inside `.zip` archives stay on the phone.
+`.txt` 파일만 동기화되며, `.zip` 안의 책은 폰에만 남습니다.
 
-> **Connected before the phone could upload?** Links made with an older, download-only version have
-> no upload permission. The Dropbox sheet says so and offers **Reconnect Dropbox**; do it once and the
-> phone's changes start reaching the PC.
+> **폰이 업로드를 못 하던 시절에 연결했나요?** 예전의 내려받기 전용 버전으로 만든 연결에는 업로드
+> 권한이 없습니다. Dropbox 시트가 이를 알려 주고 **Dropbox 다시 연결**을 제안하니, 한 번 해 주면
+> 폰의 변경이 PC 로 가기 시작합니다.
 
-Setting up sync from scratch is covered in the [main README](../README.md#setting-up-sync-optional).
+처음부터 동기화를 설정하는 방법은 [메인 README](../README.md#동기화-설정-선택) 에 있습니다.
 
 ---
 
-## FAQ
+## 자주 묻는 질문
 
 <details>
-<summary><b>Does it read EPUB, PDF or MOBI?</b></summary>
+<summary><b>EPUB, PDF, MOBI 도 읽나요?</b></summary>
 
-No. FloNovel reads `.txt` files, and `.txt` files inside `.zip` archives. That's the whole format
-list, on purpose.
+아니요. FloNovel 은 `.txt` 파일, 그리고 `.zip` 안의 `.txt` 파일을 읽습니다. 지원 형식은 일부러
+그게 전부입니다.
 </details>
 
 <details>
-<summary><b>Why did my book's file name change?</b></summary>
+<summary><b>책 파일명이 왜 바뀌었나요?</b></summary>
 
-The cleanup shortens names longer than 50 characters and removes Chinese characters from names that
-also contain Korean, the same way the desktop app does. The original file, with its original name,
-is in `.flonovel/original/` inside your library folder.
+정리 과정에서 50자보다 긴 이름을 줄이고, 한글과 한자가 섞인 이름에서 한자를 뺍니다. 데스크톱
+앱과 같은 방식입니다. 원래 이름 그대로인 원본 파일은 서재 폴더 안의 `.flonovel/original/` 에
+있습니다.
 </details>
 
 <details>
-<summary><b>My table of contents is empty.</b></summary>
+<summary><b>목차가 비어 있어요.</b></summary>
 
-Chapter headings are matched by pattern. Cleaned-up books carry `##` markers and work out of the box,
-but an unusual heading style may not be recognized. Add a custom pattern under **Chapter detection
-patterns** in settings.
+챕터 제목은 패턴으로 찾습니다. 정리된 책에는 `##` 표식이 있어서 바로 동작하지만, 흔치 않은 제목
+형식은 인식하지 못할 수 있습니다. 설정의 **챕터 인식 패턴**에서 패턴을 직접 추가하세요.
 </details>
 
 <details>
-<summary><b>Text-to-speech doesn't work.</b></summary>
+<summary><b>소리 내어 읽기가 안 돼요.</b></summary>
 
-FloNovel uses your phone's own TTS engine, so the voice for your language has to be installed. Check
-Android's **Settings → Accessibility → Text-to-speech output**.
+FloNovel 은 폰 자체의 TTS 엔진을 쓰므로, 해당 언어의 음성이 설치되어 있어야 합니다. Android 의
+**설정 → 접근성 → 텍스트 음성 변환 출력**을 확인하세요.
 </details>
 
 <details>
-<summary><b>"Can no longer access your home folder."</b></summary>
+<summary><b>"이전에 선택한 홈 폴더에 더 이상 접근할 수 없습니다."</b></summary>
 
-Android revoked the folder permission, usually because the folder moved, the SD card was remounted,
-or the app was reinstalled. Pick the folder again and your books and reading positions come back.
+Android 가 폴더 권한을 거둬들인 경우입니다. 보통 폴더를 옮겼거나, SD 카드가 다시 마운트됐거나,
+앱을 다시 설치했을 때 생깁니다. 폴더를 다시 고르면 책과 읽기 위치가 돌아옵니다.
 </details>
 
 <details>
-<summary><b>Sync says the folder has no write access.</b></summary>
+<summary><b>동기화가 폴더에 쓰기 권한이 없다고 해요.</b></summary>
 
-The folder was chosen before FloNovel asked for write access. Choose your home folder again to fix
-syncing. Reading is unaffected either way.
+FloNovel 이 쓰기 권한을 요청하기 전에 고른 폴더입니다. 홈 폴더를 다시 고르면 동기화가 고쳐집니다.
+읽기에는 어느 쪽이든 영향이 없습니다.
 </details>
 
 <details>
-<summary><b>Is my data backed up to Google?</b></summary>
+<summary><b>내 데이터가 Google 에 백업되나요?</b></summary>
 
-Not your credentials. The file holding your Dropbox token and sync key is explicitly excluded from
-Android's cloud backup.
+자격 증명은 아닙니다. Dropbox 토큰과 동기화 키가 든 파일은 Android 클라우드 백업에서 명시적으로
+제외됩니다.
 </details>
 
 <details>
-<summary><b>Can I install this next to a version I'm developing?</b></summary>
+<summary><b>개발 중인 버전과 나란히 설치할 수 있나요?</b></summary>
 
-Yes. Debug builds install under a separate ID and use a separate sync partition, so they can't touch
-your real reading positions.
+네. 디버그 빌드는 별도 ID 로 설치되고 별도의 동기화 파티션을 쓰므로, 실제 읽기 위치를 건드릴 수
+없습니다.
 </details>
 
 ---
 
-## Building from source
+## 소스에서 빌드하기
 
-Requires **JDK 17+** to run Gradle. The app targets Java 11 bytecode, `minSdk` 24, `compileSdk` 36.
+Gradle 실행에 **JDK 17 이상**이 필요합니다. 앱은 Java 11 바이트코드, `minSdk` 24, `compileSdk` 36
+을 대상으로 합니다.
 
 ```bash
-./gradlew assembleDebug        # debug APK
-./gradlew testDebugUnitTest    # unit tests
-./gradlew assembleRelease      # release APK
+./gradlew assembleDebug        # 디버그 APK
+./gradlew testDebugUnitTest    # 단위 테스트
+./gradlew assembleRelease      # 릴리스 APK
 ```
 
-For sync features, copy `local.properties.example` to `local.properties` and fill in
-`DROPBOX_APP_KEY`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. **All of them are optional**: the
-build succeeds without any credentials and the affected features simply report themselves as
-unconfigured.
+동기화 기능을 쓰려면 `local.properties.example` 을 `local.properties` 로 복사하고
+`DROPBOX_APP_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` 를 채웁니다. **전부 선택 사항입니다.**
+자격 증명이 하나도 없어도 빌드는 성공하고, 해당 기능만 "설정되지 않음"으로 표시됩니다.
 
-Release signing reads `RELEASE_KEYSTORE_PATH`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and
-`RELEASE_KEY_PASSWORD` from `local.properties` or environment variables. If the keystore path is
-missing, `assembleRelease` **silently falls back to debug signing and still succeeds**, so check the
-certificate on the artifact, not the build result.
+릴리스 서명은 `local.properties` 나 환경 변수에서 `RELEASE_KEYSTORE_PATH`,
+`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` 를 읽습니다. 키스토어 경로가
+없으면 `assembleRelease` 는 **조용히 디버그 서명으로 바꾸고도 성공**하므로, 빌드 결과가 아니라
+결과물의 인증서를 확인하세요.
 
-Pushing an `android-v*` tag runs the unit tests in GitHub Actions and, if they pass, publishes a
-signed APK as a GitHub Release.
+`android-v*` 태그를 푸시하면 GitHub Actions 가 단위 테스트를 돌리고, 통과하면 서명된 APK 를 GitHub
+Release 로 게시합니다.
 
-### Tests
+### 테스트
 
-| Suite | What it covers | Needs |
+| 스위트 | 다루는 것 | 필요한 것 |
 |---|---|---|
-| `app/src/test` | Pure logic: encoding, chapters, pagination math, the preprocessor, the two-way sync engine (against an in-memory library) | Nothing; runs on the JVM |
-| `app/src/androidTest` | The real Compose UI, Room and DataStore | A device or emulator (two tests download fonts) |
+| `app/src/test` | 순수 로직: 인코딩, 챕터, 페이지 계산, 전처리기, 양방향 동기화 엔진(메모리 속 서재 대상) | 없음, JVM 에서 실행 |
+| `app/src/androidTest` | 실제 Compose UI, Room, DataStore | 기기나 에뮬레이터(두 테스트는 글꼴을 내려받음) |
 
-The preprocessor is checked byte for byte against the same fixtures and expected output as the
-desktop app. Its port avoids `\d`, `\s`, `.` and case-insensitive matching, because Android's ICU
-regex engine gives those broader meanings than the JVM does.
+전처리기는 데스크톱 앱과 같은 픽스처와 기대 출력으로 바이트 단위까지 검사합니다. 이식본은 `\d`,
+`\s`, `.`, 대소문자 무시 매칭을 쓰지 않는데, Android 의 ICU 정규식 엔진이 이것들을 JVM 보다 넓은
+뜻으로 해석하기 때문입니다.
 
 ```bash
 ./gradlew testDebugUnitTest
 ./gradlew connectedDebugAndroidTest
 ```
 
-### Built with
+### 사용한 기술
 
 Kotlin · Jetpack Compose (Material 3) · Room · DataStore · Navigation Compose · juniversalchardet ·
-Storage Access Framework. No dependency-injection framework.
+Storage Access Framework. 의존성 주입 프레임워크는 쓰지 않습니다.
 
 ---
 
-## License
+## 라이선스
 
 [Apache License 2.0](../LICENSE).
