@@ -38,12 +38,21 @@ class ReaderNavigator(
     val forwardHistoryStack: List<Int>
         get() = forwardStack.toList()
 
+    // Captures everything the layout depends on, so a layout read later still describes the
+    // moment this state was taken even if the navigator has moved on since.
     val state: ReaderState
-        get() = ReaderState(
-            anchor = anchor,
-            layout = layoutFor(anchor, spec),
-            historyStack = historyStack,
-        )
+        get() {
+            val stateAnchor = anchor
+            val stateSpec = spec
+            val stateFitter = textFitter
+            val previousAnchorHint = history.lastOrNull()
+            return ReaderState(
+                anchor = stateAnchor,
+                historyStack = historyStack,
+            ) {
+                computeLayout(stateAnchor, stateSpec, stateFitter, previousAnchorHint, false, emptySet())
+            }
+        }
 
     /**
      * Calculates the reading progress as a ratio [0.0, 1.0].
@@ -194,11 +203,20 @@ class ReaderNavigator(
         spec: ViewportSpec,
         alignChapterToLeftPane: Boolean = false,
         chapterOffsets: Set<Int> = emptySet(),
+    ): ReaderLayout = computeLayout(anchor, spec, textFitter, history.lastOrNull(), alignChapterToLeftPane, chapterOffsets)
+
+    private fun computeLayout(
+        anchor: Int,
+        spec: ViewportSpec,
+        fitter: TextFitter,
+        previousAnchorHint: Int?,
+        alignChapterToLeftPane: Boolean,
+        chapterOffsets: Set<Int>,
     ): ReaderLayout {
         val safeAnchor = anchor.coerceIn(0, totalLength)
         return when (spec.paneMode) {
             PaneMode.ONE -> {
-                val end = fitSafe(safeAnchor, spec.effectiveWidthPx, spec.heightPx)
+                val end = fitSafe(safeAnchor, spec.effectiveWidthPx, spec.heightPx, fitter)
                 ReaderLayout(
                     paneMode = PaneMode.ONE,
                     panes = listOf(PaneSpan(safeAnchor, end)),
@@ -207,9 +225,9 @@ class ReaderNavigator(
             PaneMode.TWO -> {
                 if (alignChapterToLeftPane && chapterOffsets.contains(safeAnchor)) {
                     val leftStart = safeAnchor
-                    val leftEnd = fitSafe(leftStart, spec.leftPaneWidthPx, spec.paneHeightPx)
+                    val leftEnd = fitSafe(leftStart, spec.leftPaneWidthPx, spec.paneHeightPx, fitter)
                     val rightStart = leftEnd
-                    val rightEnd = fitSafe(rightStart, spec.rightPaneWidthPx, spec.paneHeightPx)
+                    val rightEnd = fitSafe(rightStart, spec.rightPaneWidthPx, spec.paneHeightPx, fitter)
                     ReaderLayout(
                         paneMode = PaneMode.TWO,
                         panes = listOf(
@@ -219,14 +237,14 @@ class ReaderNavigator(
                     )
                 } else {
                     val rightStart = safeAnchor
-                    val rightEnd = fitSafe(rightStart, spec.rightPaneWidthPx, spec.paneHeightPx)
+                    val rightEnd = fitSafe(rightStart, spec.rightPaneWidthPx, spec.paneHeightPx, fitter)
                     val leftEnd = rightStart
                     val leftStart = if (safeAnchor <= 0) {
                         0
-                    } else if (history.isNotEmpty() && history.last() < safeAnchor) {
-                        history.last()
+                    } else if (previousAnchorHint != null && previousAnchorHint < safeAnchor) {
+                        previousAnchorHint
                     } else {
-                        estimatePreviousAnchor(safeAnchor, spec.leftPaneWidthPx, spec.paneHeightPx)
+                        estimatePreviousAnchor(safeAnchor, spec.leftPaneWidthPx, spec.paneHeightPx, fitter)
                     }
                     ReaderLayout(
                         paneMode = PaneMode.TWO,
@@ -240,28 +258,33 @@ class ReaderNavigator(
         }
     }
 
-    private fun fitSafe(from: Int, widthPx: Int, heightPx: Int): Int {
+    private fun fitSafe(from: Int, widthPx: Int, heightPx: Int, fitter: TextFitter = textFitter): Int {
         if (from >= totalLength) return totalLength
         if (widthPx <= 0 || heightPx <= 0) return minOf(from + 1, totalLength)
-        val raw = textFitter.fitForward(from, widthPx, heightPx)
+        val raw = fitter.fitForward(from, widthPx, heightPx)
         return if (raw <= from) minOf(from + 1, totalLength) else minOf(raw, totalLength)
     }
 
-    private fun estimatePreviousAnchor(targetEnd: Int, widthPx: Int, heightPx: Int): Int {
+    private fun estimatePreviousAnchor(
+        targetEnd: Int,
+        widthPx: Int,
+        heightPx: Int,
+        fitter: TextFitter = textFitter,
+    ): Int {
         if (targetEnd <= 0) return 0
         if (widthPx <= 0 || heightPx <= 0) return maxOf(0, targetEnd - 1)
 
-        val forwardSpan = (fitSafe(targetEnd, widthPx, heightPx) - targetEnd).coerceAtLeast(1)
-        val initialSpan = if (forwardSpan > 1) forwardSpan else fitSafe(0, widthPx, heightPx).coerceAtLeast(50)
+        val forwardSpan = (fitSafe(targetEnd, widthPx, heightPx, fitter) - targetEnd).coerceAtLeast(1)
+        val initialSpan = if (forwardSpan > 1) forwardSpan else fitSafe(0, widthPx, heightPx, fitter).coerceAtLeast(50)
 
         val guess = maxOf(0, targetEnd - initialSpan)
-        val guessFit = fitSafe(guess, widthPx, heightPx)
+        val guessFit = fitSafe(guess, widthPx, heightPx, fitter)
 
         // Secant refinement: if guess missed targetEnd, shift by difference to get within ±1 line
         val diff = targetEnd - guessFit
         val (refinedGuess, refinedFit) = if (diff != 0 && guess > 0 && guess < targetEnd) {
             val nextGuess = (guess + diff).coerceIn(0, targetEnd)
-            nextGuess to fitSafe(nextGuess, widthPx, heightPx)
+            nextGuess to fitSafe(nextGuess, widthPx, heightPx, fitter)
         } else {
             guess to guessFit
         }
@@ -274,7 +297,7 @@ class ReaderNavigator(
             val step = maxOf(40, (targetEnd - refinedGuess) / 2)
             low = maxOf(0, refinedGuess - step)
             var attempts = 0
-            while (low > 0 && fitSafe(low, widthPx, heightPx) >= targetEnd && attempts < 4) {
+            while (low > 0 && fitSafe(low, widthPx, heightPx, fitter) >= targetEnd && attempts < 4) {
                 attempts++
                 low = maxOf(0, low - step)
             }
@@ -288,7 +311,7 @@ class ReaderNavigator(
 
         while (l <= r) {
             val mid = (l + r) ushr 1
-            if (fitSafe(mid, widthPx, heightPx) >= targetEnd) {
+            if (fitSafe(mid, widthPx, heightPx, fitter) >= targetEnd) {
                 best = mid
                 r = mid - 1
             } else {
