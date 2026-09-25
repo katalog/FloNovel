@@ -605,6 +605,37 @@ fun ReaderView(
         onAcceptRemoteSync?.invoke(offset)
     }
 
+    // A chapter jump lands on its target at once but is centred on screen one frame later.
+    // Centring is a reverse-fit of a dozen text measurements; done inside the key handler it
+    // outlasted the key-repeat interval, so holding PgDn queued up events, froze for about a
+    // second without drawing, then skipped five or six chapters at once. Deferring it lets
+    // repeats that arrive within the same frame collapse into a single centring.
+    var pendingCenterTarget by remember { mutableStateOf<Int?>(null) }
+
+    fun jumpToChapterTarget(target: Int) {
+        lastChapterJumpOffset = target
+        navigator.jumpTo(target)
+        onAnchorChanged?.invoke(target)
+        if (navigator.spec.paneMode == PaneMode.ONE) {
+            pendingCenterTarget = target
+        } else {
+            // 2-pane never centres; its layout is already computed once per frame.
+            currentAnchor = navigator.anchor
+        }
+    }
+
+    LaunchedEffect(pendingCenterTarget) {
+        val target = pendingCenterTarget ?: return@LaunchedEffect
+        // Anything else that moved the reader in the meantime (a page turn, TOC, remote sync)
+        // has already set currentAnchor itself; centring now would undo it.
+        if (navigator.anchor == target) {
+            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
+            currentAnchor = navigator.anchor
+            onAnchorChanged?.invoke(currentAnchor)
+        }
+        pendingCenterTarget = null
+    }
+
     fun performNextChapterJump() {
         val chapters = detectedChapters
         if (chapters.isNullOrEmpty()) {
@@ -620,13 +651,12 @@ fun ReaderView(
         val anchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE)
         val target = ChapterJumpNavigator.nextBreakpoint(breakpoints, anchor)
         if (target != null) {
-            lastChapterJumpOffset = target
-            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
-        } else {
-            lastChapterJumpOffset = null
-            beginPageTurnSlide(forward = true)
-            navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+            jumpToChapterTarget(target)
+            return
         }
+        lastChapterJumpOffset = null
+        beginPageTurnSlide(forward = true)
+        navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
         currentAnchor = navigator.anchor
         onAnchorChanged?.invoke(currentAnchor)
     }
@@ -646,13 +676,12 @@ fun ReaderView(
         val anchor = minOf(currentAnchor, lastChapterJumpOffset ?: Int.MAX_VALUE)
         val target = ChapterJumpNavigator.previousBreakpoint(breakpoints, anchor)
         if (target != null) {
-            lastChapterJumpOffset = target
-            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
-        } else {
-            lastChapterJumpOffset = null
-            beginPageTurnSlide(forward = false)
-            navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+            jumpToChapterTarget(target)
+            return
         }
+        lastChapterJumpOffset = null
+        beginPageTurnSlide(forward = false)
+        navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
         currentAnchor = navigator.anchor
         onAnchorChanged?.invoke(currentAnchor)
     }
@@ -671,13 +700,12 @@ fun ReaderView(
         val anchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE)
         val target = cachedChapterOffsets.firstOrNull { it > anchor }
         if (target != null) {
-            lastChapterJumpOffset = target
-            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
-        } else {
-            lastChapterJumpOffset = null
-            beginPageTurnSlide(forward = true)
-            navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+            jumpToChapterTarget(target)
+            return
         }
+        lastChapterJumpOffset = null
+        beginPageTurnSlide(forward = true)
+        navigator.advance(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
         currentAnchor = navigator.anchor
         onAnchorChanged?.invoke(currentAnchor)
     }
@@ -696,13 +724,12 @@ fun ReaderView(
         val anchor = minOf(currentAnchor, lastChapterJumpOffset ?: Int.MAX_VALUE)
         val target = cachedChapterOffsets.lastOrNull { it < anchor }
         if (target != null) {
-            lastChapterJumpOffset = target
-            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
-        } else {
-            lastChapterJumpOffset = null
-            beginPageTurnSlide(forward = false)
-            navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
+            jumpToChapterTarget(target)
+            return
         }
+        lastChapterJumpOffset = null
+        beginPageTurnSlide(forward = false)
+        navigator.retreat(viewSettings.advanceRatio.coerceIn(0.1f, 1.0f))
         currentAnchor = navigator.anchor
         onAnchorChanged?.invoke(currentAnchor)
     }
