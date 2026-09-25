@@ -34,8 +34,6 @@ cd FloNovel-desktop && ./gradlew run                 # 실행 확인
 Android 계측 테스트(`app/src/androidTest`)는 기기가 필요하고 일부는 네트워크로 폰트를
 받아오므로 기본 게이트가 아니다.
 
----
-
 ## 1. 계약 — 하나라도 어기면 반대편 앱이 조용히 깨진다
 
 ### 읽기 위치
@@ -49,12 +47,10 @@ Android 계측 테스트(`app/src/androidTest`)는 기기가 필요하고 일부
 
 ### 이동 규칙 (Desktop 전용)
 
-Desktop 은 1-pane / 2-pane 을 **같은 규칙**으로 움직인다 — "보이는 양의 절반만큼
-전진". 구현은 `reader/ReaderNavigator.kt` 의 `advance(ratio)` **한 벌**이다.
-1-pane 이면 절반이 화면의 절반, 2-pane 이면 pane 하나라서 우측이 좌측으로 온다.
-
-Android 는 1-pane 뿐이라 이 규칙의 적용 대상이 아니고, `ReaderViewModel` 안에 자체
-페이지 이동이 따로 있다. **두 앱의 이동 코드를 합치려 들지 마라.**
+Desktop 은 1-pane / 2-pane 을 **같은 규칙**("보이는 양의 절반만큼 전진")으로 움직인다.
+구현은 `reader/ReaderNavigator.kt` 의 `advance(ratio)` **한 벌**이다 — 2-pane 이면 절반이 pane
+하나라서 우측이 좌측으로 온다. Android 는 1-pane 뿐이라 `ReaderViewModel` 에 자체 이동이 있다.
+**두 앱의 이동 코드를 합치려 들지 마라.**
 
 ### 전처리와 등록
 
@@ -140,8 +136,6 @@ relativePath.replace('\\', '/')            // 1
 - **리더로 열어 둔 책은 건드리지 않는다.** 그 책의 다운로드·삭제·충돌 처리는 닫을 때까지 미루고,
   커서도 저장하지 않아 다음 동기화가 다시 처리한다.
 
----
-
 ## 2. 만들지 않을 것
 
 ```text
@@ -217,17 +211,15 @@ relativePath.replace('\\', '/')            // 1
 
 - 새 behavior 에는 테스트를 함께 만든다.
 - `reader/` 테스트는 가짜 `TextFitter` 로 UI 없이 돈다.
-- 전처리·챕터 탐지 테스트는 `FloNovel-desktop/src/test/resources/fixtures/` 에 체크인된
-  픽스처를 쓴다(전처리 멱등성: `TextPreprocessorTest.p1_idempotencyOnFixtureNovelFiles`). 픽스처는 전각 공백·탭 들여쓰기·인접 중복 라인·3연속 개행·60자 초과
-  챕터 제목처럼 **실제 파일에서 겪은 사례를 재현**한 것이다. 새 사례가 필요하면 픽스처를
-  늘려라.
+- 전처리·챕터 탐지 테스트는 `FloNovel-desktop/src/test/resources/fixtures/` 의 픽스처를 쓴다
+  (멱등성: `TextPreprocessorTest.p1_idempotencyOnFixtureNovelFiles`). 픽스처는 전각 공백·탭
+  들여쓰기·인접 중복 라인·3연속 개행·60자 초과 제목처럼 **실제로 겪은 사례**를 재현한다.
+  새 사례가 필요하면 픽스처를 늘려라.
 - **테스트가 개인 파일시스템 경로를 가리키게 하지 마라.** 클론한 사람 누구나 전체
   테스트를 돌릴 수 있어야 하고, 저장소가 공개라 경로와 파일명 자체가 노출된다. 큰 파일이
   필요하면 `TestFixtures.createSyntheticLargeFile` 로 합성한다.
 - private 함수를 직접 테스트하지 않는다. behavior 로 잡는다.
 - 테스트가 실패하면 **테스트를 고치지 말고 원인을 고친다.**
-
----
 
 ## 7. 저장소 밖에 있는 것들
 
@@ -247,10 +239,9 @@ relativePath.replace('\\', '/')            // 1
 
 ## 8. Git 및 브랜치 워크플로
 
-- `main` 브랜치는 항상 빌드와 단위 테스트가 100% 통과하는 안정 상태를 유지하며, 직접 커밋하지 않는다.
-- **신규 기능 추가**: `feature/<feature-name>` 브랜치를 만들어 작업하고 해당 브랜치에 커밋/푸시한다. 구현 및 테스트 검증 완료 후 `main`에 머지하고 원격에 푸시한다.
-- **버그 수정**: `fix/<bug-name>` 브랜치를 만들어 작업하고 해당 브랜치에 커밋/푸시한다. 재현 테스트 및 회귀 검증 완료 후 `main`에 머지하고 원격에 푸시한다.
-- 머지 완료 후 작업 브랜치는 로컬과 원격에서 정리(삭제)한다.
+- `main` 은 항상 빌드와 단위 테스트가 100% 통과하는 상태로 두고, 직접 커밋하지 않는다.
+- 기능은 `feature/<name>`, 버그 수정은 `fix/<name>` 브랜치에서 커밋·푸시하고, 검증(버그는 재현
+  테스트와 회귀 검증)이 끝나면 `main` 에 머지해 푸시한다. 머지 후 브랜치는 로컬·원격에서 지운다.
 - 커밋은 작게, 논리 단위로 분리한다. 한 커밋에 포매팅·리팩터·기능을 섞지 않는다.
 
 ## 9. 막혔을 때
