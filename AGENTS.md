@@ -70,19 +70,15 @@ Android 는 1-pane 뿐이라 이 규칙의 적용 대상이 아니고, `ReaderVi
     정규식 엔진(ICU)에서는 뜻이 넓어서(`\d` 가 전각 숫자까지) 같은 입력이 다르게 나온다.
     문자 범위를 직접 쓰고 스크립트는 `Character.UnicodeScript` 로 판정한다.
   - 인코딩 판별도 양쪽이 같은 결정을 한다(EUC-KR 판정은 MS949 로, 판정 불가는 UTF-8).
-  - SAF 는 원자적 교체가 없어서, Android 는 원본을 `.flonovel/original/` 에 백업한 뒤 숨김 임시
-    파일에 쓰고, 원본을 지우고, 임시 파일 이름을 바꾼다. 중간에 끊기면 다음 동기화가 마무리한다.
-    파일 URI 가 바뀌므로 책을 **처음 열기 전**(또는 처음 올리기 전)에만 한다. Dropbox 에서 받아
-    동기화가 끝난 책(base 가 SYNCED)은 이미 전처리된 파일이라 여는 시점 확인을 건너뛴다 — 확인
-    자체가 파일 전체를 읽고 정규화해서, 큰 소설은 폰에서 여는 데 몇 초가 더 걸렸다.
+  - Android(SAF, 원자적 교체 없음)는 원본을 `.flonovel/original/` 에 백업 → 숨김 임시 파일에
+    쓰기 → 원본 삭제 → 이름 변경 순으로 하고, 끊기면 다음 동기화가 마무리한다. URI 가 바뀌므로
+    **처음 열기(또는 올리기) 전**에만 한다. base 가 SYNCED 인 책은 여는 시점 확인을 건너뛴다.
 
 ### 챕터
 
 - 챕터 목록은 **저장하지 않는다.** 책을 열 때마다 다시 탐지한다.
-- 전처리기가 붙인 `##` 표식은 **길이 제한 없이 신뢰**한다. 줄 길이 가드는 사용자가
-  직접 넣은 정규식에만 적용된다. 두 그룹을 한 리스트로 합친 것이 예전에 `##` 프리셋에
-  60자 제한을 물려서 라이브러리 챕터 줄의 **19.6%** 를 조용히 버리게 만들었다.
-- 전처리기 자체의 제목 판정에는 길이 제한을 넣지 않는다.
+- 전처리기가 붙인 `##` 표식과 전처리기 자체의 제목 판정은 **길이 제한 없이** 다룬다.
+  60자 줄 길이 가드는 사용자가 넣은 정규식에만 건다(`##` 에 물렸을 때 챕터 줄 19.6% 를 버렸다).
 
 ### 경로 정규화
 
@@ -108,27 +104,15 @@ relativePath.replace('\\', '/')            // 1
 
 ### 동기화 — 파일 (Dropbox)
 
-> **양방향이다** (2026-09-23 결정, 2026-09-24 `main` 머지. 계획은 `.work/two-way-sync-plan.md`).
-> 단방향(Desktop → Dropbox → Android) 시절 규칙은 폐지됐다.
-
-공통:
-
-- Dropbox 경로는 앱 폴더 루트 기준 **상대경로**만 쓴다 (`/books`,
-  `/.flonovel/secret.json`). `/Apps/<이름>/...` 같은 절대경로는 쓰지 않는다 —
-  앱 폴더 이름은 사용자마다 다르다.
-
-양방향 규칙:
-
-- **Dropbox `/books` 가 기준이다.** 두 앱 모두 추가·수정·삭제를 올리고, 상대가 바꾼 것을 받는다.
-- **판정은 3자 비교다.** 기기마다 파일별 base(마지막으로 맞춘 상태: `rev`,
-  `content_hash`, 로컬 크기, 로컬 수정시각)를 저장하고, **로컬↔base** 와 **원격↔base** 를
-  따로 판정한다. 로컬과 원격을 직접 비교해 "한쪽에만 있으니 새 파일/지운 파일"이라고
-  추론하지 마라. 단방향 시절 PC 가 "로컬에 없으면 원격 삭제", 폰이 "원격에 없으면 로컬
-  삭제"를 한 게 이 추론이고, 양방향에서 그대로 두면 상대 기기가 추가한 파일을 지운다.
-  - base 저장: Desktop 은 설정 폴더의 `sync-state.json`, Android 는 Room `sync_base`.
-- **내용 비교는 Dropbox `content_hash` 다.** 수정시각은 "해시를 다시 계산할지"를 정할
-  때만 쓴다. **수정시각으로 어느 쪽이 최신인지 정하지 마라** — 기기 시계가 다르고, 예전에
-  시각 비교가 무한 재다운로드를 만든 적이 있다.
+- 경로는 앱 폴더 루트 기준 **상대경로**만 쓴다(`/books`, `/.flonovel/secret.json`).
+  `/Apps/<이름>/...` 는 쓰지 않는다 — 앱 폴더 이름은 사용자마다 다르다.
+- **양방향이고, Dropbox `/books` 가 기준이다.** 두 앱 모두 추가·수정·삭제를 올리고 상대 변경을 받는다.
+- **판정은 3자 비교다.** 기기마다 파일별 base(`rev`, `content_hash`, 로컬 크기, 로컬 수정시각)를
+  저장하고 **로컬↔base**, **원격↔base** 를 따로 판정한다. 로컬과 원격을 직접 비교해 "한쪽에만
+  있으니 새 파일/지운 파일"이라고 추론하지 마라 — 상대 기기가 추가한 파일을 지운다.
+  base 는 Desktop 이 설정 폴더의 `sync-state.json`, Android 가 Room `sync_base` 에 둔다.
+- **내용 비교는 `content_hash` 다.** 수정시각은 해시를 다시 계산할지 정할 때만 쓰고, **어느
+  쪽이 최신인지 정하는 데 쓰지 않는다**(기기 시계가 달라 무한 재다운로드를 만든 적이 있다).
 - **업로드는 `mode=update(rev)`, 새 파일은 `mode=add`, 삭제는 `parent_rev` 를 건다.**
   `overwrite` 는 쓰지 않는다 — 그 사이 다른 기기가 올린 변경을 조용히 덮는다. Dropbox 가
   거부하면 그 파일은 다음 판정에서 충돌로 처리된다.
@@ -140,24 +124,16 @@ relativePath.replace('\\', '/')            // 1
   유지한다. 먼저 저장하면 처리하지 못한 변경을 다시는 받지 못한다.
 - **원격 삭제를 PC 에 반영할 때는 항상 휴지통으로 보낸다.** Delete 키 설정(지정 폴더로
   옮기기)과 무관하다.
-- **대량 삭제는 자동으로 하지 않는다.** 한 번의 동기화가 20개 이상, 또는 5개 이상이면서
-  추적 중인 파일의 30% 이상을 지우게 되거나, 원격 `/books` 가 비어 있으면 멈추고 사용자에게
-  묻는다. 양방향 모두 적용한다. (30% 규칙에 5개 하한이 없으면 책 세 권 중 한 권만 지워도
-  매번 물어본다.) 계정을 잘못 연결하거나 앱 폴더를 초기화하면 양쪽 라이브러리가 함께 지워진다.
-- **다운로드 중인 파일은 업로드하지 않는다.** Android SAF 는 원자적 교체가 안 돼서 끊긴
-  다운로드가 잘린 파일로 남는다. 다운로드 전에 base 에 `DOWNLOADING` 을 기록하고, 그 상태의
-  파일은 다시 받는다. 이걸 빼먹으면 잘린 파일이 "로컬 수정"으로 보여 원격을 덮는다.
-- **배포는 Desktop 이 먼저다.** 옛 Desktop 은 원격에만 있는 파일을 지우므로, 양방향
-  Android 가 먼저 나가면 폰이 올린 책이 사라진다.
-- **동기화 시점**: Desktop 은 Dropbox longpoll 로 원격 변경을 알아채고, 창에 돌아올 때(1분에
-  한 번까지)도 동기화한다. Android 는 백그라운드 동기화 없이 라이브러리 화면이 앞으로 올 때
-  (앱 실행, 다른 앱에서 복귀, 리더에서 복귀) 1분에 한 번까지 동기화한다.
+- **대량 삭제는 자동으로 하지 않는다.** 한 번의 동기화가 20개 이상, 또는 5개 이상이면서 추적
+  중인 파일의 30% 이상을 지우게 되거나, 원격 `/books` 가 비어 있으면 멈추고 묻는다. 양방향 모두.
+  계정을 잘못 연결하거나 앱 폴더를 초기화하면 양쪽 라이브러리가 함께 지워지기 때문이다.
+- **다운로드 중인 파일은 업로드하지 않는다.** 다운로드 전에 base 에 `DOWNLOADING` 을 기록하고,
+  그 상태의 파일은 다시 받는다. 빠지면 SAF 에 남은 잘린 파일이 "로컬 수정"으로 보여 원격을 덮는다.
 - **이동과 이름 변경**: 한 회차에서 "base 가 있던 파일이 사라짐"과 "base 없는 새 파일"이 내용
-  해시로 1:1 짝지어지면 이동으로 처리한다. 로컬에서 옮겼으면 Dropbox `move_v2`, 원격에서 옮겼으면
-  로컬 파일을 옮긴다(재전송 없음). 같은 내용이 여럿이라 짝이 애매하면 삭제+추가로 둔다. 이동한
-  책은 로컬 읽기 기록을 따라 옮기고, Supabase 위치를 새 경로 키로 복사한다(max-wins 라 되돌아가지
-  않음). 이동은 대량 삭제로 세지 않는다. Android 에서 전처리가 바꿀 이름으로 옮긴 경우는 이동이
-  아니라 전처리를 거친다.
+  해시로 1:1 짝지어지면 이동이다. 로컬 이동은 Dropbox `move_v2`, 원격 이동은 로컬 파일 이동(재전송
+  없음). 짝이 애매하면 삭제+추가로 둔다. 읽기 기록을 따라 옮기고 Supabase 위치를 새 경로 키로
+  복사한다. 이동은 대량 삭제로 세지 않는다. Android 에서 전처리가 바꿀 이름으로 옮긴 경우는
+  이동이 아니라 전처리를 거친다.
 - **리더로 열어 둔 책은 건드리지 않는다.** 그 책의 다운로드·삭제·충돌 처리는 닫을 때까지 미루고,
   커서도 저장하지 않아 다음 동기화가 다시 처리한다.
 
@@ -175,16 +151,15 @@ relativePath.replace('\\', '/')            // 1
 
 새 인터페이스를 만들기 전에 답하라 — **지금 실제 구현이 둘 이상인가?**
 
-현재 있는 인터페이스와 그 정당성:
+현재 있는 인터페이스 (Room DAO 는 Room 이 요구해서 예외):
 
-| | 구현체 | 판단 |
-|---|---|---|
-| `TextFitter` (desktop) | `ComposeTextFitter` · `FakeTextFitter` | 정당. **reader 패키지에 주입되는 유일한 인터페이스** |
-| `FolderBrowser` (android) | `SafFolderBrowser` · `FakeFolderBrowser` | 정당 |
-| `LibraryFiles` (android) | `SafLibraryFiles` · `FakeLibraryFiles` | 정당. 양방향 동기화를 SAF 없이 JVM 테스트 |
-| `SettingsController` (android) | ViewModel 들 | 정당. 설정 시트를 특정 VM에서 분리 |
-| `BookDao` (android) | Room 생성 | Room 이 인터페이스를 요구함 |
-| `SyncBaseDao` (android) | Room 생성 | Room 이 인터페이스를 요구함 |
+| | 구현체 |
+|---|---|
+| `TextFitter` (desktop) — reader 패키지에 주입되는 유일한 인터페이스 | `ComposeTextFitter` · `FakeTextFitter` |
+| `FolderBrowser` (android) | `SafFolderBrowser` · `FakeFolderBrowser` |
+| `LibraryFiles` (android) | `SafLibraryFiles` · `FakeLibraryFiles` |
+| `SettingsController` (android) | ViewModel 들 |
+| `BookDao` · `SyncBaseDao` (android) | Room 생성 |
 
 ## 3. 안정성
 
@@ -206,14 +181,8 @@ relativePath.replace('\\', '/')            // 1
 | 주석 | **"왜"** 를 쓴다. "무엇"은 코드가 말한다 |
 | UI 문자열 | 양쪽 모두 `values/strings.xml`(영어, 기본값) + `values-ko/strings.xml`. Android 는 `res/`, Desktop 은 `src/main/resources/` 에 있고 `i18n/Strings.kt` 가 읽는다. **새 문자열은 두 파일에 함께 넣는다** |
 
-이 코드베이스는 주석에 **실제로 겪은 문제**를 남기는 관행이 있다. 이어가고, 기존
-것을 지우지 마라.
-
-```kotlin
-// Measure the whole page span at once. Summing per-paragraph heights does not
-// equal the height of measuring them together (line-spacing rounding differs),
-// which used to push the last line off the page.
-```
+주석에 **실제로 겪은 문제**를 남기는 관행이 있다("예전에 X 때문에 마지막 줄이 밀려났다" 식).
+이어가고, 기존 것을 지우지 마라.
 
 ## 5. 이름
 
@@ -233,28 +202,13 @@ relativePath.replace('\\', '/')            // 1
 
 새 코드·식별자·문자열에 옛 이름을 들이지 마라.
 
-**Desktop 설정 디렉터리 이름은 두 곳에서 나오는데 철자가 반드시 같아야 한다.**
-
-```text
-configDir(DropboxConfig.appConfigDirName)  ->  FloNovel / FloNovelDev
-    settings.json · books.json · credentials.json
-configDir()  ->  DEFAULT_APP_DIR = "FloNovel"
-    fonts/
-```
-
-예전에는 둘이 대소문자만 달라서(`FloNovel` vs `flonovel`) Windows·macOS 는 한
-폴더로 합쳤지만 **Linux 에서는 폰트가 설정 폴더 옆에 따로 떨어졌다.** 지금은
-맞춰져 있고, `ConfigDir.kt` 주석이 그 이유를 지키고 있다.
-
-dev 빌드는 설정을 `FloNovelDev` 로 격리하지만 **폰트는 격리하지 않는다** —
-`configDir()` 기본값은 dev 를 모른다. 용량 큰 다운로드를 dev/release 가 공유하는
-편이 낫다는 판단이고, Dropbox 의 `books/` 를 공유하는 것과 같은 이유다.
-
-**Android 백업 제외 규칙은 DataStore 파일명과 정확히 일치해야 한다.**
-`res/xml/backup_rules.xml` 과 `res/xml/data_extraction_rules.xml` 이
-`datastore/flonovel_settings.preferences_pb` 를 제외하는데, 그 파일에 Dropbox refresh
-token 과 Supabase 시크릿이 들어 있다. DataStore 이름만 바꾸고 이 둘을 잊으면
-**자격증명이 클라우드 백업으로 나간다.**
+- **Desktop 설정 폴더 이름**: `DropboxConfig.appConfigDirName`(설정 파일)과 `ConfigDir.kt` 의
+  `DEFAULT_APP_DIR`(폰트)의 철자가 반드시 같아야 한다 — 대소문자만 달라도 Linux 에서 폴더가
+  갈라진다(`ConfigDir.kt` 주석 참고). dev 빌드는 설정만 `FloNovelDev` 로 격리하고 폰트는
+  일부러 공유한다.
+- **Android 백업 제외 규칙은 DataStore 파일명과 정확히 일치해야 한다.** `res/xml/backup_rules.xml`
+  · `data_extraction_rules.xml` 이 `datastore/flonovel_settings.preferences_pb`(Dropbox refresh
+  token · Supabase 시크릿)를 제외한다. DataStore 이름만 바꾸면 **자격증명이 클라우드 백업으로 나간다.**
 
 ## 6. 테스트
 
@@ -281,8 +235,7 @@ token 과 Supabase 시크릿이 들어 있다. DataStore 이름만 바꾸고 이
   이름을 바꾸면 저쪽에서 SQL을 다시 돌려야 한다.
 - **Dropbox** — 앱 키와 리디렉트 URI 는 개발자 콘솔에서 온다. 앱 폴더 이름은 사용자가
   처음 연결할 때 고정되고, **앱 이름을 바꿔도 기존 폴더는 개명되지 않는다.**
-  권한(scope)도 콘솔에서 켜야 한다. 양방향 전환으로 Android 가 `files.content.write` 를
-  요청하게 되면, **이미 연결한 폰은 다시 연결해야** 새 권한이 토큰에 들어간다.
+  권한(scope)도 콘솔에서 켜야 하고, 새 권한은 **다시 연결해야** 기존 토큰에 들어간다.
 - **GitHub secrets** — 릴리스 워크플로가 7개를 읽는다. 여기서 키 이름이 바뀌면
   저쪽에도 새 secret 이 필요하다.
 - **서명 키스토어** — 저장소 밖에 있고 `local.properties` 가 가리킨다. 그 경로가
