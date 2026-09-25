@@ -683,6 +683,24 @@ class KeyboardNavigationTest {
     // --- 15. TOC Dialog key navigation & resolution ---
 
     @Test
+    fun tocDialog_pageKeys_resolveOnlyWhenChaptersExist() {
+        assertEquals(TocDialogKeyAction.PAGE_DOWN, resolveTocKeyAction(Key.PageDown, hasChapters = true))
+        assertEquals(TocDialogKeyAction.PAGE_UP, resolveTocKeyAction(Key.PageUp, hasChapters = true))
+        assertEquals(TocDialogKeyAction.NONE, resolveTocKeyAction(Key.PageDown, hasChapters = false))
+        assertEquals(TocDialogKeyAction.NONE, resolveTocKeyAction(Key.PageUp, hasChapters = false))
+    }
+
+    @Test
+    fun tocDialog_pageTarget_movesOnePageAndClampsToList() {
+        assertEquals(19, tocPageTarget(selectedIndex = 9, pageSize = 10, count = 100, forward = true))
+        assertEquals(0, tocPageTarget(selectedIndex = 9, pageSize = 10, count = 100, forward = false))
+        assertEquals(99, tocPageTarget(selectedIndex = 95, pageSize = 10, count = 100, forward = true))
+        assertEquals(30, tocPageTarget(selectedIndex = 40, pageSize = 10, count = 100, forward = false))
+        // Before the list is laid out no row counts as visible; still move at least one row.
+        assertEquals(6, tocPageTarget(selectedIndex = 5, pageSize = 0, count = 100, forward = true))
+    }
+
+    @Test
     fun tocDialog_resolveKeyAction_navigationDismissAndSelect() {
         // Dismiss on Escape
         assertEquals(
