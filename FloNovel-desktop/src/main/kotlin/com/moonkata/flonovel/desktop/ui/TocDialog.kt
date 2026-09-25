@@ -55,6 +55,8 @@ enum class TocDialogKeyAction {
     DISMISS,
     NAVIGATE_DOWN,
     NAVIGATE_UP,
+    PAGE_DOWN,
+    PAGE_UP,
     SELECT_CHAPTER,
     NONE,
 }
@@ -63,8 +65,21 @@ fun resolveTocKeyAction(key: Key, hasChapters: Boolean): TocDialogKeyAction = wh
     Key.Escape -> TocDialogKeyAction.DISMISS
     Key.DirectionDown -> if (hasChapters) TocDialogKeyAction.NAVIGATE_DOWN else TocDialogKeyAction.NONE
     Key.DirectionUp -> if (hasChapters) TocDialogKeyAction.NAVIGATE_UP else TocDialogKeyAction.NONE
+    Key.PageDown -> if (hasChapters) TocDialogKeyAction.PAGE_DOWN else TocDialogKeyAction.NONE
+    Key.PageUp -> if (hasChapters) TocDialogKeyAction.PAGE_UP else TocDialogKeyAction.NONE
     Key.Enter, Key.NumPadEnter -> if (hasChapters) TocDialogKeyAction.SELECT_CHAPTER else TocDialogKeyAction.NONE
     else -> TocDialogKeyAction.NONE
+}
+
+/**
+ * Index the selection lands on after PgDn/PgUp: one list page of [pageSize] rows away,
+ * clamped to the list.
+ */
+fun tocPageTarget(selectedIndex: Int, pageSize: Int, count: Int, forward: Boolean): Int {
+    if (count <= 0) return 0
+    val step = pageSize.coerceAtLeast(1)
+    val target = if (forward) selectedIndex + step else selectedIndex - step
+    return target.coerceIn(0, count - 1)
 }
 
 /**
@@ -88,7 +103,8 @@ fun findCurrentChapter(chapters: List<Chapter>, anchor: Int): Chapter? {
  *
  * Requirements (T-10):
  * - Displays detected chapters, jumping to selected chapter offset on click or Enter.
- * - Keyboard navigation: Up/Down moves selected chapter highlight, Enter jumps to selected chapter.
+ * - Keyboard navigation: Up/Down moves selected chapter highlight, PgDn/PgUp move it a list page,
+ *   Enter jumps to selected chapter.
  * - '##' preset chapters without length limit (titles exceeding 60 characters are included).
  * - Ultra-long titles (even 10,000+ characters) are cleanly truncated to a single line with ellipsis.
  * - 0 chapters detected is a valid normal state: displays clean empty content without error or warning.
@@ -150,6 +166,24 @@ fun TocDialog(
                     if (hasChapters) {
                         selectedIndex = (selectedIndex - 1).coerceAtLeast(0)
                         coroutineScope.launch { listState.animateScrollToItem(selectedIndex) }
+                    }
+                    true
+                }
+                TocDialogKeyAction.PAGE_DOWN, TocDialogKeyAction.PAGE_UP -> {
+                    if (hasChapters) {
+                        // A page is the rows fully in view right now, so the list moves by
+                        // exactly what the reader just saw. Scrolling without animation keeps
+                        // up when the key is held down.
+                        val layoutInfo = listState.layoutInfo
+                        val pageSize = layoutInfo.visibleItemsInfo.count {
+                            it.offset >= layoutInfo.viewportStartOffset &&
+                                it.offset + it.size <= layoutInfo.viewportEndOffset
+                        }
+                        val forward = event.key == Key.PageDown
+                        val step = tocPageTarget(selectedIndex, pageSize, chapters!!.size, forward) - selectedIndex
+                        selectedIndex += step
+                        val firstVisible = listState.firstVisibleItemIndex
+                        coroutineScope.launch { listState.scrollToItem((firstVisible + step).coerceAtLeast(0)) }
                     }
                     true
                 }
