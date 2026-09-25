@@ -2,317 +2,308 @@
 
 # FloNovel
 
-**A reader for your own `.txt` novels, on your phone and on your desk, always on the same page.**
+**내가 가진 `.txt` 소설을 폰에서도, 책상에서도 — 언제나 같은 페이지에서.**
 
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
 ![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
 ![Windows · macOS · Linux](https://img.shields.io/badge/Desktop-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-0078D6)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-[Install](#install) · [Getting started](#getting-started) · [Sync setup](#setting-up-sync-optional) · [FAQ](#faq) · [Contributing](#contributing)
+[English](README.en.md) · **한국어**
+
+[설치](#설치) · [시작하기](#시작하기) · [동기화 설정](#동기화-설정-선택) · [자주 묻는 질문](#자주-묻는-질문) · [기여하기](#기여하기)
 
 </div>
 
 ---
 
-FloNovel is a pair of reading apps for plain-text novels: the kind that arrive as a single 40 MB
-`.txt` file with no chapters, no metadata, and an encoding nobody bothered to write down.
+FloNovel 은 텍스트 소설을 위한 리더 앱 한 쌍입니다. 챕터도, 메타데이터도 없이 40 MB 짜리 `.txt`
+한 파일로 오고, 인코딩이 무엇인지 아무도 적어 두지 않은 바로 그런 소설 말입니다.
 
-Both apps clean up every book they're given, find its chapters, and remember your place down to the
-character. Connect them to your own Dropbox and they share one library: add, edit, rename or delete a
-book on either device and the other follows. Whichever one you last read on, the other knows where
-you stopped.
+두 앱은 받은 책을 모두 정리하고, 챕터를 찾아내고, 읽던 위치를 글자 단위까지 기억합니다. 각자의
+Dropbox 에 연결하면 두 앱이 하나의 서재를 공유합니다. 어느 기기에서든 책을 추가·수정·이름 변경·
+삭제하면 다른 쪽도 따라옵니다. 마지막에 어느 쪽에서 읽었든, 다른 쪽이 멈춘 곳을 압니다.
 
-No FloNovel account. No subscription. No servers of ours. The only sign-in is your own Dropbox, and
-your books never leave it.
+FloNovel 계정도, 구독도, 저희 서버도 없습니다. 로그인은 여러분 자신의 Dropbox 하나뿐이고, 책은
+그 밖으로 나가지 않습니다.
 
 <!-- Screenshots go here. Recommended: the desktop 2-pane reader, the Android reader, and one library
      view side by side. -->
 
 ---
 
-## Two apps, one library
+## 두 개의 앱, 하나의 서재
 
 | | 📱 [**Android**](FloNovel-android/) | 🖥️ [**Desktop**](FloNovel-desktop/) |
 |---|---|---|
-| Reading | Page flip or continuous scroll | One-page or two-page spread |
-| Controls | Tap zones (3-column or 3×3 grid), swipes, volume keys | Keyboard, every key remappable |
-| Library | Your folders, `.zip` archives read in place | Watched home folder, cleaned up on arrival |
-| Hands-free | Read-aloud (TTS), timed page turns | Timed page turns, background radio with sleep timer |
-| Extras | Brightness, orientation lock, keep-screen-on | Focus-friendly layout, 20-20-20 eye-rest reminder |
-| Runs on | Android 7.0 and newer | Windows, macOS, Linux |
+| 읽기 | 페이지 넘김 또는 연속 스크롤 | 한 쪽 보기 또는 두 쪽 펼침 |
+| 조작 | 터치 영역(3분할 또는 3×3 그리드), 스와이프, 볼륨 키 | 키보드, 모든 키 재지정 가능 |
+| 서재 | 내 폴더 그대로, `.zip` 은 압축을 풀지 않고 읽기 | 홈 폴더를 감시하고 들어오는 즉시 정리 |
+| 핸즈프리 | 소리 내어 읽기(TTS), 시간 간격 페이지 넘김 | 시간 간격 페이지 넘김, 슬립 타이머가 있는 배경 라디오 |
+| 그 밖에 | 밝기, 화면 방향 고정, 화면 꺼짐 방지 | 집중하기 좋은 레이아웃, 20-20-20 눈 휴식 알림 |
+| 지원 환경 | Android 7.0 이상 | Windows, macOS, Linux |
 
-Each app has its own guide: **[Android →](FloNovel-android/README.md)** · **[Desktop →](FloNovel-desktop/README.md)**
-
----
-
-## Features
-
-### 📖 Built for very long books
-
-Web novels routinely run past ten million characters. FloNovel opens them without splitting them,
-jumps anywhere in the text without a loading screen, and searches the whole book at once.
-
-### 🔤 It reads Korean text correctly
-
-UTF-8, EUC-KR and CP949 are detected automatically, including the extended characters that make most
-readers show boxes and question marks. There is no encoding menu, because you should never need one.
-
-### 🔖 Your place survives everything
-
-FloNovel remembers where you are in the *text*, not "page 37". Change the font, resize the window,
-switch to two-page mode, pick up your phone: you land on the same sentence every time.
-
-### 🧹 Books cleaned up on arrival
-
-Whichever device a book lands on first tidies it up: unified line endings, duplicated lines and
-runaway blank space removed, chapter headings marked, unwieldy filenames shortened. Both apps apply
-**byte-for-byte the same cleanup**, verified against shared test fixtures, so a book never looks
-different depending on where it was added. Your original is backed up first, untouched.
-
-### 📚 Chapters, even when the file has none
-
-Chapter headings are found every time you open a book, so a table of contents and chapter-to-chapter
-navigation work on files that were never structured for them. Long chapters can be split into
-evenly spaced jump points, and you can add your own heading patterns.
-
-### ☁️ Two-way sync without an account
-
-Sign into the same Dropbox on both devices and you're done. No pairing code, no profile, no FloNovel
-server in the middle.
-
-- **Books** sync both ways. Additions, edits, renames, moves and deletions travel in either
-  direction.
-- **Nothing is silently overwritten.** If the same book changed on both devices, both versions are
-  kept, and yours is saved alongside as a clearly named conflicted copy.
-- **Mass deletions stop and ask.** If a sync would remove an unusual number of books (the classic
-  sign of a wrong Dropbox account), FloNovel asks before touching anything.
-- **Reading position** syncs both ways, and when the other device is further along, you're offered
-  the jump instead of being moved without asking.
-
-### 🎨 Comfortable to actually read in
-
-Six curated themes, from Warm Ivory to Dark Navy. Adjustable font, size, line height, letter spacing
-and margins, plus a catalog of downloadable Korean and Latin fonts. The interface is available in
-**English and Korean**.
+앱별 안내서: **[Android →](FloNovel-android/README.md)** · **[Desktop →](FloNovel-desktop/README.md)**
 
 ---
 
-## Install
+## 기능
+
+### 📖 아주 긴 책을 위해 만들었습니다
+
+웹소설은 천만 자를 넘기기 일쑤입니다. FloNovel 은 이런 책을 쪼개지 않고 열고, 로딩 화면 없이
+본문 어디로든 이동하며, 책 전체를 한 번에 검색합니다.
+
+### 🔤 한국어 텍스트를 제대로 읽습니다
+
+UTF-8, EUC-KR, CP949 를 자동으로 판별합니다. 대부분의 리더가 네모와 물음표로 보여 주는 확장 한글
+글자까지 포함해서요. 인코딩 메뉴는 없습니다. 필요할 일이 없어야 하니까요.
+
+### 🔖 무엇을 바꿔도 읽던 위치는 그대로
+
+FloNovel 은 "37페이지"가 아니라 *본문* 속 위치를 기억합니다. 글꼴을 바꾸고, 창 크기를 바꾸고,
+두 쪽 보기로 전환하고, 폰을 집어 들어도 매번 같은 문장에 도착합니다.
+
+### 🧹 들어오는 즉시 정리되는 책
+
+책이 처음 들어온 기기가 그 책을 정리합니다. 줄바꿈 통일, 중복 줄과 과도한 빈 줄 제거, 챕터 제목
+표시, 지나치게 긴 파일명 줄이기. 두 앱은 공유 테스트 픽스처로 검증된 **바이트 단위로 같은 정리**를
+하므로, 어디서 추가했느냐에 따라 책이 달라 보이는 일이 없습니다. 원본은 먼저 손대지 않은 채로
+백업됩니다.
+
+### 📚 챕터가 없는 파일에도 챕터를
+
+책을 열 때마다 챕터 제목을 찾아내므로, 애초에 구조가 없던 파일에서도 목차와 챕터 간 이동이
+동작합니다. 긴 챕터는 일정한 간격의 점프 지점으로 나눌 수 있고, 제목 패턴을 직접 추가할 수도
+있습니다.
+
+### ☁️ 계정 없는 양방향 동기화
+
+두 기기에서 같은 Dropbox 로 로그인하면 끝입니다. 페어링 코드도, 프로필도, 중간에 끼는 FloNovel
+서버도 없습니다.
+
+- **책**은 양방향으로 동기화됩니다. 추가·수정·이름 변경·이동·삭제가 어느 방향으로든 전달됩니다.
+- **아무것도 몰래 덮어쓰지 않습니다.** 같은 책이 두 기기에서 모두 바뀌었다면 두 버전을 다 남기고,
+  내 쪽은 이름으로 알아볼 수 있는 충돌 사본으로 옆에 저장합니다.
+- **대량 삭제는 멈추고 묻습니다.** 한 번의 동기화가 평소보다 많은 책을 지우게 되면(Dropbox 계정을
+  잘못 연결했을 때의 전형적인 신호입니다) 아무것도 건드리기 전에 확인합니다.
+- **읽기 위치**도 양방향으로 동기화되고, 다른 기기가 더 앞서 있으면 묻지 않고 옮기는 대신 이동을
+  제안합니다.
+
+### 🎨 실제로 오래 읽기 편하게
+
+웜 아이보리부터 다크 네이비까지 여섯 가지 테마. 글꼴, 크기, 줄 간격, 자간, 여백을 조절할 수 있고,
+내려받을 수 있는 한글·라틴 글꼴 목록도 있습니다. 인터페이스는 **한국어와 영어**를 지원합니다.
+
+---
+
+## 설치
 
 ### 📱 Android
 
-Grab the latest `.apk` from the **[Releases page](../../releases)** and install it.
+**[Releases 페이지](../../releases)** 에서 최신 `.apk` 를 받아 설치합니다.
 
-Requires **Android 7.0 (API 24) or newer**. Your phone will ask you to allow installs from your
-browser or file manager the first time: this is a sideloaded app, not a Play Store listing.
+**Android 7.0(API 24) 이상**이 필요합니다. 처음 설치할 때 브라우저나 파일 관리자의 설치 허용을
+요청받습니다. Play 스토어 앱이 아니라 직접 설치하는 앱이기 때문입니다.
 
-> **Tip:** [Obtainium](https://github.com/ImranR98/Obtainium) can watch this repository and install
-> new releases for you.
+> **팁:** [Obtainium](https://github.com/ImranR98/Obtainium) 으로 이 저장소를 지켜보다가 새 릴리스를
+> 자동으로 설치할 수 있습니다.
 
 ### 🖥️ Desktop
 
-Packaged installers aren't published yet. Building one takes a single command and **JDK 17 or
-newer**:
+설치 파일은 아직 배포하지 않습니다. 직접 만드는 데는 명령 하나와 **JDK 17 이상**이면 됩니다.
 
 ```bash
 cd FloNovel-desktop
 ./gradlew packageDistributionForCurrentOS
 ```
 
-That produces an `.msi` on Windows, a `.dmg` on macOS, or a `.deb` on Linux. On Windows,
-`./gradlew packageExe` builds an `.exe` installer and `./gradlew createDistributable` a portable
-build that runs without installing.
+Windows 에서는 `.msi`, macOS 에서는 `.dmg`, Linux 에서는 `.deb` 가 만들어집니다. Windows 에서는
+`./gradlew packageExe` 로 `.exe` 설치 파일을, `./gradlew createDistributable` 로 설치 없이 실행되는
+포터블 빌드를 만들 수 있습니다.
 
-Just want to try it? `./gradlew run` launches the app directly.
-
----
-
-## Getting started
-
-**1. Point an app at your books.**
-On the desktop, choose a home folder: wherever your `.txt` files live. On Android, tap **Add
-folder**. FloNovel scans it, cleans up what it finds, and lists everything.
-
-**2. Read.**
-On the desktop, `.` and `,` turn pages, `PgUp`/`PgDn` jump through a chapter, `F3` opens the table of
-contents and `F2` searches. On the phone, tap the right side of the screen to go forward and the
-middle to bring up the toolbar.
-
-**3. Connect Dropbox on both** *(optional; see below).*
-Your library and your place follow you from then on.
+그냥 써 보고 싶다면 `./gradlew run` 으로 바로 실행됩니다.
 
 ---
 
-## Setting up sync (optional)
+## 시작하기
 
-Everything above works offline and indefinitely without this section. Sync is opt-in, and it's built
-so that **you own every piece of it**, which does mean a one-time setup.
+**1. 앱에 책 폴더를 알려 줍니다.**
+데스크톱에서는 `.txt` 파일이 있는 곳을 홈 폴더로 고릅니다. Android 에서는 **폴더 추가**를 누릅니다.
+FloNovel 이 폴더를 훑어 찾은 파일을 정리하고 목록으로 보여 줍니다.
 
-FloNovel uses two services, both on your own accounts:
+**2. 읽습니다.**
+데스크톱에서는 `.` 과 `,` 로 페이지를 넘기고, `PgUp`/`PgDn` 으로 챕터 안을 건너뛰며, `F3` 은 목차,
+`F2` 는 검색입니다. 폰에서는 화면 오른쪽을 누르면 다음으로, 가운데를 누르면 도구 모음이 나옵니다.
 
-| | What it carries | Why |
+**3. 양쪽에 Dropbox 를 연결합니다** *(선택, 아래 참고)*.
+그때부터 서재와 읽던 위치가 여러분을 따라다닙니다.
+
+---
+
+## 동기화 설정 (선택)
+
+위의 모든 기능은 이 절 없이도 오프라인에서 계속 동작합니다. 동기화는 원할 때만 켜는 기능이고,
+**모든 구성 요소를 여러분이 소유**하도록 만들어져 있어서 한 번의 설정이 필요합니다.
+
+FloNovel 은 두 가지 서비스를 쓰며, 둘 다 여러분 자신의 계정입니다.
+
+| | 담는 것 | 이유 |
 |---|---|---|
-| **Dropbox** | Your book files, and one shared key | The app only ever sees its own app folder, never the rest of your Dropbox |
-| **Supabase** | Your reading position (a number per book) | Small, frequent updates that Dropbox is a poor fit for |
+| **Dropbox** | 책 파일과 공유 키 하나 | 앱은 자기 앱 폴더만 볼 수 있고, Dropbox 의 나머지는 보지 못합니다 |
+| **Supabase** | 읽기 위치(책마다 숫자 하나) | Dropbox 에 어울리지 않는 작고 잦은 갱신 |
 
-### What you'll need
+### 준비할 것
 
-1. **A Dropbox app.** Create one at [dropbox.com/developers/apps](https://www.dropbox.com/developers/apps)
-   with **App folder** access and the scopes `files.metadata.read/write`, `files.content.read/write`
-   and `account_info.read`. Add `http://localhost:52475/oauth/callback` as a redirect URI for the
-   desktop app. Copy the app key.
-2. **A Supabase project.** The free tier is plenty. It needs one table, `flonovel_sync`, holding a
-   row per book (`relative_path`, `char_offset`, `source`, `encoding`), with a trigger that derives
-   the owner from the request's secret header and keeps the highest reading position, plus a
-   row-level security policy so each secret only sees its own rows. Copy the project URL and the
-   publishable key.
-3. **Put both into `local.properties`** in each app folder: copy the `local.properties.example`
-   sitting next to it and fill in the blanks.
+1. **Dropbox 앱.** [dropbox.com/developers/apps](https://www.dropbox.com/developers/apps) 에서
+   **App folder** 권한으로 만들고, `files.metadata.read/write`, `files.content.read/write`,
+   `account_info.read` 권한(scope)을 켭니다. 데스크톱 앱을 위해 리디렉트 URI 로
+   `http://localhost:52475/oauth/callback` 을 추가합니다. 앱 키를 복사합니다.
+2. **Supabase 프로젝트.** 무료 플랜이면 충분합니다. 책마다 한 행(`relative_path`, `char_offset`,
+   `source`, `encoding`)을 담는 테이블 `flonovel_sync` 하나가 필요합니다. 여기에 요청의 시크릿
+   헤더로 소유자를 계산하고 가장 앞선 읽기 위치를 유지하는 트리거, 그리고 각 시크릿이 자기 행만
+   보도록 하는 행 수준 보안(RLS) 정책을 둡니다. 프로젝트 URL 과 publishable key 를 복사합니다.
+3. 각 앱 폴더의 **`local.properties` 에 둘 다 넣습니다.** 옆에 있는 `local.properties.example` 을
+   복사해서 빈칸을 채우면 됩니다.
 
-### Then, on each device
+### 그다음, 각 기기에서
 
-Connect Dropbox. That's the whole pairing step: the desktop app generates a random key, stores it in
-your Dropbox app folder, and the phone finds it there. Nothing is typed, scanned, or sent anywhere
-else.
+Dropbox 를 연결합니다. 이것이 페어링의 전부입니다. 데스크톱 앱이 무작위 키를 만들어 Dropbox 앱
+폴더에 저장하고, 폰이 거기서 그 키를 찾습니다. 입력하거나 스캔하거나 다른 곳으로 보내는 것은
+없습니다.
 
-> **Upgrading from a one-way version?** Earlier Android builds only downloaded, so their Dropbox link
-> carries no upload permission. The app tells you when this is the case; reconnect Dropbox once on
-> the phone and its changes start reaching the PC. Update the desktop app first: an older desktop
-> build deletes books that exist only in Dropbox, which is exactly where the phone puts new ones.
+> **단방향 버전에서 업그레이드하나요?** 예전 Android 빌드는 내려받기만 했기 때문에 그때 만든
+> Dropbox 연결에는 업로드 권한이 없습니다. 이 경우 앱이 알려 주니, 폰에서 Dropbox 를 한 번 다시
+> 연결하면 폰의 변경이 PC 로 가기 시작합니다. 데스크톱 앱을 먼저 업데이트하세요. 예전 데스크톱
+> 빌드는 Dropbox 에만 있는 책을 지우는데, 폰이 새 책을 넣는 곳이 바로 거기입니다.
 
-### When things sync
+### 언제 동기화되나요
 
-- **Desktop:** immediately when Dropbox reports a change, whenever you return to the window (at most
-  once a minute), and on demand.
-- **Android:** whenever the library comes to the front (launching the app, returning from the reader
-  or another app), at most once a minute, and on demand. There is no background sync draining your
-  battery.
+- **Desktop:** Dropbox 가 변경을 알리는 즉시, 창으로 돌아올 때마다(최대 1분에 한 번), 그리고 원할
+  때.
+- **Android:** 서재 화면이 앞으로 올 때마다(앱 실행, 리더나 다른 앱에서 돌아올 때) 최대 1분에
+  한 번, 그리고 원할 때. 배터리를 잡아먹는 백그라운드 동기화는 없습니다.
 
-A book you currently have open is never swapped out from under you. Changes to it wait until you
-close it.
+지금 열어 둔 책이 읽는 도중에 바뀌는 일은 없습니다. 그 책의 변경은 책을 닫을 때까지 기다립니다.
 
 ---
 
-## FAQ
+## 자주 묻는 질문
 
 <details>
-<summary><b>Does it read EPUB or PDF?</b></summary>
+<summary><b>EPUB 이나 PDF 도 읽나요?</b></summary>
 
-No. FloNovel is deliberately a plain-text reader: `.txt` files, plus `.txt` files inside `.zip`
-archives on Android (read in place, not synced).
+아니요. FloNovel 은 일부러 텍스트 전용 리더로 만들었습니다. `.txt` 파일, 그리고 Android 에서는
+`.zip` 안의 `.txt` 파일(압축을 풀지 않고 읽으며, 동기화되지 않음)까지입니다.
 </details>
 
 <details>
-<summary><b>Will it modify my original files?</b></summary>
+<summary><b>원본 파일을 수정하나요?</b></summary>
 
-Yes. Both apps rewrite each new text file once to normalize it, and may shorten a very long filename.
-**Every original is backed up first** into `.flonovel/original/` inside your library folder, and a
-book that has already been processed is never touched again. An interrupted rewrite never leaves you
-with a half-written book: the desktop replaces the file atomically, and Android finishes or discards
-the pending write on the next run.
+네. 두 앱 모두 새 텍스트 파일을 한 번 다시 써서 정리하고, 아주 긴 파일명은 줄일 수 있습니다.
+**원본은 항상 먼저** 서재 폴더 안의 `.flonovel/original/` 에 백업되고, 이미 처리된 책은 다시
+건드리지 않습니다. 다시 쓰는 도중에 끊겨도 반쯤 쓰인 책이 남지 않습니다. 데스크톱은 파일을
+원자적으로 교체하고, Android 는 다음 실행 때 남은 쓰기를 마무리하거나 버립니다.
 </details>
 
 <details>
-<summary><b>If I delete a book on my phone, what happens on my PC?</b></summary>
+<summary><b>폰에서 책을 지우면 PC 에서는 어떻게 되나요?</b></summary>
 
-It's deleted there too, and lands in the PC's Recycle Bin, not gone for good. Both apps say so in the
-confirmation before you delete.
+PC 에서도 지워지는데, 완전히 사라지지 않고 PC 의 휴지통으로 갑니다. 두 앱 모두 지우기 전 확인
+창에서 이 점을 알려 줍니다.
 </details>
 
 <details>
-<summary><b>What's a "conflicted copy"?</b></summary>
+<summary><b>"충돌 사본"이 뭔가요?</b></summary>
 
-If the same book was changed on both devices before they could sync, FloNovel keeps both. The Dropbox
-version keeps the original name; the other is saved as, for example,
-`Book (conflicted copy - PC - 2026-09-23).txt`. Compare them and delete the one you don't want.
+두 기기가 동기화하기 전에 같은 책이 양쪽에서 바뀌면 FloNovel 은 둘 다 남깁니다. Dropbox 쪽
+버전이 원래 이름을 갖고, 다른 쪽은 예를 들어 `책 (충돌 사본 - PC - 2026-09-23).txt` 로 저장됩니다.
+비교해 보고 원하지 않는 쪽을 지우면 됩니다.
 </details>
 
 <details>
-<summary><b>Do I have to set up Dropbox and Supabase?</b></summary>
+<summary><b>Dropbox 와 Supabase 를 꼭 설정해야 하나요?</b></summary>
 
-No. Both apps are fully usable with no configuration at all; sync simply reports itself as
-unconfigured. Set up only Dropbox if you want a shared library but don't care about position sync.
+아니요. 두 앱 모두 아무 설정 없이 온전히 쓸 수 있고, 동기화만 "설정되지 않음"으로 표시됩니다.
+서재 공유만 원하고 위치 동기화는 필요 없다면 Dropbox 만 설정해도 됩니다.
 </details>
 
 <details>
-<summary><b>Can FloNovel see my books or my reading history?</b></summary>
+<summary><b>FloNovel 이 내 책이나 독서 기록을 볼 수 있나요?</b></summary>
 
-There is no FloNovel server. Files sit in your Dropbox app folder; reading positions sit in your
-Supabase project. Both are accounts you create and control.
+FloNovel 서버는 없습니다. 파일은 여러분의 Dropbox 앱 폴더에, 읽기 위치는 여러분의 Supabase
+프로젝트에 있습니다. 둘 다 여러분이 만들고 관리하는 계정입니다.
 </details>
 
 <details>
-<summary><b>Why is my reading position a percentage with decimals?</b></summary>
+<summary><b>읽기 위치가 왜 소수점 있는 퍼센트인가요?</b></summary>
 
-Because these books are enormous. In a ten-million-character novel, one percent is a hundred thousand
-characters, roughly an hour of reading.
+책이 엄청나게 길기 때문입니다. 천만 자짜리 소설에서 1% 는 10만 자, 대략 한 시간 분량입니다.
 </details>
 
 <details>
-<summary><b>Nothing appears in my table of contents.</b></summary>
+<summary><b>목차에 아무것도 안 나와요.</b></summary>
 
-Chapter headings are detected by pattern. Cleaned-up files get `##` markers automatically, but a
-heading style FloNovel doesn't recognize won't be marked. The desktop library flags books with
-suspiciously few chapters, and both apps let you add your own patterns in settings.
+챕터 제목은 패턴으로 찾습니다. 정리된 파일에는 `##` 표식이 자동으로 붙지만, FloNovel 이 모르는
+제목 형식에는 붙지 않습니다. 데스크톱 서재는 챕터가 의심스러울 만큼 적은 책을 표시해 주고, 두 앱
+모두 설정에서 패턴을 직접 추가할 수 있습니다.
 </details>
 
 ---
 
-## Under the hood
+## 내부 구조
 
-Both apps are written in **Kotlin** with **Jetpack Compose**: Compose for Android on the phone,
-Compose Desktop on the JVM. The Android app stores its library in **Room** and its settings in
-**DataStore**; the desktop app uses atomically written JSON files in your OS config directory.
+두 앱 모두 **Kotlin** 과 **Jetpack Compose** 로 만들었습니다. 폰은 Compose for Android, 데스크톱은
+JVM 위의 Compose Desktop 입니다. Android 앱은 서재를 **Room** 에, 설정을 **DataStore** 에 저장하고,
+데스크톱 앱은 OS 설정 폴더에 원자적으로 쓰는 JSON 파일을 씁니다.
 
-The two apps **share no code**. They interoperate through a written contract (reading position as a
-character offset, path normalization, the cleanup rules, and a three-way sync protocol built on
-Dropbox revisions and content hashes) that each side enforces with its own tests, including
-byte-for-byte comparisons of the two text preprocessors against the same fixtures.
+두 앱은 **코드를 공유하지 않습니다.** 대신 문서로 정한 계약(문자 오프셋으로 표현한 읽기 위치, 경로
+정규화, 정리 규칙, Dropbox 리비전과 content hash 위에 세운 3자 비교 동기화 프로토콜)으로 맞물리고,
+각자 자기 테스트로 그 계약을 지킵니다. 같은 픽스처에 대해 두 전처리기의 출력을 바이트 단위로
+비교하는 테스트도 포함됩니다.
 
-No dependency-injection framework, no ORM beyond Room, no reactive framework. Both apps ship with
-unit tests that run headless on the JVM, and the Android app adds an instrumented suite that drives
-the real Compose UI on a device.
+의존성 주입 프레임워크도, Room 외의 ORM 도, 리액티브 프레임워크도 없습니다. 두 앱 모두 JVM 에서
+화면 없이 도는 단위 테스트를 갖추고 있고, Android 앱에는 기기에서 실제 Compose UI 를 조작하는
+계측 테스트가 더 있습니다.
 
 ---
 
-## Building from source
+## 소스에서 빌드하기
 
-There's no Gradle project at the repository root; each app builds independently.
+저장소 루트에는 Gradle 프로젝트가 없습니다. 각 앱이 따로 빌드됩니다.
 
 ```bash
-# Android: needs JDK 17+ to run Gradle
+# Android: Gradle 실행에 JDK 17+ 필요
 cd FloNovel-android
-./gradlew testDebugUnitTest    # unit tests
+./gradlew testDebugUnitTest    # 단위 테스트
 ./gradlew assembleDebug
 
-# Desktop: needs JDK 17+
+# Desktop: JDK 17+ 필요
 cd FloNovel-desktop
-./gradlew test                 # unit tests
+./gradlew test                 # 단위 테스트
 ./gradlew run
 ```
 
-Neither build requires any credentials. Missing keys leave the build working and disable the matching
-sync feature at runtime.
+어느 빌드도 자격 증명이 필요 없습니다. 키가 없으면 빌드는 그대로 되고, 실행 시 해당 동기화 기능만
+꺼집니다.
 
 ---
 
-## Contributing
+## 기여하기
 
-Issues and pull requests are welcome. A few things worth knowing before you start:
+이슈와 풀 리퀘스트를 환영합니다. 시작하기 전에 알아 두면 좋은 것들:
 
-- The two apps deliberately **share no code**. They interoperate through a contract covering reading
-  position, path normalization, preprocessing and the sync protocol; [AGENTS.md](AGENTS.md) spells it
-  out, and breaking one side silently breaks the other.
-- Changing the preprocessor means changing it in **both** apps. Regenerate the expected output on
-  the desktop with `./gradlew test -PupdateGolden` and copy it to the Android fixtures; each side's
-  tests compare against the other's copy.
-- New behavior comes with tests. `BUILD SUCCESSFUL` is not a pass: Gradle prints it after running
-  zero tests too.
-- Code, comments and commit messages are in English.
+- 두 앱은 일부러 **코드를 공유하지 않습니다.** 읽기 위치, 경로 정규화, 전처리, 동기화 프로토콜을
+  다루는 계약으로 맞물리며, [AGENTS.md](AGENTS.md) 에 자세히 적혀 있습니다. 한쪽을 깨뜨리면 다른
+  쪽이 조용히 깨집니다.
+- 전처리기를 바꾸려면 **두** 앱 모두에서 바꿔야 합니다. 데스크톱에서 `./gradlew test -PupdateGolden`
+  으로 기대 출력을 다시 만들고 Android 픽스처로 복사하세요. 양쪽 테스트가 서로의 사본과 비교합니다.
+- 새 동작에는 테스트가 따라와야 합니다. `BUILD SUCCESSFUL` 은 통과가 아닙니다. Gradle 은 테스트를
+  0건 실행해도 그렇게 출력합니다.
+- 코드, 주석, 커밋 메시지는 영어로 씁니다.
 
 ---
 
-## License
+## 라이선스
 
 [Apache License 2.0](LICENSE).

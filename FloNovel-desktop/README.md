@@ -2,148 +2,141 @@
 
 # FloNovel for Desktop
 
-**A keyboard-driven reader for your own `.txt` novels, with a two-page spread, automatic cleanup,
-and your library shared with your phone.**
+**키보드로 다루는 `.txt` 소설 리더. 두 쪽 펼침, 자동 정리, 그리고 폰과 함께 쓰는 서재.**
 
 ![Windows · macOS · Linux](https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-0078D6)
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
 ![Compose Desktop](https://img.shields.io/badge/Compose%20Desktop-4285F4?logo=jetpackcompose&logoColor=white)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-[Install](#install) · [Getting started](#getting-started) · [Shortcuts](#keyboard-shortcuts) · [Sync](#about-sync) · [FAQ](#faq)
+[English](README.en.md) · **한국어**
+
+[설치](#설치) · [시작하기](#시작하기) · [단축키](#단축키) · [동기화](#동기화) · [자주 묻는 질문](#자주-묻는-질문)
 
 </div>
 
 ---
 
-The desktop half of **[FloNovel](../README.md)**. Give it a folder, and it keeps every text file in
-it clean, catalogued, and (if you want) in step with your phone.
+**[FloNovel](../README.md)** 의 데스크톱 쪽입니다. 폴더 하나를 맡기면, 그 안의 텍스트 파일을 모두
+깔끔하게 정리하고 목록으로 만들고, 원한다면 폰과 맞춰 둡니다.
 
 <!-- Screenshots go here. Recommended: the 2-pane reader in dark theme, the library, and the settings
      dialog on the Shortcuts tab. -->
 
 ---
 
-## Features
+## 기능
 
-### 📖 One page or two
+### 📖 한 쪽 또는 두 쪽
 
-Read a single column, or a full two-page spread like an open book. Both modes advance the same way,
-by half of what you can currently see, so in two-page mode the right page slides over to become the
-left, exactly as turning a paper page would. In one-page mode, a short half-slide animation (fast,
-normal, slow, or off) keeps your eye on the line you were reading.
+한 단으로 읽거나, 펼친 책처럼 두 쪽을 나란히 놓고 읽습니다. 두 방식 모두 지금 보이는 양의 절반만큼
+전진하므로, 두 쪽 보기에서는 종이책을 넘길 때처럼 오른쪽 쪽이 왼쪽으로 옵니다. 한 쪽 보기에서는
+짧은 반 칸 슬라이드 애니메이션(빠르게, 보통, 느리게, 끄기)이 읽던 줄에서 눈을 놓치지 않게 해 줍니다.
 
-In one-page mode, a chapter jump lands in the middle of the screen. In two-page mode you can have
-every new chapter start at the top of the left page.
+한 쪽 보기에서 챕터로 점프하면 화면 가운데에 도착합니다. 두 쪽 보기에서는 새 챕터가 항상 왼쪽
+쪽의 맨 위에서 시작하게 할 수 있습니다.
 
-### ⌨️ Built for the keyboard
+### ⌨️ 키보드를 위해 만들었습니다
 
-Every action is a key, and every key can be reassigned: click a row in settings and press what you'd
-rather use. Controls stay out of the way so the page is just text.
+모든 동작이 키 하나이고, 모든 키를 바꿀 수 있습니다. 설정에서 줄을 누르고 원하는 키를 누르면
+됩니다. 조작 요소가 비켜 서 있어서 페이지에는 글만 남습니다.
 
-### 📑 Chapters, search, and a table of contents
+### 📑 챕터, 검색, 목차
 
-Chapter headings are found every time you open a book. Nothing is cached, so changing a pattern
-re-detects the whole book instantly.
+책을 열 때마다 챕터 제목을 찾습니다. 캐시하지 않으므로 패턴을 바꾸면 책 전체를 곧바로 다시
+탐지합니다.
 
-- **Next / previous chapter** goes straight to the next heading.
-- **Chapter jump** splits each chapter into evenly spaced points (4 by default) so a 40-minute
-  chapter is still navigable. Books with no chapters at all move by a fixed amount instead.
-- `F3` lists every chapter and scrolls to where you are; `F2` searches the full text and jumps
-  straight to a hit.
-- The library flags books with **suspiciously few chapter markers** per megabyte, so you notice a
-  heading style that needs a custom pattern before you're halfway through.
+- **다음 / 이전 챕터**는 다음 제목으로 바로 갑니다.
+- **챕터 점프**는 각 챕터를 일정한 간격의 지점(기본 4개)으로 나눠서 40분짜리 챕터도 이동하기
+  편하게 합니다. 챕터가 전혀 없는 책은 대신 고정된 양만큼 움직입니다.
+- `F3` 은 모든 챕터를 보여 주고 지금 위치로 스크롤합니다. `F2` 는 본문 전체를 검색하고 결과로 바로
+  이동합니다.
+- 서재는 메가바이트당 **챕터 표식이 의심스러울 만큼 적은** 책을 표시해 주므로, 사용자 패턴이
+  필요한 제목 형식을 책 중간쯤이 아니라 미리 알아챌 수 있습니다.
 
-### 🧹 Your library, cleaned up automatically
+### 🧹 알아서 정리되는 서재
 
-Drop a text file into your folder and FloNovel picks it up on its own: line endings unified,
-duplicated lines and runaway blank space removed, chapter headings marked, overlong filenames
-shortened. Your original is backed up first, and each file is processed only once. See
-[what exactly changes](#what-flonovel-does-to-your-files).
+폴더에 텍스트 파일을 넣으면 FloNovel 이 알아서 가져갑니다. 줄바꿈 통일, 중복 줄과 과도한 빈 줄
+제거, 챕터 제목 표시, 너무 긴 파일명 줄이기. 원본은 먼저 백업되고, 각 파일은 한 번만 처리됩니다.
+[정확히 무엇이 바뀌는지](#flonovel-이-파일에-하는-일) 확인하세요.
 
-### 🔤 Encodings sorted out for you
+### 🔤 인코딩은 알아서
 
-UTF-8, EUC-KR and CP949 are detected automatically, including the extended Korean characters that
-usually render as boxes. There is no encoding menu.
+UTF-8, EUC-KR, CP949 를 자동으로 판별합니다. 흔히 네모로 나오는 확장 한글 글자까지요. 인코딩
+메뉴는 없습니다.
 
-### 🗂️ A library that stays out of your way
+### 🗂️ 방해하지 않는 서재
 
-Browse your home folder with breadcrumbs, sort by recent, name, date or size, and see how far into
-each book you are. Recently opened books sit at the top. On launch, FloNovel reopens the book you were
-reading, at the spot you left it.
+경로 표시(breadcrumb)로 홈 폴더를 둘러보고, 최근·이름·날짜·크기 순으로 정렬하고, 책마다 얼마나
+읽었는지 봅니다. 최근에 연 책이 맨 위에 옵니다. 앱을 켜면 읽던 책을 멈춘 자리에서 다시 엽니다.
 
-`F7` reveals a book in your file manager, `F8` opens it in your default app, and `Delete`
-sends it to the Recycle Bin, or to a folder of your choosing. Empty folders can be deleted the same
-way.
+`F7` 은 파일 관리자에서 책 위치를 보여 주고, `F8` 은 기본 앱으로 열며, `Delete` 는 휴지통이나
+지정한 폴더로 보냅니다. 빈 폴더도 같은 방법으로 지울 수 있습니다.
 
-### 🎨 Tuned for reading, not for demos
+### 🎨 시연이 아니라 독서를 위해 다듬었습니다
 
-Six themes: Warm Ivory, Sepia Cream, Dark Navy, Soft Gray, Cool Light and Soft Dark Brown. On
-Windows 11 the title bar follows the theme too.
+여섯 가지 테마: 웜 아이보리, 세피아 크림, 다크 네이비, 소프트 그레이, 쿨 라이트, 소프트 다크
+브라운. Windows 11 에서는 제목 표시줄도 테마를 따릅니다.
 
-Font, weight, size, line height, letter spacing, margins, gutter width and the left/right pane ratio
-are all adjustable, with a live preview. A separate **UI scale** lets you enlarge the text without
-inflating the buttons, and a **maximum line width** stops a paragraph from stretching across an
-ultrawide monitor.
+글꼴, 굵기, 크기, 줄 간격, 자간, 여백, 가운데 간격, 좌우 pane 비율을 모두 조절할 수 있고 바로
+미리 보입니다. 별도의 **UI 배율**로 버튼은 키우지 않고 글자만 키울 수 있고, **최대 폭 제한**으로
+울트라와이드 모니터에서 문단이 끝없이 늘어나지 않게 합니다.
 
-The interface speaks **English and Korean**, following your system by default or set explicitly in
-settings.
+인터페이스는 **한국어와 영어**를 지원하며, 기본은 시스템 언어를 따르고 설정에서 직접 고를 수도
+있습니다.
 
-### 🔠 Fonts, handled honestly
+### 🔠 글꼴은 정직하게
 
-A built-in catalog of Korean and Latin reading fonts (Pretendard, Noto Sans KR, MaruBuri, RIDIBatang,
-EB Garamond and more) shows what's already installed, what can be downloaded directly, and what has
-to come from the vendor's own page for licensing reasons, with a link instead of a button that
-wouldn't work. Downloads are verified before they're used. Prefer your own? Drop `.ttf` or `.otf`
-files into the fonts folder and they show up immediately.
+한글·라틴 독서용 글꼴 카탈로그(Pretendard, Noto Sans KR, 마루부리, 리디바탕, EB Garamond 등)가
+이미 설치된 것, 바로 내려받을 수 있는 것, 라이선스 때문에 제작사 페이지에서 받아야 하는 것을
+구분해 보여 줍니다. 마지막 경우에는 동작하지 않을 버튼 대신 링크를 줍니다. 내려받은 글꼴은 쓰기
+전에 검증합니다. 내 글꼴을 쓰고 싶다면 `.ttf` 나 `.otf` 파일을 fonts 폴더에 넣으면 바로 나타납니다.
 
-### ⏱️ Hands-free reading
+### ⏱️ 손 안 대고 읽기
 
-**Auto page-turn** (`P`) turns the page on a fixed interval: 5, 10, 15 or 20 seconds, or your own. It
-stops by itself at the end of the book.
+**자동 페이지 넘기기**(`P`)는 5, 10, 15, 20초 또는 직접 정한 간격으로 페이지를 넘깁니다. 책 끝에
+도달하면 알아서 멈춥니다.
 
-### 👀 Eye-rest reminder
+### 👀 눈 휴식 알림
 
-Turn on the **20-20-20 reminder** and every 20 minutes the reader pauses for a 20-second break to look
-at something far away, then returns you to your page.
+**20-20-20 알림**을 켜면 20분마다 리더가 멈추고 20초 동안 먼 곳을 보게 한 뒤, 읽던 페이지로
+돌려보냅니다.
 
-### 🎧 Background audio with a sleep timer
+### 🎧 슬립 타이머가 있는 배경 음악
 
-Play an internet radio stream while you read. Three stations are built in (The Lounge Hour,
-RelaxingJazz.com, COTN Radio), and you can edit the list with any direct MP3/AAC stream. Set how long
-it should run (60 minutes by default, with 30/90/120 presets and minute-level adjustment) and it stops
-on its own. The remaining time sits next to the progress percentage in the footer, and one click on
-the media button stops everything immediately.
+읽는 동안 인터넷 라디오를 틀 수 있습니다. 세 개의 방송국(The Lounge Hour, RelaxingJazz.com, COTN
+Radio)이 기본으로 들어 있고, 직접 연결되는 MP3/AAC 스트림이면 무엇이든 목록에 넣을 수 있습니다.
+재생 시간을 정하면(기본 60분, 30/90/120분 프리셋과 분 단위 조절) 알아서 멈춥니다. 남은 시간은
+하단의 진행률 옆에 표시되고, 미디어 버튼을 한 번 누르면 모든 것이 즉시 멈춥니다.
 
-### ☁️ Your library on your phone, and back
+### ☁️ 폰으로, 그리고 다시 PC 로
 
-Connect Dropbox and your library syncs **both ways** with the Android app: books added, edited,
-renamed, moved or deleted on either side reach the other. Dropbox changes are picked up the moment
-they happen. Reading position syncs both ways too. See [About sync](#about-sync).
+Dropbox 를 연결하면 서재가 Android 앱과 **양방향으로** 동기화됩니다. 어느 쪽에서든 추가·수정·이름
+변경·이동·삭제한 책이 다른 쪽에 전달됩니다. Dropbox 의 변경은 일어나는 즉시 반영됩니다. 읽기
+위치도 양방향으로 동기화됩니다. [동기화](#동기화)를 참고하세요.
 
 ---
 
-## Install
+## 설치
 
-Packaged installers aren't published yet. Building one takes a single command and **JDK 17 or
-newer**:
+설치 파일은 아직 배포하지 않습니다. 직접 만드는 데는 명령 하나와 **JDK 17 이상**이면 됩니다.
 
 ```bash
 cd FloNovel-desktop
 ./gradlew packageDistributionForCurrentOS
 ```
 
-| Platform | You get |
+| 플랫폼 | 결과물 |
 |---|---|
-| Windows | `.msi` installer |
+| Windows | `.msi` 설치 파일 |
 | macOS | `.dmg` |
 | Linux | `.deb` |
 
-On Windows there are two more options: `./gradlew packageExe` builds an `.exe` installer, and
-`./gradlew createDistributable` produces a **portable** build that runs from a folder without
-installing anything.
+Windows 에는 두 가지 선택지가 더 있습니다. `./gradlew packageExe` 는 `.exe` 설치 파일을,
+`./gradlew createDistributable` 은 아무것도 설치하지 않고 폴더에서 바로 실행되는 **포터블** 빌드를
+만듭니다.
 
-Just want to try it without packaging?
+패키징 없이 그냥 써 보고 싶다면:
 
 ```bash
 ./gradlew run
@@ -151,117 +144,114 @@ Just want to try it without packaging?
 
 ---
 
-## Getting started
+## 시작하기
 
-**1. Set a home folder.**
-Click **Set home folder** in the top right and choose the directory holding your `.txt` files.
-FloNovel scans it, cleans up what it finds, and lists everything. Anything you add to that folder
-later is picked up automatically while the app is running.
+**1. 홈 폴더를 정합니다.**
+오른쪽 위의 **홈 폴더 설정**을 누르고 `.txt` 파일이 있는 폴더를 고릅니다. FloNovel 이 폴더를 훑어
+찾은 파일을 정리하고 목록으로 보여 줍니다. 앱이 실행 중일 때 그 폴더에 넣는 파일은 자동으로
+들어옵니다.
 
-**2. Read.**
-Click a book. `.` and `,` turn pages, `PgUp`/`PgDn` jump through the chapter, `[` and `]` move
-chapter to chapter, `Esc` goes back to the listing.
+**2. 읽습니다.**
+책을 누릅니다. `.` 과 `,` 로 페이지를 넘기고, `PgUp`/`PgDn` 으로 챕터 안을 건너뛰고, `[` 와 `]` 로
+챕터를 오가며, `Esc` 로 목록으로 돌아갑니다.
 
-**3. Adjust.**
-`F4` opens settings, organized in four tabs: **Reading View**, **Shortcuts**, **Files** and **Cloud
-Sync**.
+**3. 조절합니다.**
+`F4` 로 설정을 엽니다. **독서 화면**, **단축키**, **파일**, **클라우드 동기화** 네 탭으로 나뉩니다.
 
-**4. Connect Dropbox** *(optional).*
-On the Cloud Sync tab, click **Log in**. A browser window opens; approving it returns you to the app.
-Then start the first full sync from the banner in the library. After that, changes sync on their own.
+**4. Dropbox 를 연결합니다** *(선택)*.
+클라우드 동기화 탭에서 **로그인**을 누릅니다. 브라우저 창이 열리고, 승인하면 앱으로 돌아옵니다.
+그다음 서재의 배너에서 첫 전체 동기화를 시작합니다. 그 뒤로는 변경이 알아서 동기화됩니다.
 
 ---
 
-## Keyboard shortcuts
+## 단축키
 
-| Action | Default |
+| 동작 | 기본값 |
 |---|---|
-| Next page | `.` |
-| Previous page | `,` |
-| Next chapter jump point | `Page Down` |
-| Previous chapter jump point | `Page Up` |
-| Next chapter | `]` |
-| Previous chapter | `[` |
-| Back / parent folder | `Esc` |
-| Library home | `F1` |
-| Search | `F2` |
-| Table of contents | `F3` |
-| Settings | `F4` |
-| Reveal file in file manager | `F7` |
-| Open file in default app | `F8` |
-| Toggle auto page-turn | `P` |
-| Delete / move file | `Delete` |
+| 다음 페이지 | `.` |
+| 이전 페이지 | `,` |
+| 다음 챕터 점프 지점 | `Page Down` |
+| 이전 챕터 점프 지점 | `Page Up` |
+| 다음 챕터 | `]` |
+| 이전 챕터 | `[` |
+| 뒤로 / 상위 폴더 | `Esc` |
+| 서재 처음으로 | `F1` |
+| 검색 | `F2` |
+| 목차 | `F3` |
+| 설정 | `F4` |
+| 파일 관리자에서 파일 위치 보기 | `F7` |
+| 기본 앱으로 파일 열기 | `F8` |
+| 자동 페이지 넘기기 켜기/끄기 | `P` |
+| 파일 삭제 / 옮기기 | `Delete` |
 
-All of these are remappable under **Settings → Shortcuts**: click the row, press the key you want, or
-press `Esc` to clear it. **Reset to Defaults** puts the table above back.
+모두 **설정 → 단축키**에서 바꿀 수 있습니다. 줄을 누르고 원하는 키를 누르거나, `Esc` 를 눌러
+비웁니다. **기본값으로 초기화**하면 위 표대로 돌아갑니다.
 
-At the top level of the library, `Esc` asks before closing the app.
-
----
-
-## What FloNovel does to your files
-
-The desktop app **rewrites text files in your home folder**. That's the point of it, but you should
-know exactly what happens.
-
-**Every file is backed up first**, unmodified, into `.flonovel/original/` inside your home folder.
-Each file is processed exactly once: a book already handled is never touched again. The rewrite goes
-through a temporary file and replaces the original atomically, so a crash or power loss mid-write
-leaves the original intact. If there isn't enough free disk space, it stops before starting.
-
-What the cleanup changes:
-
-- `\r\n` and `\r` line endings become `\n`
-- Leading whitespace (including full-width spaces and tabs) is stripped from each line
-- Adjacent duplicate lines are removed
-- Blank-line spacing is regularized; runs of three or more newlines collapse to one blank line
-- Lines that look like chapter headings (`제45화`, `第184章`, `Chapter 12`, `#42` and similar) get a
-  `##` prefix, which is what makes the table of contents work in both apps
-- `## 파일 시작` and `## 파일 끝` markers are added at the start and end of the book
-- Filenames containing both Korean and Chinese characters have the Chinese removed, and names longer
-  than 50 characters are shortened
-
-The Android app applies the same rules, producing the same bytes, to books added on the phone.
-
-Don't want any of this? Keep your originals elsewhere and point FloNovel at a copy.
+서재 최상위에서 `Esc` 를 누르면 앱을 닫기 전에 묻습니다.
 
 ---
 
-## About sync
+## FloNovel 이 파일에 하는 일
 
-Books sync **both ways** through your Dropbox app folder, which is the shared source of truth:
+데스크톱 앱은 **홈 폴더의 텍스트 파일을 다시 씁니다.** 그게 이 앱의 핵심이지만, 정확히 무슨 일이
+일어나는지는 알고 계셔야 합니다.
 
-- **Three-way comparison.** For every book, FloNovel remembers the state both sides last agreed on
-  and decides from that, never by guessing from what exists where, and never by trusting clocks.
-- **No blind overwrites.** Uploads are tied to the Dropbox revision they're based on. If the book
-  changed on both sides, both versions are kept: the Dropbox one under the original name, this PC's
-  as `Book (conflicted copy - PC - 2026-09-23).txt`. An edit always wins over a deletion.
-- **Deletions are recoverable.** A book deleted on your phone goes to this PC's Recycle Bin, whatever
-  your Delete key is set to.
-- **Mass deletions ask first.** If one sync would delete 20 or more books, a large share of your
-  library, or finds your remote library empty, it stops and shows you the list. That's almost always
-  a different Dropbox account or a reset app folder.
-- **Moves are moves.** Renaming or moving a book is carried out as a move on the other side, with its
-  reading history, instead of a re-upload.
-- **The open book waits.** Changes to the book you're reading are applied after you close it.
+**모든 파일은 먼저 백업됩니다.** 손대지 않은 채로 홈 폴더 안의 `.flonovel/original/` 에 들어갑니다.
+각 파일은 정확히 한 번만 처리되고, 이미 처리된 책은 다시 건드리지 않습니다. 다시 쓰기는 임시 파일을
+거쳐 원본을 원자적으로 교체하므로, 쓰는 도중에 앱이 죽거나 전원이 나가도 원본은 멀쩡합니다. 디스크
+여유 공간이 부족하면 시작하기 전에 멈춥니다.
 
-**When it syncs:** as soon as Dropbox reports a change, when you return to the window (at most once a
-minute), and whenever you click **File sync**. Uploads show per-file progress and can be paused and
-resumed.
+정리가 바꾸는 것:
 
-Reading position syncs **both ways** as well. When your phone has read further, FloNovel shows how far
-and offers to jump (`Enter`) rather than moving you on its own. If a wrong position ever gets stuck
-in the cloud, **Force upload** on the Cloud Sync tab replaces it with this PC's.
+- `\r\n` 과 `\r` 줄바꿈을 `\n` 으로
+- 각 줄 앞의 공백(전각 공백과 탭 포함) 제거
+- 인접한 중복 줄 제거
+- 빈 줄 간격을 고르게 맞추고, 세 번 이상 연속된 개행은 빈 줄 하나로
+- 챕터 제목처럼 보이는 줄(`제45화`, `第184章`, `Chapter 12`, `#42` 등)에 `##` 접두어를 붙임. 이
+  표식 덕분에 두 앱 모두에서 목차가 동작합니다
+- 책의 처음과 끝에 `## 파일 시작`, `## 파일 끝` 표식 추가
+- 한글과 한자가 함께 든 파일명에서 한자를 빼고, 50자보다 긴 이름은 줄임
 
-Connecting Dropbox is the entire pairing step. This app generates a random key on first connect and
-stores it in your Dropbox app folder; your phone finds it there. You can regenerate that key from
-settings, but it abandons every reading position already stored remotely, so it asks first.
+Android 앱도 폰에서 추가한 책에 같은 규칙을 적용해 같은 바이트를 만듭니다.
 
-Full setup instructions are in the [main README](../README.md#setting-up-sync-optional).
+이런 게 싫다면 원본은 다른 곳에 두고 FloNovel 에는 사본을 지정하세요.
 
 ---
 
-## Where things are stored
+## 동기화
+
+책은 공유 기준점인 Dropbox 앱 폴더를 통해 **양방향으로** 동기화됩니다.
+
+- **3자 비교.** FloNovel 은 책마다 양쪽이 마지막으로 합의한 상태를 기억하고 그것을 기준으로
+  판단합니다. 어디에 무엇이 있는지로 추측하지도, 시계를 믿지도 않습니다.
+- **맹목적으로 덮어쓰지 않습니다.** 업로드는 기반이 된 Dropbox 리비전에 묶입니다. 양쪽에서 모두
+  바뀐 책은 두 버전을 다 남깁니다. Dropbox 쪽은 원래 이름으로, 이 PC 쪽은
+  `책 (충돌 사본 - PC - 2026-09-23).txt` 로. 수정과 삭제가 부딪히면 항상 수정이 이깁니다.
+- **삭제는 되돌릴 수 있습니다.** 폰에서 지운 책은 Delete 키 설정과 상관없이 이 PC 의 휴지통으로
+  갑니다.
+- **대량 삭제는 먼저 묻습니다.** 한 번의 동기화가 20권 이상, 또는 서재의 상당 부분을 지우게 되거나,
+  원격 서재가 비어 있으면 멈추고 목록을 보여 줍니다. 거의 항상 다른 Dropbox 계정이거나 초기화된 앱
+  폴더입니다.
+- **이동은 이동으로.** 책의 이름을 바꾸거나 옮기면, 다시 올리는 대신 반대편에서도 읽기 기록과 함께
+  이동으로 처리됩니다.
+- **열어 둔 책은 기다립니다.** 읽고 있는 책의 변경은 닫은 뒤에 적용됩니다.
+
+**동기화 시점:** Dropbox 가 변경을 알리는 즉시, 창으로 돌아올 때(최대 1분에 한 번), 그리고
+**파일 동기화**를 누를 때마다. 업로드는 파일별 진행률을 보여 주며 일시 정지와 재개가 됩니다.
+
+읽기 위치도 **양방향으로** 동기화됩니다. 폰에서 더 앞까지 읽었다면 FloNovel 이 얼마나 앞인지
+보여 주고 알아서 옮기는 대신 이동(`Enter`)을 제안합니다. 잘못된 위치가 클라우드에 박혀 버렸다면
+클라우드 동기화 탭의 **강제 업로드**로 이 PC 의 위치로 바꿀 수 있습니다.
+
+Dropbox 연결이 페어링의 전부입니다. 이 앱이 처음 연결할 때 무작위 키를 만들어 Dropbox 앱 폴더에
+저장하고, 폰이 거기서 찾습니다. 설정에서 이 키를 다시 만들 수 있지만, 그러면 원격에 저장된 모든
+읽기 위치를 버리게 되므로 먼저 묻습니다.
+
+전체 설정 방법은 [메인 README](../README.md#동기화-설정-선택) 에 있습니다.
+
+---
+
+## 저장 위치
 
 ```text
 <OS config dir>/FloNovel/          settings.json · books.json · credentials.json · sync-state.json
@@ -269,107 +259,106 @@ Full setup instructions are in the [main README](../README.md#setting-up-sync-op
 <your home folder>/.flonovel/original/    backups of every file processed
 ```
 
-`<OS config dir>` is `%APPDATA%` on Windows, `~/Library/Application Support` on macOS, and
-`$XDG_CONFIG_HOME` (or `~/.config`) on Linux. Development builds keep their settings in `FloNovelDev`
-instead, so they never touch your real library state.
+`<OS config dir>` 는 Windows 에서 `%APPDATA%`, macOS 에서 `~/Library/Application Support`, Linux 에서
+`$XDG_CONFIG_HOME`(또는 `~/.config`)입니다. 개발 빌드는 설정을 `FloNovelDev` 에 따로 두므로 실제
+서재 상태를 건드리지 않습니다.
 
 ---
 
-## FAQ
+## 자주 묻는 질문
 
 <details>
-<summary><b>Does it read EPUB or PDF?</b></summary>
+<summary><b>EPUB 이나 PDF 도 읽나요?</b></summary>
 
-No. FloNovel is a plain-text reader by design.
+아니요. FloNovel 은 설계부터 텍스트 전용 리더입니다.
 </details>
 
 <details>
-<summary><b>Can I stop it from modifying my files?</b></summary>
+<summary><b>파일을 수정하지 않게 할 수 있나요?</b></summary>
 
-Not from within the app. Point it at a copy of your library instead. Originals are also backed up
-into `.flonovel/original/` before anything is changed.
+앱 안에서는 안 됩니다. 대신 서재의 사본을 지정하세요. 무엇이든 바꾸기 전에 원본이
+`.flonovel/original/` 에 백업되기도 합니다.
 </details>
 
 <details>
-<summary><b>My table of contents is empty.</b></summary>
+<summary><b>목차가 비어 있어요.</b></summary>
 
-Chapter headings are matched by pattern. Files processed by FloNovel carry `##` markers automatically,
-but an unusual heading style may not be recognized; the library flags such books as having few
-chapter markers. You can add your own patterns in settings. Zero chapters is a normal result, not an
-error: chapter keys then move by a fixed amount instead.
+챕터 제목은 패턴으로 찾습니다. FloNovel 이 처리한 파일에는 `##` 표식이 자동으로 붙지만, 흔치 않은
+제목 형식은 인식하지 못할 수 있고, 그런 책은 서재에서 챕터 표식이 적다고 표시됩니다. 설정에서
+패턴을 직접 추가할 수 있습니다. 챕터가 0개인 것은 오류가 아니라 정상적인 결과이며, 이때 챕터 키는
+고정된 양만큼 움직입니다.
 </details>
 
 <details>
-<summary><b>I deleted a book and it disappeared from my phone too.</b></summary>
+<summary><b>책을 지웠더니 폰에서도 사라졌어요.</b></summary>
 
-That's two-way sync working as intended. The confirmation says so before you delete. The file is in
-your Recycle Bin (or your chosen move folder); put it back into the library folder and it syncs back.
+양방향 동기화가 의도대로 동작한 것입니다. 지우기 전에 확인 창이 알려 줍니다. 파일은 휴지통(또는
+지정한 이동 폴더)에 있으니, 서재 폴더로 되돌려 놓으면 다시 동기화됩니다.
 </details>
 
 <details>
-<summary><b>The browser didn't open when I tried to connect Dropbox.</b></summary>
+<summary><b>Dropbox 를 연결하려는데 브라우저가 열리지 않았어요.</b></summary>
 
-The app falls back to showing you the URL with a copy button. Paste it into any browser and the login
-completes normally.
+그럴 때는 앱이 복사 버튼과 함께 URL 을 보여 줍니다. 아무 브라우저에나 붙여 넣으면 로그인이
+정상적으로 끝납니다.
 </details>
 
 <details>
-<summary><b>Does it work without Dropbox or Supabase?</b></summary>
+<summary><b>Dropbox 나 Supabase 없이도 동작하나요?</b></summary>
 
-Completely. Both are optional; unconfigured builds simply show sync as unavailable and everything else
-works.
+완벽하게요. 둘 다 선택 사항입니다. 설정하지 않은 빌드는 동기화만 사용할 수 없다고 표시하고 나머지는
+모두 동작합니다.
 </details>
 
 <details>
-<summary><b>Is the app available in English?</b></summary>
+<summary><b>영어로도 쓸 수 있나요?</b></summary>
 
-Yes. English and Korean are both included. It follows your system language by default, and you can
-pick one explicitly under **Settings → Reading View → Language**.
+네. 한국어와 영어가 모두 들어 있습니다. 기본은 시스템 언어를 따르고, **설정 → 독서 화면 → 언어**
+에서 직접 고를 수 있습니다.
 </details>
 
 ---
 
-## Building from source
+## 소스에서 빌드하기
 
-Requires **JDK 17 or newer**.
+**JDK 17 이상**이 필요합니다.
 
 ```bash
-./gradlew run                              # launch
-./gradlew test                             # unit tests (headless)
+./gradlew run                              # 실행
+./gradlew test                             # 단위 테스트 (화면 없이)
 ./gradlew packageDistributionForCurrentOS  # msi / dmg / deb
-./gradlew packageExe                       # Windows installer
+./gradlew packageExe                       # Windows 설치 파일
 ```
 
-For sync features, copy `local.properties.example` to `local.properties`:
+동기화 기능을 쓰려면 `local.properties.example` 을 `local.properties` 로 복사합니다.
 
-| Key | What it's for |
+| 키 | 용도 |
 |---|---|
-| `DROPBOX_APP_KEY` | Your Dropbox app key. Register with **App folder** access and redirect URI `http://localhost:52475/oauth/callback` |
-| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Your Supabase project, for reading-position sync |
-| `FLONOVEL_DEV` | `true` keeps a development build's settings and sync data separate from your real ones |
+| `DROPBOX_APP_KEY` | Dropbox 앱 키. **App folder** 권한과 리디렉트 URI `http://localhost:52475/oauth/callback` 으로 등록 |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | 읽기 위치 동기화용 Supabase 프로젝트 |
+| `FLONOVEL_DEV` | `true` 면 개발 빌드의 설정과 동기화 데이터를 실제 것과 분리 |
 
-**All optional.** The build succeeds with every field blank, and the matching feature reports itself
-as unconfigured at runtime.
+**전부 선택 사항입니다.** 모든 칸을 비워도 빌드는 성공하고, 실행 시 해당 기능만 "설정되지 않음"으로
+표시됩니다.
 
-### Tests
+### 테스트
 
-The whole suite runs headless without a window, against a fake text measurer. Preprocessing and
-chapter detection are tested against checked-in fixtures that reproduce real-world files, and the
-preprocessor's output is compared byte for byte with the Android app's copy of the expected results.
-After an intentional preprocessor change, regenerate them with:
+전체 테스트는 창 없이 가짜 텍스트 측정기로 돕니다. 전처리와 챕터 탐지는 실제 파일을 재현한 저장소의
+픽스처로 검사하고, 전처리기 출력은 Android 앱이 가진 기대 출력 사본과 바이트 단위로 비교합니다.
+전처리기를 의도적으로 바꾼 뒤에는 다음으로 기대 출력을 다시 만듭니다.
 
 ```bash
 ./gradlew test -PupdateGolden
 ```
 
-### Built with
+### 사용한 기술
 
-Kotlin/JVM · Compose Desktop · juniversalchardet (encoding detection) · org.json · JNA (native title
-bar) · jlayer and javasound-aac (radio streaming). No dependency-injection framework, no ORM, no
-reactive framework.
+Kotlin/JVM · Compose Desktop · juniversalchardet (인코딩 판별) · org.json · JNA (네이티브 제목
+표시줄) · jlayer 와 javasound-aac (라디오 스트리밍). 의존성 주입 프레임워크도, ORM 도, 리액티브
+프레임워크도 쓰지 않습니다.
 
 ---
 
-## License
+## 라이선스
 
 [Apache License 2.0](../LICENSE).
