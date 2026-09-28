@@ -15,7 +15,10 @@ class ConfigDirTest {
             userHome = "C:\\Users\\testuser",
             appName = "FloNovel",
         )
-        val expected = Path.of("C:", "Users", "testuser", "AppData", "Roaming", "FloNovel")
+        // Built from the same Windows-style string rather than from segments: on a Linux/macOS
+        // host '\\' is not a separator, so a segment-built expectation only ever matched on
+        // Windows and these tests failed on the first Linux build.
+        val expected = Path.of("C:\\Users\\testuser\\AppData\\Roaming", "FloNovel")
         assertEquals(expected, path)
     }
 
@@ -27,7 +30,7 @@ class ConfigDirTest {
             userHome = "C:\\Users\\testuser",
             appName = "FloNovel",
         )
-        val expected = Path.of("C:", "Users", "testuser", "AppData", "Roaming", "FloNovel")
+        val expected = Path.of("C:\\Users\\testuser", "AppData", "Roaming", "FloNovel")
         assertEquals(expected, path)
     }
 
