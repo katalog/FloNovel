@@ -868,19 +868,30 @@ fun LibraryView(
 
             // Folder & Book List
             if (displayItems.isEmpty()) {
+                val homeMissing = remember(homeFolder, directoryRevision) {
+                    LibraryScanner.isHomeFolderMissing(homeFolder)
+                }
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = if (homeFolder.isBlank()) stringResource("library_no_home_folder_title") else stringResource("library_empty_folder_title"),
+                            text = when {
+                                homeFolder.isBlank() -> stringResource("library_no_home_folder_title")
+                                homeMissing -> stringResource("library_home_folder_missing_title")
+                                else -> stringResource("library_empty_folder_title")
+                            },
                             color = Color(0xFF9CA3AF),
                             fontSize = 15.sp,
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = if (homeFolder.isBlank()) stringResource("library_no_home_folder_desc") else stringResource("library_empty_folder_desc"),
+                            text = when {
+                                homeFolder.isBlank() -> stringResource("library_no_home_folder_desc")
+                                homeMissing -> stringResource("library_home_folder_missing_desc", homeFolder)
+                                else -> stringResource("library_empty_folder_desc")
+                            },
                             color = Color(0xFF6B7280),
                             fontSize = 12.sp,
                         )

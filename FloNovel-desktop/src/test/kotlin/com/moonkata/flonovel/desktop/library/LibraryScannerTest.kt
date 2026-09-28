@@ -313,5 +313,21 @@ class LibraryScannerTest {
         val item = itemWithChapterCount(sizeBytes = 3 * 1_048_576L, chapterCount = 20)
         assertTrue(item.hasLowChapterDensity(minChaptersPerMb = 10))
     }
-}
 
+    @Test
+    fun homeFolderMissingOnlyWhenSetButNotADirectory() {
+        val tempDir = createTempDirectory("library_home_missing_test")
+        try {
+            val home = tempDir.resolve("FloNovel").apply { createDirectories() }
+            val file = tempDir.resolve("note.txt").apply { writeText("x") }
+
+            assertFalse(LibraryScanner.isHomeFolderMissing(""))
+            assertFalse(LibraryScanner.isHomeFolderMissing(home.toString()))
+            // The doubled path the GTK folder picker used to return on Linux.
+            assertTrue(LibraryScanner.isHomeFolderMissing(home.resolve("FloNovel").toString()))
+            assertTrue(LibraryScanner.isHomeFolderMissing(file.toString()))
+        } finally {
+            tempDir.toFile().deleteRecursively()
+        }
+    }
+}
