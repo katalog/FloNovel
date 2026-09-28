@@ -32,6 +32,7 @@ class SyncStateStoreTest {
 
     private val sample = SyncState(
         cursor = "cursor-1",
+        homeFolder = "/home/reader/책",
         bases = mapOf(
             "a/책.txt" to SyncBase("a/책.txt", "A/책.txt", "r1", "h1", 10, 100),
             "b.txt" to SyncBase("b.txt", "B.txt", "r2", "h2", 20, 200, BaseState.DOWNLOADING),

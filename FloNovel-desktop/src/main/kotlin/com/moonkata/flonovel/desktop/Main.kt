@@ -192,7 +192,8 @@ fun main(args: Array<String>) {
     val floatingToast = remember { AutoDismissMessage(coroutineScope, 3000L) }
     var autoSyncJob by remember { mutableStateOf<Job?>(null) }
     var syncFailedFiles by remember { mutableStateOf<List<SyncFileFailure>>(emptyList()) }
-    var isInitialUploadRequired by remember { mutableStateOf(syncEngine?.isInitialUploadRequired ?: false) }
+    // Keyed on the engine: a new home folder can make the first sync wait for the user again.
+    var isInitialUploadRequired by remember(syncEngine) { mutableStateOf(syncEngine?.isInitialUploadRequired ?: false) }
     var showLibrarySettingsDialog by remember { mutableStateOf(false) }
     var directoryRevision by remember { mutableStateOf(0L) }
 

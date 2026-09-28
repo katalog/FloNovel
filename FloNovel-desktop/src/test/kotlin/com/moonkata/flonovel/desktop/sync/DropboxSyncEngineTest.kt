@@ -62,14 +62,14 @@ class DropboxSyncEngineTest {
         root.deleteRecursively()
     }
 
-    private fun engine(openInReader: Path? = null): DropboxSyncEngine {
+    private fun engine(openInReader: Path? = null, homeFolder: Path = home): DropboxSyncEngine {
         val creds = CredentialsStore(config.resolve("credentials.json"))
         creds.save(Credentials(dropboxRefreshToken = "refresh"))
         val base = server.url("").toString().removeSuffix("/")
         val client = DropboxClient(appKey = "k", credentialsStore = creds, apiBaseUrl = base, contentBaseUrl = base)
         client.setAccessToken("token", 3600)
         return DropboxSyncEngine(
-            homeFolder = home,
+            homeFolder = homeFolder,
             bookStore = bookStore,
             settingsStore = SettingsStore(config.resolve("settings.json")),
             dropboxClient = client,
@@ -80,8 +80,14 @@ class DropboxSyncEngineTest {
     }
 
     /** A book the PC has already preprocessed and registered. */
-    private fun localBook(rel: String, content: String, uploadedAt: Long? = null, preprocessedAt: Long = 1_000L): Path {
-        val path = home.resolve(rel)
+    private fun localBook(
+        rel: String,
+        content: String,
+        uploadedAt: Long? = null,
+        preprocessedAt: Long = 1_000L,
+        homeFolder: Path = home,
+    ): Path {
+        val path = homeFolder.resolve(rel)
         Files.createDirectories(path.parent)
         path.writeText(content)
         bookStore.addOrUpdate(
@@ -198,6 +204,103 @@ class DropboxSyncEngineTest {
         dropbox.put("Book.txt", "v1")
         sync()
         assertTrue(stateStore.fileExists)
+    }
+
+    // ── Home folder changed ─────────────────────────────────────────────
+
+    private fun txtCount(dir: Path) = Files.list(dir).use { s -> s.filter { it.toString().endsWith(".txt") }.count() }
+
+    @Test
+    fun homeFolderChanged_toEmptyFolder_downloadsInsteadOfDeletingRemote() {
+        // Below the mass-deletion threshold, so nothing but the reset stands between the old
+        // folder's bases and three silent remote deletions (seen with 184 books, 2026-09-28).
+        repeat(3) { localBook("B$it.txt", "$it") }
+        sync()
+        val moved = Files.createDirectories(root.resolve("new-home"))
+
+        val summary = sync(engine(homeFolder = moved))
+
+        assertTrue(summary.withheldDeletions.isEmpty())
+        assertEquals(emptyList(), dropbox.deleteParentRevs)
+        assertEquals(setOf("B0.txt", "B1.txt", "B2.txt"), dropbox.paths())
+        assertEquals(3, txtCount(moved))
+        assertEquals(3, txtCount(home))
+    }
+
+    @Test
+    fun homeFolderChanged_waitsForTheUserToStartTheFirstSync() {
+        localBook("Book.txt", "v1")
+        sync()
+        assertFalse(engine().isInitialUploadRequired)
+
+        val moved = Files.createDirectories(root.resolve("new-home"))
+        val e = engine(homeFolder = moved)
+
+        assertTrue(e.isInitialUploadRequired)
+        assertTrue(stateStore.load().bases.isEmpty())
+        assertNull(stateStore.load().cursor)
+    }
+
+    @Test
+    fun homeFolderChanged_localOnlyFilesAreUploaded_andDifferingOnesKeptAsConflictCopies() {
+        localBook("Same.txt", "same")
+        localBook("Differs.txt", "old")
+        sync()
+        val moved = Files.createDirectories(root.resolve("new-home"))
+        localBook("Same.txt", "same", homeFolder = moved)
+        localBook("Differs.txt", "new", homeFolder = moved)
+        localBook("Extra.txt", "extra", homeFolder = moved)
+
+        sync(engine(homeFolder = moved))
+
+        assertEquals(emptyList(), dropbox.deleteParentRevs)
+        assertEquals("extra", dropbox.content("Extra.txt"))
+        assertEquals("old", dropbox.content("Differs.txt"))
+        assertEquals("new", dropbox.content("Differs (conflicted copy - PC - 2026-09-23).txt"))
+    }
+
+    @Test
+    fun sameHomeFolder_keepsBases_soLocalDeletesStillPropagate() {
+        val path = localBook("Book.txt", "v1")
+        sync()
+        Files.delete(path)
+
+        // A different spelling of the same folder is still the same folder.
+        sync(engine(homeFolder = home.resolve(".")))
+
+        assertNull(dropbox.content("Book.txt"))
+    }
+
+    @Test
+    fun stateWithoutRecordedHomeFolder_isAdoptedForTheCurrentOne() {
+        val path = localBook("Book.txt", "v1")
+        sync()
+        // A sync-state.json written before the home folder was recorded.
+        stateStore.save(stateStore.load().copy(homeFolder = null))
+        Files.delete(path)
+
+        val e = engine()
+        assertFalse(e.isInitialUploadRequired)
+        sync(e)
+
+        assertNull(dropbox.content("Book.txt"))
+        assertEquals(home.toAbsolutePath().normalize().toString(), stateStore.load().homeFolder)
+    }
+
+    @Test
+    fun passOfAnEngineForTheOldFolder_doesNotLeakItsBasesIntoTheNewOne() {
+        repeat(3) { localBook("B$it.txt", "$it") }
+        val old = engine()
+        sync(old)
+        val moved = Files.createDirectories(root.resolve("new-home"))
+        val current = engine(homeFolder = moved)
+
+        // The old folder's engine finishes a pass after the switch and saves its bases again.
+        sync(old)
+        sync(current)
+
+        assertEquals(emptyList(), dropbox.deleteParentRevs)
+        assertEquals(3, txtCount(moved))
     }
 
     // ── Steady state (bases present) ────────────────────────────────────

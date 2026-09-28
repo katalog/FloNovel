@@ -11,15 +11,21 @@ import org.json.JSONObject
  *
  * They live together so they are written together: a cursor saved ahead of the bases it covers
  * would make the next sync skip changes that were never applied (AGENTS.md §1, cursor rule).
+ *
+ * [homeFolder] is the folder the bases were agreed for. Bases are keyed by relative path, so
+ * without it they read the same against any folder, and a new empty home folder looked like the
+ * user had deleted every book (184 of them, 2026-09-28). Null in files written before it existed.
  */
 data class SyncState(
     val cursor: String? = null,
     val bases: Map<String, SyncBase> = emptyMap(),
+    val homeFolder: String? = null,
 ) {
     fun toJsonString(): String {
         val obj = JSONObject()
         obj.put("version", VERSION)
         if (cursor != null) obj.put("cursor", cursor)
+        if (homeFolder != null) obj.put("homeFolder", homeFolder)
         val arr = JSONArray()
         for (base in bases.values.sortedBy { it.key }) {
             arr.put(
@@ -64,6 +70,7 @@ data class SyncState(
             return SyncState(
                 cursor = obj.optString("cursor", "").ifBlank { null },
                 bases = bases,
+                homeFolder = obj.optString("homeFolder", "").ifBlank { null },
             )
         }
     }
