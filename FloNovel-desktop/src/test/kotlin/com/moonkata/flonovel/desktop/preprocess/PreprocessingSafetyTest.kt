@@ -13,6 +13,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.condition.EnabledOnOs
+import org.junit.jupiter.api.condition.OS
 
 class PreprocessingSafetyTest {
 
@@ -37,8 +39,51 @@ class PreprocessingSafetyTest {
     }
 
     // --- 1. Failure leaves original untouched and isolates error to that file ---
+    // Fails the backup step by occupying the backup folder path with a plain file, which makes
+    // createDirectories throw on every OS. The lock-based variant below only fails on Windows.
     @Test
     fun failureLeavesOriginalUntouchedAndDoesNotKillPipeline() {
+        val goodFile1 = homeFolder.resolve("good1.txt")
+        val badDir = homeFolder.resolve("blocked")
+        Files.createDirectories(badDir)
+        val badFile = badDir.resolve("bad.txt")
+        val goodFile2 = homeFolder.resolve("good2.txt")
+
+        val badContent = "Blocked story\n제1장 시작"
+        Files.writeString(goodFile1, "Story 1\n제1장 시작", StandardCharsets.UTF_8)
+        Files.writeString(badFile, badContent, StandardCharsets.UTF_8)
+        Files.writeString(goodFile2, "Story 2\n제2장 시작", StandardCharsets.UTF_8)
+
+        val backupRoot = homeFolder.resolve(TextPreprocessor.DEFAULT_ORIGINAL_BACKUP_DIR)
+        Files.createDirectories(backupRoot)
+        Files.writeString(backupRoot.resolve("blocked"), "not a directory")
+
+        val pipeline = IntakePipeline(
+            homeFolder = homeFolder,
+            bookStore = bookStore,
+            checkIntervalMs = 50L,
+            stableChecksRequired = 1,
+        )
+
+        try {
+            assertNotNull(pipeline.processSingleFile(goodFile1))
+            assertNull(pipeline.processSingleFile(badFile))
+            assertNotNull(pipeline.processSingleFile(goodFile2))
+
+            assertEquals(1, pipeline.failedFiles.size)
+            assertEquals(badFile.toAbsolutePath(), pipeline.failedFiles[0].path)
+            assertFalse(pipeline.failedFiles[0].isDiskSpaceError)
+            assertEquals(badContent, Files.readString(badFile, StandardCharsets.UTF_8))
+        } finally {
+            pipeline.close()
+        }
+    }
+
+    // FileChannel.lock() is mandatory on Windows but only advisory on Linux/macOS, where the
+    // "locked" file is read and preprocessed normally — this case failed on the first Linux build.
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    fun lockedFileFailureDoesNotKillPipelineOnWindows() {
         val goodFile1 = homeFolder.resolve("good1.txt")
         val badFile = homeFolder.resolve("locked_file.txt")
         val goodFile2 = homeFolder.resolve("good2.txt")
