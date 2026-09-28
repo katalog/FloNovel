@@ -121,6 +121,45 @@ class DropboxSyncEngine(
     private val isPaused = AtomicBoolean(false)
     private val isSyncing = AtomicBoolean(false)
 
+    private val homeFolderKey: String = homeFolder.toAbsolutePath().normalize().toString()
+
+    init {
+        // Checked on creation, not only in a pass, so [isInitialUploadRequired] already holds the
+        // first sync of a new folder back for the user to start.
+        stateForHomeFolder()
+    }
+
+    /**
+     * The saved state, or an empty one when it was saved for a different home folder.
+     *
+     * The bases describe what the *old* folder agreed with Dropbox; against a new folder every book
+     * missing from it would read as deleted on this PC and be deleted from Dropbox too (the mass
+     * deletion guard caught 184 of them on 2026-09-28; a handful would have gone silently). With no
+     * bases a pass downloads, uploads, adopts or conflict-copies, and never deletes. The cursor goes
+     * with them: the new folder never received the history it points past.
+     *
+     * The empty state is written, not the file removed: a missing file means "upgrading from
+     * one-way sync" to [runPass]. A state from before the folder was recorded is adopted as is,
+     * rather than putting every existing library through a pass without bases.
+     */
+    private fun stateForHomeFolder(): SyncState {
+        val saved = syncStateStore.load()
+        val recorded = saved.homeFolder
+        // Nothing is written unless the folder changed: writing would create the file, and that
+        // alone ends the one-way upgrade the first pass has to carry out.
+        if (recorded == null || isHomeFolder(recorded)) return saved.copy(homeFolder = homeFolderKey)
+        val fresh = SyncState(homeFolder = homeFolderKey)
+        syncStateStore.save(fresh)
+        // Same as a first sync: the user starts it. A broad new home folder could otherwise upload
+        // every .txt in it before anyone noticed.
+        settingsStore.update { it.copy(sync = it.sync.copy(lastSyncAt = 0L)) }
+        return fresh
+    }
+
+    private fun isHomeFolder(recorded: String): Boolean =
+        runCatching { Path.of(recorded).toAbsolutePath().normalize() == homeFolder.toAbsolutePath().normalize() }
+            .getOrDefault(false)
+
     val isInitialUploadRequired: Boolean
         get() {
             if (!dropboxClient.isLinked) return false
@@ -219,7 +258,9 @@ class DropboxSyncEngine(
         // from one-way sync where the PC was the only writer; see [upgradeOverride].
         val upgradingFromOneWay = !syncStateStore.fileExists && bookStore.load().books.any { it.uploadedAt != null }
 
-        val startState = syncStateStore.load()
+        // Checked again per pass: an engine left over from the previous home folder can still finish
+        // a pass and save that folder's bases after this engine was created.
+        val startState = stateForHomeFolder()
         val remote = fetchRemote(startState) ?: run {
             status = SyncStatus.ERROR
             return null
@@ -307,12 +348,12 @@ class DropboxSyncEngine(
             if (stoppedEarly) break
             // Bases are saved as work lands, with the old cursor, so a crash mid-pass loses at
             // most this batch of bookkeeping and the next pass redoes it harmlessly.
-            if (processed % SAVE_EVERY == 0) syncStateStore.save(SyncState(startState.cursor, bases))
+            if (processed % SAVE_EVERY == 0) syncStateStore.save(startState.copy(bases = bases))
         }
 
         val complete = !stoppedEarly && !withhold && deferred == 0 && failures.isEmpty()
         val cursor = if (complete) remote.cursor.ifBlank { null } else startState.cursor
-        syncStateStore.save(SyncState(cursor, bases))
+        syncStateStore.save(startState.copy(cursor = cursor, bases = bases))
 
         if (status == SyncStatus.SYNCING) status = SyncStatus.IDLE
         failedFiles = failures
