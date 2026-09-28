@@ -52,6 +52,8 @@
     <string name="library_parent_folder">.. (Parent folder)</string>
     <string name="library_no_home_folder_title">Please set a home folder.</string>
     <string name="library_no_home_folder_desc">Click \'Set home folder\' in the top right to select a directory containing text files.</string>
+    <string name="library_home_folder_missing_title">Home folder not found.</string>
+    <string name="library_home_folder_missing_desc">%s does not exist, so books and sync are paused. Choose the folder again with \'Set home folder\'.</string>
     <string name="library_empty_folder_title">No files or subfolders in current directory.</string>
     <string name="library_empty_folder_desc">No subfolders or .txt files found.</string>
     <string name="library_change_home_folder">Change home folder</string>

@@ -103,6 +103,17 @@ enum class LibrarySortOption {
 object LibraryScanner {
 
     /**
+     * True when a home folder is set but is not a directory. Without this the library just showed
+     * "no files" and sync skipped silently, so a folder saved from the GTK picker's doubled path
+     * (`~/문서/FloNovel/FloNovel`) looked like a sync that never started.
+     */
+    fun isHomeFolderMissing(homeFolder: String): Boolean {
+        if (homeFolder.isBlank()) return false
+        val path = runCatching { Path.of(homeFolder) }.getOrNull() ?: return true
+        return !Files.isDirectory(path)
+    }
+
+    /**
      * Scans only immediate children of [currentRelativePath] under [homeFolder]:
      * - Returns [FolderContent] containing immediate subfolders and immediate .txt books.
      * - Strictly excludes files and folders starting with "." (e.g. .stfolder, .git, .idea).
