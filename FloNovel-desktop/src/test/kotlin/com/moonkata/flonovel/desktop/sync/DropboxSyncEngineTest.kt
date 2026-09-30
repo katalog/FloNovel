@@ -497,7 +497,9 @@ class DropboxSyncEngineTest {
         localBook("New.txt", "content")
         dropbox.failMoves = true
 
-        sync()
+        val summary = sync()
+        assertEquals(1, summary.deletedCount)
+        assertEquals(1, summary.successCount)
 
         assertNull(dropbox.content("Old.txt"))
         assertEquals("content", dropbox.content("New.txt"))
@@ -647,5 +649,89 @@ class DropboxSyncEngineTest {
         val escaped = asciiSafeDropboxApiArg("""{"path":"/books/한글.txt"}""")
         assertTrue(escaped.all { it.code < 128 })
         assertEquals("/books/한글.txt", org.json.JSONObject(escaped).getString("path"))
+    }
+
+    @Test
+    fun excludedRemoteUpdateMustBeRetried() {
+        localBook("Book.txt", "v1")
+        dropbox.put("Book.txt", "v1")
+        sync()
+        val record = bookStore.findByKey("book.txt")!!
+        bookStore.addOrUpdate(record.copy(preprocessedAt = null))
+        dropbox.put("Book.txt", "v2")
+        val skipped = sync()
+        assertEquals(1, skipped.skippedCount)
+        bookStore.addOrUpdate(record)
+        sync()
+        assertEquals("v2", home.resolve("Book.txt").readText())
+    }
+
+    @Test
+    fun failedBulkMovesMustNotBypassDeletionGuard() {
+        repeat(20) { i -> localBook("Old/Book$i.txt", "unique content $i") }
+        sync()
+        repeat(20) { i ->
+            Files.delete(home.resolve("Old/Book$i.txt"))
+            localBook("New/Book$i.txt", "unique content $i")
+        }
+        dropbox.failMoves = true
+        val summary = sync()
+        assertEquals(0, dropbox.deleteParentRevs.size)
+        assertTrue(summary.withheldDeletions.isNotEmpty())
+    }
+
+    @Test
+    fun conflictUploadFailureMustBeReported() {
+        localBook("Book.txt", "original")
+        dropbox.put("Book.txt", "original")
+        sync()
+        edit(home.resolve("Book.txt"), "local edit")
+        dropbox.put("Book.txt", "remote edit")
+        dropbox.insufficientSpace = true
+        val summary = sync()
+        assertEquals(1, summary.failedCount)
+        assertEquals(1, summary.successCount)
+        assertEquals(1, summary.conflictCount)
+        assertTrue(summary.failures.single().isInsufficientSpace)
+        assertEquals("remote edit", home.resolve("Book.txt").readText())
+        val conflictCopy = bookStore.load().books.single { it.key != "book.txt" }
+        assertEquals("local edit", home.resolve(conflictCopy.path).readText())
+        dropbox.insufficientSpace = false
+        sync()
+        assertEquals("local edit", dropbox.content(conflictCopy.path))
+        assertEquals("remote edit", dropbox.content("Book.txt"))
+    }
+
+    @Test
+    fun failedListingMustNotDeleteRemoteBooks() {
+        localBook("Book.txt", "book")
+        val sync = engine()
+        sync.syncIncremental()
+        val previousState = stateStore.load()
+        // A mount replaced by a file reliably produces listFiles() == null on every platform.
+        Files.delete(home.resolve("Book.txt"))
+        Files.delete(home)
+        Files.writeString(home, "Unavailable folder")
+        assertNull(sync.syncIncremental())
+        assertEquals(SyncStatus.ERROR, sync.status)
+        assertTrue(sync.failedFiles.isNotEmpty())
+        assertEquals("book", dropbox.content("Book.txt"))
+        assertEquals(0, dropbox.deleteParentRevs.size)
+        assertEquals(previousState, stateStore.load())
+    }
+
+    @Test
+    fun failedRemoteBulkMovesMustNotBypassDeletionGuard() {
+        repeat(20) { i -> localBook("Old/Book$i.txt", "unique content $i") }
+        sync()
+        repeat(20) { i ->
+            dropbox.remove("Old/Book$i.txt")
+            dropbox.put("New/Book$i.txt", "unique content $i")
+        }
+        Files.writeString(home.resolve("New"), "Blocks the destination folder")
+        val summary = sync()
+        assertEquals(20, summary.withheldDeletions.size)
+        assertEquals(0, summary.deletedCount)
+        repeat(20) { i -> assertTrue(Files.exists(home.resolve("Old/Book$i.txt"))) }
     }
 }

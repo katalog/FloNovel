@@ -484,50 +484,58 @@ class LibraryViewModel(
             _dropboxState.value = DropboxUiState(isSyncing = true)
             // Picks up a secret the Desktop regenerated since last time. It is one small download,
             // and the Supabase check behind it is skipped unless the value actually changed.
-            fetchAndVerifySharedSecret()
-            val settings = settingsRepository.settingsFlow.first()
-            val app = getApplication<Application>()
-            val files = SafLibraryFiles(app, rootUri)
-            // Finishes preprocessing runs cut short last time before anything is compared.
-            withContext(Dispatchers.IO) { LibraryPreprocessor(files).recover() }
-            val sync = TwoWayBookSync(
-                files = files,
-                client = dropboxClient,
-                baseDao = syncBaseDao,
-                loadCursor = { settingsRepository.settingsFlow.first().dropboxCursor },
-                saveCursor = { settingsRepository.updateDropboxSyncState(cursor = it, lastSyncAtMillis = System.currentTimeMillis()) },
-                canWrite = DropboxConfig.canWrite(settings.dropboxGrantedScopes),
-                syncedOneWayBefore = settings.dropboxLastSyncAtMillis > 0L,
-                conflictLabel = app.getString(R.string.dropbox_conflict_copy_label),
-                today = { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) },
-                prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
-                isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
-                onBookMoved = { fromRel, toRel -> followMovedBook(files, fromRel, toRel, settings) },
-            )
-            val result = withContext(Dispatchers.IO) {
-                sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
-            }
-            val withheld = result?.withheldDeletions.orEmpty()
-            _dropboxState.update {
-                if (result != null) {
-                    it.copy(
-                        isSyncing = false,
-                        progress = null,
-                        result = result,
-                        pendingMassDeletion = withheld.takeIf { list -> list.isNotEmpty() && list != skippedMassDeletion },
-                    )
-                } else {
-                    it.copy(
-                        isSyncing = false,
-                        progress = null,
-                        errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed),
-                    )
+            try {
+                fetchAndVerifySharedSecret()
+                val settings = settingsRepository.settingsFlow.first()
+                val app = getApplication<Application>()
+                val files = SafLibraryFiles(app, rootUri)
+                // Finishes preprocessing runs cut short last time before anything is compared.
+                withContext(Dispatchers.IO) { LibraryPreprocessor(files).recover() }
+                val sync = TwoWayBookSync(
+                    files = files,
+                    client = dropboxClient,
+                    baseDao = syncBaseDao,
+                    loadCursor = { settingsRepository.settingsFlow.first().dropboxCursor },
+                    saveCursor = { settingsRepository.updateDropboxSyncState(cursor = it, lastSyncAtMillis = System.currentTimeMillis()) },
+                    canWrite = DropboxConfig.canWrite(settings.dropboxGrantedScopes),
+                    syncedOneWayBefore = settings.dropboxLastSyncAtMillis > 0L,
+                    conflictLabel = app.getString(R.string.dropbox_conflict_copy_label),
+                    today = { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) },
+                    prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
+                    isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
+                    onBookMoved = { fromRel, toRel -> followMovedBook(files, fromRel, toRel, settings) },
+                )
+                val result = withContext(Dispatchers.IO) {
+                    sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
                 }
+                val withheld = result?.withheldDeletions.orEmpty()
+                _dropboxState.update {
+                    if (result != null) {
+                        it.copy(
+                            isSyncing = false,
+                            progress = null,
+                            result = result,
+                            pendingMassDeletion = withheld.takeIf { list -> list.isNotEmpty() && list != skippedMassDeletion },
+                        )
+                    } else {
+                        it.copy(
+                            isSyncing = false,
+                            progress = null,
+                            errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed),
+                        )
+                    }
+                }
+                // The sync may have added or removed files inside the folder on screen, and the folder
+                // listing is only read when it is entered — without this, new books stay invisible until
+                // the user navigates away and back (the same fix the PC sync needed).
+                if (result != null && result.changed > 0) loadCurrent()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _dropboxState.update { it.copy(errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed)) }
+            } finally {
+                _dropboxState.update { it.copy(isSyncing = false, progress = null) }
             }
-            // The sync may have added or removed files inside the folder on screen, and the folder
-            // listing is only read when it is entered — without this, new books stay invisible until
-            // the user navigates away and back (the same fix the PC sync needed).
-            if (result != null && result.changed > 0) loadCurrent()
         }
     }
 

@@ -398,7 +398,9 @@ class TwoWayBookSyncTest {
         library.put("New.txt", content)
         dropbox.failMoves = true
 
-        sync()
+        val summary = sync()
+        assertEquals(1, summary.deletedRemote)
+        assertEquals(1, summary.uploaded)
 
         assertNull(dropbox.content("Old.txt"))
         assertEquals(content, dropbox.content("New.txt"))
@@ -557,5 +559,87 @@ class TwoWayBookSyncTest {
 
         assertEquals(0, result.changed)
         assertEquals("SYNCED", dao.rows["book.txt"]?.state)
+    }
+
+    @Test
+    fun unreadableRemoteUpdateMustBeRetried() {
+        syncedBook("Book.txt", "v1")
+        library.put("Book.txt", "v1")
+        library.unreadable += "Book.txt"
+        dropbox.put("Book.txt", "v2")
+        sync()
+        library.unreadable.clear()
+        sync()
+        assertEquals("v2", library.content("Book.txt"))
+    }
+
+    @Test
+    fun failedBulkMovesMustNotBypassDeletionGuard() {
+        repeat(20) { i -> dropbox.put("Old/Book$i.txt", TextPreprocessor.normalizeContent("unique content $i")) }
+        sync()
+        repeat(20) { i -> library.move("Old/Book$i.txt", "New/Book$i.txt") }
+        dropbox.failMoves = true
+        val summary = sync()
+        assertEquals(0, dropbox.deleteParentRevs.size)
+        assertTrue(summary.withheldDeletions.isNotEmpty())
+    }
+
+    @Test
+    fun movesMustTriggerLibraryRefresh() {
+        syncedBook("Old.txt", "content")
+        dropbox.remove("Old.txt")
+        dropbox.put("New.txt", "content")
+        val summary = sync()
+        assertTrue(summary.changed > 0)
+    }
+
+
+    @Test
+    fun failedListingMustNotDeleteRemoteBooks() = runBlocking {
+        syncedBook("Book.txt", "book")
+        val previousCursor = cursor
+        val previousBases = dao.getAll()
+        val unavailable = object : LibraryFiles by library {
+            override fun list(includeHidden: Boolean): List<LibraryFile> =
+                throw java.io.IOException("Provider unavailable")
+        }
+        val sync = TwoWayBookSync(
+            files = unavailable, client = client, baseDao = dao,
+            loadCursor = { cursor }, saveCursor = { cursor = it },
+            canWrite = true, syncedOneWayBefore = false, conflictLabel = "conflicted copy",
+            today = { "2026-09-30" }, prepareNewBook = { it },
+        )
+        try {
+            sync.sync()
+            org.junit.Assert.fail("An incomplete listing must abort the pass")
+        } catch (expected: java.io.IOException) {
+            assertEquals("Provider unavailable", expected.message)
+        }
+        assertEquals("book", dropbox.content("Book.txt"))
+        assertEquals(0, dropbox.deleteParentRevs.size)
+        assertEquals(previousCursor, cursor)
+        assertEquals(previousBases, dao.getAll())
+    }
+
+    @Test
+    fun failedRemoteBulkMovesMustNotBypassDeletionGuard() = runBlocking {
+        repeat(20) { i -> syncedBook("Old/Book$i.txt", "unique content $i") }
+        repeat(20) { i ->
+            dropbox.remove("Old/Book$i.txt")
+            dropbox.put("New/Book$i.txt", "unique content $i")
+        }
+        val refusingMoves = object : LibraryFiles by library {
+            override fun move(from: String, to: String) = false
+        }
+        val sync = TwoWayBookSync(
+            files = refusingMoves, client = client, baseDao = dao,
+            loadCursor = { cursor }, saveCursor = { cursor = it },
+            canWrite = true, syncedOneWayBefore = false, conflictLabel = "conflicted copy",
+            today = { "2026-09-30" }, prepareNewBook = { it },
+        )
+        val result = checkNotNull(sync.sync())
+        assertEquals(20, result.withheldDeletions.size)
+        assertEquals(0, result.deletedLocal)
+        repeat(20) { i -> assertEquals("unique content $i", library.content("Old/Book$i.txt")) }
     }
 }
