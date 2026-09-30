@@ -49,6 +49,8 @@ interface SettingsController {
     fun setSwipeUpAction(value: PageGestureAction)
     fun setSwipeDownAction(value: PageGestureAction)
     fun setPageTransitionAnimation(value: PageTransitionAnimation)
+    fun setTtsSpeechRate(value: Float)
+    fun setTtsPitch(value: Float)
     fun setAutoAdvanceMode(mode: AutoAdvanceMode)
 
     fun toggleChapterPattern(id: String, enabled: Boolean)

@@ -315,4 +315,5 @@
     <string name="removal_refused_move_folder_not_set">옮길 폴더가 지정되지 않았습니다. 설정의 파일 탭에서 지정하세요.</string>
     <string name="removal_refused_move_folder_missing">옮길 폴더가 없습니다. 설정의 파일 탭에서 다시 지정하세요.</string>
     <string name="removal_refused_move_folder_inside_library">라이브러리 폴더 안쪽은 옮길 폴더로 지정할 수 없습니다.</string>
+    <string name="reader_position_sync_failed">읽기 위치를 전송하지 못했습니다. 다음 전송 시 다시 시도합니다.</string>
 </resources>

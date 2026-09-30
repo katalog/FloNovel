@@ -190,6 +190,9 @@ fun main(args: Array<String>) {
     val syncCompletedMessage = remember { AutoDismissMessage(coroutineScope, 3000L) }
     // Shared by sync results and Delete-key results; shown bottom-right in reader and library.
     val floatingToast = remember { AutoDismissMessage(coroutineScope, 3000L) }
+    LaunchedEffect(readingSyncCoordinator) {
+        readingSyncCoordinator.onPushFailed = { floatingToast.show(Strings.get("reader_position_sync_failed")) }
+    }
     var autoSyncJob by remember { mutableStateOf<Job?>(null) }
     var syncFailedFiles by remember { mutableStateOf<List<SyncFileFailure>>(emptyList()) }
     // Keyed on the engine: a new home folder can make the first sync wait for the user again.
@@ -1219,5 +1222,3 @@ fun main(args: Array<String>) {
 }
 }
 }
-
-

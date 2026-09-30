@@ -639,6 +639,9 @@ class LibraryViewModel(
     override fun setSwipeUpAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeUpAction(value) }
     override fun setSwipeDownAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeDownAction(value) }
     override fun setPageTransitionAnimation(value: PageTransitionAnimation) = launchSetting { settingsRepository.updatePageTransitionAnimation(value) }
+    override fun setTtsSpeechRate(value: Float) = launchSetting { settingsRepository.updateTtsSpeechRate(value.coerceIn(0.5f, 2f)) }
+    override fun setTtsPitch(value: Float) = launchSetting { settingsRepository.updateTtsPitch(value.coerceIn(0.5f, 2f)) }
+
     override fun setAutoAdvanceMode(mode: AutoAdvanceMode) = launchSetting { settingsRepository.updateAutoAdvanceMode(mode) }
 
     override fun toggleChapterPattern(id: String, enabled: Boolean) = launchSetting {

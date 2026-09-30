@@ -66,7 +66,7 @@ class ReadingPositionSyncClient(
         }.onFailure { Log.w(TAG, "Failed to fetch reading position", it) }.getOrNull()
     }
 
-    suspend fun upsert(relativePath: String, charOffset: Int, encoding: String?) {
+    suspend fun upsert(relativePath: String, charOffset: Int, encoding: String?): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
                 val connection = openConnection(URL(restBase), "POST").apply {
@@ -81,10 +81,13 @@ class ReadingPositionSyncClient(
                     put("encoding", encoding ?: JSONObject.NULL)
                 }
                 OutputStreamWriter(connection.outputStream, Charsets.UTF_8).use { it.write(body.toString()) }
-                connection.inputStream.use { it.readBytes() } // the response must be consumed for the request to actually complete
-            }.onFailure { Log.w(TAG, "Failed to upsert reading position", it) }
+                val code = connection.responseCode
+                if (code !in 200..299) throw java.io.IOException("HTTP $code")
+                connection.inputStream.use { it.readBytes() }
+                connection.disconnect()
+                Unit
+            }
         }
-    }
 
     /**
      * For the "test connection" button on the settings screen — attempts an upsert against a fixed dummy

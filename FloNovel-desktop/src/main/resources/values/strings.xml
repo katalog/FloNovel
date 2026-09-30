@@ -315,4 +315,5 @@
     <string name="removal_refused_move_folder_not_set">No move folder is set. Choose one in Settings, Files tab.</string>
     <string name="removal_refused_move_folder_missing">The move folder does not exist. Choose it again in Settings, Files tab.</string>
     <string name="removal_refused_move_folder_inside_library">The move folder cannot be inside the library folder.</string>
+    <string name="reader_position_sync_failed">Could not sync reading position. It will be retried.</string>
 </resources>
