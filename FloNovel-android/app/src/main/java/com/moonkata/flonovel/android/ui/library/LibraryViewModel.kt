@@ -299,7 +299,12 @@ class LibraryViewModel(
                     val app = getApplication<Application>()
                     Toast.makeText(app, app.getString(R.string.library_preprocess_failed, name), Toast.LENGTH_SHORT).show()
                 } else {
-                    files.uriOf(finalRel)?.let { source = BookSource.PlainTxt(it) }
+                    val preparedUri = try {
+                        files.uriOf(finalRel)
+                    } catch (e: java.io.IOException) {
+                        null
+                    }
+                    preparedUri?.let { source = BookSource.PlainTxt(it) }
                     name = finalRel.substringAfterLast('/')
                     if (name != entry.name) loadCurrent()
                 }
@@ -316,23 +321,28 @@ class LibraryViewModel(
      * Returns the final relative path, or null when preprocessing failed.
      */
     private suspend fun preprocessInLibrary(files: SafLibraryFiles, relativePath: String): String? {
-        val oldUri = files.uriOf(relativePath)?.toString()
-        return when (val result = LibraryPreprocessor(files).preprocess(relativePath)) {
-            is LibraryPreprocessor.Result.Unchanged -> relativePath
-            is LibraryPreprocessor.Result.Processed -> {
-                val newUri = files.uriOf(result.to)
-                if (oldUri != null && newUri != null) {
-                    bookRepository.relocateBook(
-                        oldUri = oldUri,
-                        newUri = newUri.toString(),
-                        displayName = result.to.substringAfterLast('/'),
-                        relativePath = normalizeRelativePath(result.to.split('/')),
-                        charCount = result.charCount,
-                    )
+        return try {
+            val oldUri = files.uriOf(relativePath)?.toString()
+            when (val result = LibraryPreprocessor(files).preprocess(relativePath)) {
+                is LibraryPreprocessor.Result.Unchanged -> relativePath
+                is LibraryPreprocessor.Result.Processed -> {
+                    val newUri = files.uriOf(result.to)
+                    if (oldUri != null && newUri != null) {
+                        bookRepository.relocateBook(
+                            oldUri = oldUri,
+                            newUri = newUri.toString(),
+                            displayName = result.to.substringAfterLast('/'),
+                            relativePath = normalizeRelativePath(result.to.split('/')),
+                            charCount = result.charCount,
+                        )
+                    }
+                    result.to
                 }
-                result.to
+                is LibraryPreprocessor.Result.Failed -> null
             }
-            is LibraryPreprocessor.Result.Failed -> null
+        } catch (e: java.io.IOException) {
+            // Provider listing errors abort sync, but preprocessing must still allow raw reading.
+            null
         }
     }
 
