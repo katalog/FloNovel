@@ -38,7 +38,8 @@ Default horizontal swipes navigate **chapters**; vertical swipes navigate **chap
 - Downloads for Nanum Gothic, Nanum Myeongjo, Noto Sans KR, RIDIBatang, and Pretendard.
 - Brightness override, automatic/portrait/landscape orientation, keep-screen-on.
 - Timer mode for fixed-interval page turns.
-- Android TTS with turns on speech completion, rate/pitch controls.
+- Android TTS with turns on speech completion and rate/pitch controls (0.5–2.0).
+- Playback waits for initialization and reports missing Korean voice data or playback failures.
 - Korean/English UI following the system language.
 
 ## Getting started
