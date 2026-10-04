@@ -2,7 +2,10 @@ package com.moonkata.flonovel.desktop.sync
 
 import com.moonkata.flonovel.desktop.library.BookRecord
 import com.moonkata.flonovel.desktop.library.BookStore
+import com.moonkata.flonovel.desktop.library.DeleteAction
+import com.moonkata.flonovel.desktop.library.FileRemover
 import com.moonkata.flonovel.desktop.library.RelativePath
+import com.moonkata.flonovel.desktop.library.RemovalOutcome
 import com.moonkata.flonovel.desktop.library.SettingsStore
 import com.moonkata.flonovel.desktop.platform.SystemTrash
 import com.moonkata.flonovel.desktop.text.ChapterDetector
@@ -459,11 +462,12 @@ class DropboxSyncEngine(
                     return Outcome.Done()
                 }
                 if (isOpenInReader(e.path)) return Outcome.Deferred
-                val moveToTrash = trash ?: return Outcome.Failed("No recycle bin on this system; not deleting permanently")
-                if (!moveToTrash(e.path)) return Outcome.Failed("Could not move to the recycle bin")
-                bases.remove(key)
-                pruneEmptyParents(e.path.parent)
-                Outcome.Done(deleted = true)
+                val outcome = deleteLocal(e.path)
+                if (outcome is Outcome.Done) {
+                    bases.remove(key)
+                    pruneEmptyParents(e.path.parent)
+                }
+                outcome
             }
 
             is SyncAction.Upload -> {
@@ -499,6 +503,28 @@ class DropboxSyncEngine(
 
             is SyncAction.Conflict -> conflict(key, action.remote, entry, remote, bases)
         }
+    }
+
+    /**
+     * Applies a remote deletion to the local copy. Honors the user's "move to folder" setting when
+     * valid, falling back to the recycle bin if the target folder is invalid, inaccessible, or the
+     * move fails. Never permanently deletes a book.
+     */
+    private fun deleteLocal(file: Path): Outcome {
+        val deleteSettings = settingsStore.load().delete
+        if (deleteSettings.action == DeleteAction.MOVE &&
+            FileRemover.checkMoveFolder(deleteSettings.moveFolder, homeFolder) == null
+        ) {
+            when (FileRemover.removeBook(file, deleteSettings, homeFolder, trash)) {
+                is RemovalOutcome.Moved -> return Outcome.Done(deleted = true)
+                else -> {
+                    // Fall back to trash if moving to the specified folder was refused or failed.
+                }
+            }
+        }
+        val moveToTrash = trash ?: return Outcome.Failed("No recycle bin on this system; not deleting permanently")
+        if (!moveToTrash(file)) return Outcome.Failed("Could not move to the recycle bin")
+        return Outcome.Done(deleted = true)
     }
 
     private fun applyMove(

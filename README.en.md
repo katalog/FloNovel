@@ -110,7 +110,7 @@ The shared library is **`/books` inside the Dropbox app folder**. Your PC librar
 - Android syncs when the library comes to the foreground, at most once per minute, or manually.
 - Desktop syncs on Dropbox notifications, window focus return at most once per minute, or manually.
 - Simultaneous edits preserve the remote file and a local conflict copy.
-- Remote deletions applied on PC always go to the trash.
+- Remote deletions applied on PC move to the designated folder if configured, or fall back to the trash.
 - Confirmation is required for 20 or more deletions, or at least five covering 30% of tracked files, or an empty remote library.
 - Remote changes to the open book wait until it closes.
 - Android ZIP entries are excluded from file sync.
