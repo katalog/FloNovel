@@ -104,8 +104,11 @@ class ReaderViewModel(
     private val _messages = MutableSharedFlow<Int>(extraBufferCapacity = 4)
     val messages: SharedFlow<Int> = _messages
 
+    private var ttsStartJob: Job? = null
     private var ttsController: TtsController? = null
     private var ttsPendingRange: Pair<Int, Int>? = null
+    private var ttsPendingUtteranceId: String? = null
+    private var ttsUtteranceSequence = 0L
     private val ttsChunkChars = 500
 
     /**
@@ -201,8 +204,9 @@ class ReaderViewModel(
                     currentOffset = book.lastReadCharOffset.coerceIn(0, result.text.length),
                 )
             }
-            // Baseline for what's already been pushed remotely — the same offset won't be pushed again (see §remote sync).
-            lastRemoteSyncedOffset = book.lastReadCharOffset
+            // A locally saved position does not prove that the remote accepted it.
+            lastRemoteSyncedOffset = null
+            if (settings.autoAdvanceMode == AutoAdvanceMode.TTS) startTts()
             // Chapter detection (a line-by-line regex scan of the full text) isn't needed to show the
             // first page — pull it out of the loading gate to run in the background, and fill in
             // `chapters` later once it finishes.
@@ -491,13 +495,18 @@ class ReaderViewModel(
         val relativePath = book?.relativePath.orEmpty()
         if (relativePath.isEmpty()) return
         val client = syncClientOrNull(state.settings) ?: return
-        lastRemoteSyncedOffset = offset
         // Deliberately split off onto GlobalScope — if this were tied to viewModelScope, it would be
         // already cancelled right after onCleared (exactly when the runBlocking local save finishes), so
         // this upsert would never even start. The position at the moment the screen is left is precisely
         // when syncing matters most, so it needs to go out best-effort, independent of the view model's lifecycle.
         @OptIn(DelicateCoroutinesApi::class)
-        GlobalScope.launch(Dispatchers.IO) { client.upsert(relativePath, offset, book?.detectedEncoding) }
+        GlobalScope.launch(Dispatchers.IO) {
+            val result = client.upsert(relativePath, offset, book?.detectedEncoding)
+            withContext(Dispatchers.Main) {
+                if (result.isSuccess) lastRemoteSyncedOffset = offset
+                else _messages.tryEmit(R.string.reader_position_sync_failed)
+            }
+        }
     }
 
     fun jumpToOffset(offset: Int) {
@@ -726,6 +735,9 @@ class ReaderViewModel(
         settingsRepository.updateChapterCustomPatterns(current - pattern)
     }
 
+    override fun setTtsSpeechRate(value: Float) = launchSetting { settingsRepository.updateTtsSpeechRate(value.coerceIn(0.5f, 2f)) }
+    override fun setTtsPitch(value: Float) = launchSetting { settingsRepository.updateTtsPitch(value.coerceIn(0.5f, 2f)) }
+
     override fun setAutoAdvanceMode(mode: AutoAdvanceMode) {
         if (mode == AutoAdvanceMode.TTS) {
             startTts()
@@ -744,14 +756,52 @@ class ReaderViewModel(
 
     // --- TTS ---
     fun startTts() {
+        ttsStartJob?.cancel()
+        ttsPendingRange = null
+        ttsPendingUtteranceId = null
+        ttsController?.stop()
         if (ttsController == null) {
-            ttsController = TtsController(getApplication()) { utteranceId -> onTtsUtteranceDone(utteranceId) }
+            ttsController = TtsController(
+                getApplication(),
+                onUtteranceDone = ::onTtsUtteranceDone,
+                onPlaybackError = { utteranceId ->
+                    viewModelScope.launch {
+                        if (utteranceId != null && utteranceId == ttsPendingUtteranceId) onTtsFailure()
+                    }
+                },
+            )
         }
-        viewModelScope.launch { settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.TTS) }
-        speakFromCurrentOffset()
+        val controller = ttsController ?: return
+        ttsStartJob = viewModelScope.launch {
+            settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.TTS)
+            try {
+                controller.awaitReady()
+                val settings = settingsRepository.settingsFlow.first()
+                if (settings.autoAdvanceMode != AutoAdvanceMode.TTS) return@launch
+                controller.setRate(settings.ttsSpeechRate)
+                controller.setPitch(settings.ttsPitch)
+                speakFromCurrentOffset()
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                onTtsFailure()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                onTtsFailure()
+            }
+        }
+    }
+
+    private suspend fun onTtsFailure() {
+        ttsPendingRange = null
+        ttsController?.shutdown()
+        ttsController = null
+        settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.OFF)
+        _messages.tryEmit(R.string.reader_tts_failed)
     }
 
     fun stopTts() {
+        ttsStartJob?.cancel()
+        ttsPendingRange = null
         ttsController?.stop()
         viewModelScope.launch { settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.OFF) }
     }
@@ -765,12 +815,15 @@ class ReaderViewModel(
         }
         val end = (start + ttsChunkChars).coerceAtMost(state.fullText.length)
         ttsPendingRange = start to end
-        ttsController?.speak(start, state.fullText.substring(start, end))
+        val utteranceId = "page_${start}_${++ttsUtteranceSequence}"
+        ttsPendingUtteranceId = utteranceId
+        ttsController?.speak(utteranceId, state.fullText.substring(start, end))
     }
 
     private fun onTtsUtteranceDone(utteranceId: String) {
         viewModelScope.launch {
             val range = ttsPendingRange ?: return@launch
+            if (utteranceId != ttsPendingUtteranceId) return@launch
             if (_uiState.value.settings.autoAdvanceMode != AutoAdvanceMode.TTS) return@launch
             jumpToOffset(range.second)
             speakFromCurrentOffset()
@@ -787,6 +840,8 @@ class ReaderViewModel(
     private var lastTimerIntervalSeconds: Int? = null
 
     private fun handleAutoAdvanceModeChange(settings: ReaderSettings) {
+        if (settings.autoAdvanceMode == AutoAdvanceMode.TTS && lastTimerMode != AutoAdvanceMode.TTS &&
+            _uiState.value.fullText.isNotEmpty() && ttsController == null) startTts()
         if (settings.autoAdvanceMode == AutoAdvanceMode.TIMER) {
             if (lastTimerMode != AutoAdvanceMode.TIMER || lastTimerIntervalSeconds != settings.autoPageTurnIntervalSeconds) {
                 autoPageTurnController.start(settings.autoPageTurnIntervalSeconds)
@@ -797,7 +852,13 @@ class ReaderViewModel(
         lastTimerMode = settings.autoAdvanceMode
         lastTimerIntervalSeconds = settings.autoPageTurnIntervalSeconds
         if (settings.autoAdvanceMode != AutoAdvanceMode.TTS) {
+            ttsStartJob?.cancel()
+            ttsPendingRange = null
+            ttsPendingUtteranceId = null
             ttsController?.stop()
+        } else {
+            ttsController?.setRate(settings.ttsSpeechRate)
+            ttsController?.setPitch(settings.ttsPitch)
         }
     }
 

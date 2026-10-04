@@ -198,4 +198,8 @@
     <string name="dropbox_sync_status_up_to_date">Up to date</string>
     <string name="dropbox_sync_status_failed">Sync failed</string>
     <string name="dropbox_sync_status_not_linked">Connect Dropbox</string>
+    <string name="reader_position_sync_failed">Could not sync reading position. It will be retried.</string>
+    <string name="reader_tts_failed">Speech playback failed. Check your speech engine and Korean voice data.</string>
+    <string name="settings_tts_rate">Speech rate</string>
+    <string name="settings_tts_pitch">Speech pitch</string>
 </resources>

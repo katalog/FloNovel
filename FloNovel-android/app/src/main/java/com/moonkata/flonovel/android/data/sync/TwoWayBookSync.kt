@@ -21,7 +21,7 @@ data class TwoWaySyncResult(
     val moved: Int = 0,
     val failedPaths: List<String> = emptyList(),
 ) {
-    val changed: Int get() = downloaded + uploaded + deletedLocal + deletedRemote + conflicts
+    val changed: Int get() = downloaded + uploaded + deletedLocal + deletedRemote + conflicts + moved
 }
 
 /**
@@ -114,8 +114,26 @@ class TwoWayBookSync(
         val moves = findMoves(byKey.mapValues { it.value.action }, bases, local.mapValues { it.value.state.contentHash })
             .filter { it.kind == MoveKind.REMOTE || isCleanName(local.getValue(it.to).file.relativePath) }
         val movedKeys = moves.flatMap { listOf(it.from, it.to) }.toSet()
-        val plans = moves.map { Plan(it.to, SyncAction.None, it, listOf(byKey.getValue(it.from), byKey.getValue(it.to))) } +
+        val movePlans = moves.map { Plan(it.to, SyncAction.None, it, listOf(byKey.getValue(it.from), byKey.getValue(it.to))) } +
             decided.filter { it.key !in movedKeys }
+
+        // Only failed moves become deletions. Guard their fallback before any delete is applied.
+        val moveOutcomes = mutableMapOf<String, Outcome>()
+        val plans = movePlans.flatMap { plan ->
+            val move = plan.move
+            if (move == null) listOf(plan) else {
+                onProgress(DropboxSyncProgress(moveOutcomes.size, movePlans.size, displayPath(plan.key, local, remote, bases)))
+                val outcome = try {
+                    applyMove(move, local, remote, bases)
+                } catch (e: Exception) {
+                    Outcome.Failed
+                }
+                if (outcome == null) plan.fallback else {
+                    moveOutcomes[plan.key] = outcome
+                    listOf(plan)
+                }
+            }
+        }
 
         val deletions = plans.filter { it.action is SyncAction.DeleteLocal || it.action is SyncAction.DeleteRemote }
         val withhold = !allowMassDeletion && deletions.isNotEmpty() &&
@@ -123,10 +141,11 @@ class TwoWayBookSync(
         val toApply = if (withhold) plans - deletions.toSet() else plans
 
         var result = TwoWaySyncResult()
-        var complete = !withhold
+        // Unreadable files must receive the same remote delta after access recovers.
+        var complete = !withhold && scan.excludedKeys.isEmpty()
         for ((index, plan) in toApply.withIndex()) {
             onProgress(DropboxSyncProgress(index, toApply.size, displayPath(plan.key, local, remote, bases)))
-            val outcome = runCatching { apply(plan, local, remote, bases, retried = false) }.getOrDefault(Outcome.Failed)
+            val outcome = runCatching { moveOutcomes[plan.key] ?: apply(plan, local, remote, bases, retried = false) }.getOrDefault(Outcome.Failed)
             result = when (outcome) {
                 is Outcome.Done -> result.copy(
                     downloaded = result.downloaded + if (outcome.downloaded) 1 else 0,
@@ -175,7 +194,6 @@ class TwoWayBookSync(
         bases: MutableMap<String, SyncBase>,
         retried: Boolean,
     ): Outcome {
-        plan.move?.let { return applyMove(it, plan.fallback, local, remote, bases) }
         val key = plan.key
         val entry = local[key]
         return when (val action = plan.action) {
@@ -264,23 +282,12 @@ class TwoWayBookSync(
 
     private suspend fun applyMove(
         move: Move,
-        fallback: List<Plan>,
         local: Map<String, LocalEntry>,
         remote: RemoteSnapshot,
         bases: MutableMap<String, SyncBase>,
-    ): Outcome {
-        val done = when (move.kind) {
-            MoveKind.LOCAL -> moveOnDropbox(move, local, bases)
-            MoveKind.REMOTE -> moveLocally(move, local, remote, bases)
-        }
-        if (done != null) return done
-        // Could not move (name taken, file gone, ...): do what the two halves said on their own.
-        var last: Outcome = Outcome.Done()
-        for (plan in fallback) {
-            last = apply(plan, local, remote, bases, retried = false)
-            if (last !is Outcome.Done) return last
-        }
-        return last
+    ): Outcome? = when (move.kind) {
+        MoveKind.LOCAL -> moveOnDropbox(move, local, bases)
+        MoveKind.REMOTE -> moveLocally(move, local, remote, bases)
     }
 
     /** Renamed or moved on this phone: move the Dropbox copy too. Null if that was refused. */

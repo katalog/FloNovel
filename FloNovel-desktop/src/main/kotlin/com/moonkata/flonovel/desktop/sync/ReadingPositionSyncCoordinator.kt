@@ -51,6 +51,8 @@ class ReadingPositionSyncCoordinator(
     var activeNotice: RemotePositionNotice? = null
         private set
 
+    var onPushFailed: (() -> Unit)? = null
+
     var onNoticeChanged: ((RemotePositionNotice?) -> Unit)? = null
 
     private var checkpointJob: Job? = null
@@ -140,9 +142,13 @@ class ReadingPositionSyncCoordinator(
         val anchor = currentAnchor
         if (lastPushedOffset == anchor) return null
 
-        lastPushedOffset = anchor
+        val encoding = currentEncoding
         return coroutineScope.launch {
-            client.upsert(bookKey, anchor, currentEncoding)
+            client.upsert(bookKey, anchor, encoding)
+            // A failed request must remain retryable even when the reader has not moved.
+            if (client.lastSyncError == null) {
+                if (currentBookKey == bookKey) lastPushedOffset = anchor
+            } else onPushFailed?.invoke()
         }
     }
 

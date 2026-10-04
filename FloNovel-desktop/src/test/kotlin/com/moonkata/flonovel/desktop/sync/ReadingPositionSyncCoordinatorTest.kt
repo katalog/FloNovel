@@ -194,4 +194,19 @@ class ReadingPositionSyncCoordinatorTest {
         assert(outcome is ForcePushOutcome.Failure) { "F4: Failure must be surfaced when delete fails" }
         assertNull(coordinator.lastPushedOffset, "F4: lastPushedOffset must not be updated on failure")
     }
+
+    @Test
+    fun failedPushMustRemainRetryable() = runBlocking {
+        val coordinator = createCoordinator()
+        coordinator.currentBookKey = "Book.txt"
+        coordinator.currentAnchor = 1200
+        server.enqueue(MockResponse().setResponseCode(503).setBody("temporarily unavailable"))
+        coordinator.triggerPush()?.join()
+        server.enqueue(MockResponse().setResponseCode(201))
+        val retry = coordinator.triggerPush()
+        retry?.join()
+        assertNotNull(retry)
+        assertEquals(2, server.requestCount)
+    }
+
 }

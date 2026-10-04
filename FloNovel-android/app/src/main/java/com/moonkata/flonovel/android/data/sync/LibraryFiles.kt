@@ -21,6 +21,7 @@ interface LibraryFiles {
     /**
      * Every `.txt` file, skipping anything under a dot-prefixed name unless [includeHidden]
      * (preprocessing looks for its own hidden temporary files that way).
+     * Throws when any folder cannot be listed: a partial view must never imply local deletions.
      */
     fun list(includeHidden: Boolean = false): List<LibraryFile>
 

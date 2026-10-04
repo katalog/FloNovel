@@ -203,8 +203,9 @@ class DropboxSyncEngine(
         isPaused.set(false)
         return try {
             runPass(onProgress, allowMassDeletion)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             status = SyncStatus.ERROR
+            failedFiles = listOf(SyncFileFailure("", e.message ?: e.javaClass.simpleName))
             null
         } finally {
             isSyncing.set(false)
@@ -247,7 +248,12 @@ class DropboxSyncEngine(
             val moved: Boolean = false,
         ) : Outcome()
         object Deferred : Outcome()
-        data class Failed(val error: String, val insufficientSpace: Boolean = false) : Outcome()
+        data class Failed(
+            val error: String,
+            val insufficientSpace: Boolean = false,
+            val transferred: Boolean = false,
+            val conflict: Boolean = false,
+        ) : Outcome()
     }
 
     private fun runPass(
@@ -280,8 +286,31 @@ class DropboxSyncEngine(
         val byKey = decided.associateBy { it.key }
         val moves = findMoves(byKey.mapValues { it.value.action }, bases, local.files.mapValues { it.value.state.contentHash })
         val movedKeys = moves.flatMap { listOf(it.from, it.to) }.toSet()
-        val plans = moves.map { Plan(it.to, SyncAction.None, it, listOf(byKey.getValue(it.from), byKey.getValue(it.to))) } +
+        val movePlans = moves.map { Plan(it.to, SyncAction.None, it, listOf(byKey.getValue(it.from), byKey.getValue(it.to))) } +
             decided.filter { it.key !in movedKeys }
+
+        // Only failed moves become deletions. Guard their fallback before any delete is applied.
+        val moveOutcomes = mutableMapOf<String, Outcome>()
+        val plans = movePlans.flatMap { plan ->
+            val move = plan.move
+            if (move == null) listOf(plan) else if (isPaused.get()) {
+                moveOutcomes[plan.key] = Outcome.Deferred
+                listOf(plan)
+            } else {
+                val progress = InitialUploadProgress(movePlans.size, moveOutcomes.size, 0L, 0L, plan.key.substringAfterLast('/'))
+                initialProgress = progress
+                onProgress?.invoke(progress)
+                val outcome = try {
+                    applyMove(move, local, remote, bases)
+                } catch (e: Exception) {
+                    Outcome.Failed(e.message ?: e.javaClass.simpleName)
+                }
+                if (outcome == null) plan.fallback else {
+                    moveOutcomes[plan.key] = outcome
+                    listOf(plan)
+                }
+            }
+        }
 
         val deletions = plans.filter { it.action is SyncAction.DeleteLocal || it.action is SyncAction.DeleteRemote }
         val remoteIsEmpty = remote.isFullListing && remote.files.isEmpty()
@@ -319,7 +348,7 @@ class DropboxSyncEngine(
             onProgress?.invoke(progress)
 
             val outcome = try {
-                apply(plan, local, remote, bases)
+                moveOutcomes[plan.key] ?: apply(plan, local, remote, bases)
             } catch (e: Exception) {
                 Outcome.Failed(e.message ?: e.javaClass.simpleName)
             }
@@ -332,6 +361,8 @@ class DropboxSyncEngine(
                 }
                 Outcome.Deferred -> deferred++
                 is Outcome.Failed -> {
+                    if (outcome.transferred) transferred++
+                    if (outcome.conflict) conflicts++
                     failures += SyncFileFailure(plan.key, outcome.error, outcome.insufficientSpace)
                     if (outcome.insufficientSpace) {
                         status = SyncStatus.INSUFFICIENT_SPACE
@@ -351,7 +382,7 @@ class DropboxSyncEngine(
             if (processed % SAVE_EVERY == 0) syncStateStore.save(startState.copy(bases = bases))
         }
 
-        val complete = !stoppedEarly && !withhold && deferred == 0 && failures.isEmpty()
+        val complete = !stoppedEarly && !withhold && deferred == 0 && failures.isEmpty() && local.excludedKeys.isEmpty()
         val cursor = if (complete) remote.cursor.ifBlank { null } else startState.cursor
         syncStateStore.save(startState.copy(cursor = cursor, bases = bases))
 
@@ -401,7 +432,6 @@ class DropboxSyncEngine(
         bases: MutableMap<String, SyncBase>,
         retried: Boolean = false,
     ): Outcome {
-        plan.move?.let { return applyMove(it, plan.fallback, local, remote, bases) }
         val key = plan.key
         val entry = local.files[key]
         return when (val action = plan.action) {
@@ -473,23 +503,12 @@ class DropboxSyncEngine(
 
     private fun applyMove(
         move: Move,
-        fallback: List<Plan>,
         local: LocalScan,
         remote: RemoteSnapshot,
         bases: MutableMap<String, SyncBase>,
-    ): Outcome {
-        val done = when (move.kind) {
-            MoveKind.LOCAL -> moveOnDropbox(move, local, bases)
-            MoveKind.REMOTE -> moveLocally(move, local, remote, bases)
-        }
-        if (done != null) return done
-        // Could not move (name taken, file gone, ...): do what the two halves said on their own.
-        var last: Outcome = Outcome.Done()
-        for (plan in fallback) {
-            last = apply(plan, local, remote, bases)
-            if (last !is Outcome.Done) return last
-        }
-        return last
+    ): Outcome? = when (move.kind) {
+        MoveKind.LOCAL -> moveOnDropbox(move, local, bases)
+        MoveKind.REMOTE -> moveLocally(move, local, remote, bases)
     }
 
     /** Renamed or moved on this PC: move the Dropbox copy too. Null if that was refused. */
@@ -694,16 +713,20 @@ class DropboxSyncEngine(
         Files.move(e.path, copyPath)
 
         val copyEntry = LocalEntry(copyPath, copyRel, e.state)
-        when (val up = upload(copyEntry, parentRev = null)) {
-            is DropboxUploadResult.Success ->
+        val uploadFailure = when (val up = upload(copyEntry, parentRev = null)) {
+            is DropboxUploadResult.Success -> {
                 bases[copyKey] = SyncBase(copyKey, copyRel, up.rev, up.contentHash.ifBlank { e.state.contentHash }, e.state.size, e.state.mtime)
-            // Not fatal: with no base the copy is uploaded as new on a later pass.
-            else -> Unit
+                null
+            }
+            DropboxUploadResult.InsufficientSpace ->
+                Outcome.Failed("Dropbox storage full (insufficient space)", insufficientSpace = true)
+            is DropboxUploadResult.Failure -> Outcome.Failed(up.message)
+            is DropboxUploadResult.Conflict -> Outcome.Failed(up.message)
         }
 
         bases.remove(key)
         return when (val down = download(key, remoteFile, null, bases, targetRel = e.rel)) {
-            is Outcome.Done -> Outcome.Done(transferred = true, conflict = true)
+            is Outcome.Done -> uploadFailure?.copy(transferred = true, conflict = true) ?: Outcome.Done(transferred = true, conflict = true)
             else -> down
         }
     }
@@ -733,12 +756,17 @@ class DropboxSyncEngine(
                 failures += SyncFileFailure(rel, "Another file differs from this one only in letter case")
                 continue
             }
-            val path = file.toPath()
-            val size = Files.size(path)
-            val mtime = Files.getLastModifiedTime(path).toMillis()
-            val base = bases[key]
-            val hash = if (SyncDecision.needsLocalHash(base, size, mtime)) ContentHash.of(path) else base!!.contentHash
-            files[key] = LocalEntry(path, rel, LocalFileState(size, mtime, hash))
+            try {
+                val path = file.toPath()
+                val size = Files.size(path)
+                val mtime = Files.getLastModifiedTime(path).toMillis()
+                val base = bases[key]
+                val hash = if (SyncDecision.needsLocalHash(base, size, mtime)) ContentHash.of(path) else base!!.contentHash
+                files[key] = LocalEntry(path, rel, LocalFileState(size, mtime, hash))
+            } catch (e: IOException) {
+                excluded += key
+                failures += SyncFileFailure(rel, e.message ?: e.javaClass.simpleName)
+            }
         }
         return LocalScan(files, excluded, failures)
     }
@@ -749,12 +777,14 @@ class DropboxSyncEngine(
         val results = mutableListOf<File>()
 
         fun scanDir(dir: File) {
-            val children = dir.listFiles() ?: return
+            // A failed listing once looked like local deletions and removed books from Dropbox.
+            val children = dir.listFiles() ?: throw IOException("Could not list library folder: ${toRelPath(dir)}")
             for (child in children) {
                 if (child.name.startsWith(".")) continue
-                if (child.isDirectory) {
+                val attributes = Files.readAttributes(child.toPath(), java.nio.file.attribute.BasicFileAttributes::class.java)
+                if (attributes.isDirectory) {
                     scanDir(child)
-                } else if (child.isFile && child.name.endsWith(".txt", ignoreCase = true)) {
+                } else if (attributes.isRegularFile && child.name.endsWith(".txt", ignoreCase = true)) {
                     results.add(child)
                 }
             }

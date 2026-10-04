@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -157,16 +158,18 @@ class SafLibraryFiles(context: Context, private val treeUri: Uri) : LibraryFiles
             Document.COLUMN_SIZE,
             Document.COLUMN_LAST_MODIFIED,
         )
-        return runCatching {
-            resolver.query(uri, projection, null, null, null)?.use { cursor ->
+        return try {
+            val queried = resolver.query(uri, projection, null, null, null)
+                ?: throw IOException("Library folder query returned no cursor")
+            queried.use { cursor ->
                 buildList {
                     while (cursor.moveToNext()) {
-                        val name = cursor.getString(1) ?: continue
+                        val name = cursor.getString(1) ?: throw IOException("Library entry has no name")
                         add(
                             Child(
-                                documentId = cursor.getString(0),
+                                documentId = cursor.getString(0) ?: throw IOException("Library entry has no document ID"),
                                 name = name,
-                                isDirectory = cursor.getString(2) == Document.MIME_TYPE_DIR,
+                                isDirectory = (cursor.getString(2) ?: throw IOException("Library entry has no MIME type")) == Document.MIME_TYPE_DIR,
                                 size = if (cursor.isNull(3)) 0L else cursor.getLong(3),
                                 mtime = if (cursor.isNull(4)) 0L else cursor.getLong(4),
                             ),
@@ -174,7 +177,10 @@ class SafLibraryFiles(context: Context, private val treeUri: Uri) : LibraryFiles
                     }
                 }
             }
-        }.getOrNull().orEmpty()
+        } catch (e: Exception) {
+            // Empty means genuinely empty; providers can fail temporarily without deleting books.
+            throw IOException("Could not list library folder (${e.javaClass.simpleName})", e)
+        }
     }
 
     private fun documentUri(documentId: String): Uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId)

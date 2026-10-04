@@ -248,4 +248,15 @@ class ReadingPositionSyncClientTest {
         assertEquals("No request may be sent", 0, server.requestCount)
         assertEquals("Secret is empty", secretless.lastTestConnectionError)
     }
+
+    @Test
+    fun failedUpsertReturnsAReasonAndTheSamePositionCanBeRetried() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(503))
+        val failed = client.upsert("book.txt", 1234, "UTF-8")
+        assertTrue(failed.isFailure)
+        assertEquals("HTTP 503", failed.exceptionOrNull()?.message)
+        server.enqueue(MockResponse().setResponseCode(201))
+        assertTrue(client.upsert("book.txt", 1234, "UTF-8").isSuccess)
+        assertEquals(2, server.requestCount)
+    }
 }

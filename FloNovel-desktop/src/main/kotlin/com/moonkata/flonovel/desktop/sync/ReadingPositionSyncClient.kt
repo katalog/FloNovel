@@ -72,6 +72,7 @@ class ReadingPositionSyncClient(
     }
 
     suspend fun upsert(relativePath: String, charOffset: Int, encoding: String?) = withContext(Dispatchers.IO) {
+        lastSyncError = null
         runCatching {
             val targetUrl = java.net.URI.create(restBase).toURL()
             val connection = openConnection(targetUrl, "POST").apply {
@@ -88,13 +89,12 @@ class ReadingPositionSyncClient(
             OutputStreamWriter(connection.outputStream, Charsets.UTF_8).use { it.write(body.toString()) }
             val code = connection.responseCode
             if (code !in 200..299) {
-                val err = connection.errorStream?.bufferedReader()?.readText()
-                lastSyncError = "HTTP $code" + (if (!err.isNullOrBlank()) ": $err" else "")
+                lastSyncError = "HTTP $code"
             } else {
                 connection.inputStream.use { it.readBytes() }
             }
         }.onFailure {
-            lastSyncError = "${it.javaClass.simpleName}: ${it.message}"
+            lastSyncError = it.javaClass.simpleName
         }
     }
 

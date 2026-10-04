@@ -299,7 +299,12 @@ class LibraryViewModel(
                     val app = getApplication<Application>()
                     Toast.makeText(app, app.getString(R.string.library_preprocess_failed, name), Toast.LENGTH_SHORT).show()
                 } else {
-                    files.uriOf(finalRel)?.let { source = BookSource.PlainTxt(it) }
+                    val preparedUri = try {
+                        files.uriOf(finalRel)
+                    } catch (e: java.io.IOException) {
+                        null
+                    }
+                    preparedUri?.let { source = BookSource.PlainTxt(it) }
                     name = finalRel.substringAfterLast('/')
                     if (name != entry.name) loadCurrent()
                 }
@@ -316,23 +321,28 @@ class LibraryViewModel(
      * Returns the final relative path, or null when preprocessing failed.
      */
     private suspend fun preprocessInLibrary(files: SafLibraryFiles, relativePath: String): String? {
-        val oldUri = files.uriOf(relativePath)?.toString()
-        return when (val result = LibraryPreprocessor(files).preprocess(relativePath)) {
-            is LibraryPreprocessor.Result.Unchanged -> relativePath
-            is LibraryPreprocessor.Result.Processed -> {
-                val newUri = files.uriOf(result.to)
-                if (oldUri != null && newUri != null) {
-                    bookRepository.relocateBook(
-                        oldUri = oldUri,
-                        newUri = newUri.toString(),
-                        displayName = result.to.substringAfterLast('/'),
-                        relativePath = normalizeRelativePath(result.to.split('/')),
-                        charCount = result.charCount,
-                    )
+        return try {
+            val oldUri = files.uriOf(relativePath)?.toString()
+            when (val result = LibraryPreprocessor(files).preprocess(relativePath)) {
+                is LibraryPreprocessor.Result.Unchanged -> relativePath
+                is LibraryPreprocessor.Result.Processed -> {
+                    val newUri = files.uriOf(result.to)
+                    if (oldUri != null && newUri != null) {
+                        bookRepository.relocateBook(
+                            oldUri = oldUri,
+                            newUri = newUri.toString(),
+                            displayName = result.to.substringAfterLast('/'),
+                            relativePath = normalizeRelativePath(result.to.split('/')),
+                            charCount = result.charCount,
+                        )
+                    }
+                    result.to
                 }
-                result.to
+                is LibraryPreprocessor.Result.Failed -> null
             }
-            is LibraryPreprocessor.Result.Failed -> null
+        } catch (e: java.io.IOException) {
+            // Provider listing errors abort sync, but preprocessing must still allow raw reading.
+            null
         }
     }
 
@@ -484,50 +494,58 @@ class LibraryViewModel(
             _dropboxState.value = DropboxUiState(isSyncing = true)
             // Picks up a secret the Desktop regenerated since last time. It is one small download,
             // and the Supabase check behind it is skipped unless the value actually changed.
-            fetchAndVerifySharedSecret()
-            val settings = settingsRepository.settingsFlow.first()
-            val app = getApplication<Application>()
-            val files = SafLibraryFiles(app, rootUri)
-            // Finishes preprocessing runs cut short last time before anything is compared.
-            withContext(Dispatchers.IO) { LibraryPreprocessor(files).recover() }
-            val sync = TwoWayBookSync(
-                files = files,
-                client = dropboxClient,
-                baseDao = syncBaseDao,
-                loadCursor = { settingsRepository.settingsFlow.first().dropboxCursor },
-                saveCursor = { settingsRepository.updateDropboxSyncState(cursor = it, lastSyncAtMillis = System.currentTimeMillis()) },
-                canWrite = DropboxConfig.canWrite(settings.dropboxGrantedScopes),
-                syncedOneWayBefore = settings.dropboxLastSyncAtMillis > 0L,
-                conflictLabel = app.getString(R.string.dropbox_conflict_copy_label),
-                today = { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) },
-                prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
-                isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
-                onBookMoved = { fromRel, toRel -> followMovedBook(files, fromRel, toRel, settings) },
-            )
-            val result = withContext(Dispatchers.IO) {
-                sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
-            }
-            val withheld = result?.withheldDeletions.orEmpty()
-            _dropboxState.update {
-                if (result != null) {
-                    it.copy(
-                        isSyncing = false,
-                        progress = null,
-                        result = result,
-                        pendingMassDeletion = withheld.takeIf { list -> list.isNotEmpty() && list != skippedMassDeletion },
-                    )
-                } else {
-                    it.copy(
-                        isSyncing = false,
-                        progress = null,
-                        errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed),
-                    )
+            try {
+                fetchAndVerifySharedSecret()
+                val settings = settingsRepository.settingsFlow.first()
+                val app = getApplication<Application>()
+                val files = SafLibraryFiles(app, rootUri)
+                // Finishes preprocessing runs cut short last time before anything is compared.
+                withContext(Dispatchers.IO) { LibraryPreprocessor(files).recover() }
+                val sync = TwoWayBookSync(
+                    files = files,
+                    client = dropboxClient,
+                    baseDao = syncBaseDao,
+                    loadCursor = { settingsRepository.settingsFlow.first().dropboxCursor },
+                    saveCursor = { settingsRepository.updateDropboxSyncState(cursor = it, lastSyncAtMillis = System.currentTimeMillis()) },
+                    canWrite = DropboxConfig.canWrite(settings.dropboxGrantedScopes),
+                    syncedOneWayBefore = settings.dropboxLastSyncAtMillis > 0L,
+                    conflictLabel = app.getString(R.string.dropbox_conflict_copy_label),
+                    today = { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) },
+                    prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
+                    isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
+                    onBookMoved = { fromRel, toRel -> followMovedBook(files, fromRel, toRel, settings) },
+                )
+                val result = withContext(Dispatchers.IO) {
+                    sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
                 }
+                val withheld = result?.withheldDeletions.orEmpty()
+                _dropboxState.update {
+                    if (result != null) {
+                        it.copy(
+                            isSyncing = false,
+                            progress = null,
+                            result = result,
+                            pendingMassDeletion = withheld.takeIf { list -> list.isNotEmpty() && list != skippedMassDeletion },
+                        )
+                    } else {
+                        it.copy(
+                            isSyncing = false,
+                            progress = null,
+                            errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed),
+                        )
+                    }
+                }
+                // The sync may have added or removed files inside the folder on screen, and the folder
+                // listing is only read when it is entered — without this, new books stay invisible until
+                // the user navigates away and back (the same fix the PC sync needed).
+                if (result != null && result.changed > 0) loadCurrent()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _dropboxState.update { it.copy(errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed)) }
+            } finally {
+                _dropboxState.update { it.copy(isSyncing = false, progress = null) }
             }
-            // The sync may have added or removed files inside the folder on screen, and the folder
-            // listing is only read when it is entered — without this, new books stay invisible until
-            // the user navigates away and back (the same fix the PC sync needed).
-            if (result != null && result.changed > 0) loadCurrent()
         }
     }
 
@@ -631,6 +649,9 @@ class LibraryViewModel(
     override fun setSwipeUpAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeUpAction(value) }
     override fun setSwipeDownAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeDownAction(value) }
     override fun setPageTransitionAnimation(value: PageTransitionAnimation) = launchSetting { settingsRepository.updatePageTransitionAnimation(value) }
+    override fun setTtsSpeechRate(value: Float) = launchSetting { settingsRepository.updateTtsSpeechRate(value.coerceIn(0.5f, 2f)) }
+    override fun setTtsPitch(value: Float) = launchSetting { settingsRepository.updateTtsPitch(value.coerceIn(0.5f, 2f)) }
+
     override fun setAutoAdvanceMode(mode: AutoAdvanceMode) = launchSetting { settingsRepository.updateAutoAdvanceMode(mode) }
 
     override fun toggleChapterPattern(id: String, enabled: Boolean) = launchSetting {
