@@ -83,7 +83,7 @@ See the [shared setup guide](../README.en.md#setting-up-sync-optional).
 - Bidirectional file sync with `/books` inside the Dropbox app folder.
 - Compare local/remote against the last baseline independently; use content hashes/Dropbox revisions.
 - Preserve simultaneous edits as remote original and PC conflict copy; edits win over deletions.
-- Remote deletions **always go to PC trash**, regardless of the Delete key's move-folder setting.
+- Remote deletions move to the designated folder when configured, or fall back to the **PC trash** if unset or invalid.
 - Confirm mass deletion/empty remote libraries. Move reading records with moves/renames when one-to-one content-hash matching is possible.
 - Defer downloads/deletions/conflicts for the open book until it closes.
 - After first sync: Dropbox notifications, focus return at most once per minute, manual requests.

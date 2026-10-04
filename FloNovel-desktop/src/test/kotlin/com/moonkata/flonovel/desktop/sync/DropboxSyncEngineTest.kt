@@ -4,6 +4,8 @@ import com.moonkata.flonovel.desktop.library.BookRecord
 import com.moonkata.flonovel.desktop.library.BookStore
 import com.moonkata.flonovel.desktop.library.Credentials
 import com.moonkata.flonovel.desktop.library.CredentialsStore
+import com.moonkata.flonovel.desktop.library.DeleteAction
+import com.moonkata.flonovel.desktop.library.DeleteSettings
 import com.moonkata.flonovel.desktop.library.RelativePath
 import com.moonkata.flonovel.desktop.library.SettingsStore
 import java.nio.file.Files
@@ -383,6 +385,42 @@ class DropboxSyncEngineTest {
         assertTrue(Files.exists(home.resolve("Book.txt")))
         assertEquals(1, summary.failedCount)
     }
+
+    @Test
+    fun remoteDelete_movesLocalToMoveFolder_whenConfigured() {
+        val moveDir = Files.createDirectories(root.resolve("archive"))
+        val settingsStore = SettingsStore(config.resolve("settings.json"))
+        settingsStore.update { it.copy(delete = DeleteSettings(action = DeleteAction.MOVE, moveFolder = moveDir.toString())) }
+
+        localBook("Series/Vol1.txt", "v1")
+        sync()
+        dropbox.remove("Series/Vol1.txt")
+
+        val summary = sync()
+
+        assertEquals(1, summary.deletedCount)
+        assertFalse(Files.exists(home.resolve("Series")))
+        assertTrue(Files.exists(moveDir.resolve("Vol1.txt")))
+        assertFalse(Files.exists(trashDir.resolve("Vol1.txt")))
+    }
+
+    @Test
+    fun remoteDelete_fallsBackToTrash_whenMoveFolderInvalid() {
+        val invalidDir = root.resolve("non_existent_folder")
+        val settingsStore = SettingsStore(config.resolve("settings.json"))
+        settingsStore.update { it.copy(delete = DeleteSettings(action = DeleteAction.MOVE, moveFolder = invalidDir.toString())) }
+
+        localBook("Book.txt", "v1")
+        sync()
+        dropbox.remove("Book.txt")
+
+        val summary = sync()
+
+        assertEquals(1, summary.deletedCount)
+        assertFalse(Files.exists(home.resolve("Book.txt")))
+        assertTrue(Files.exists(trashDir.resolve("Book.txt")))
+    }
+
 
     @Test
     fun localDelete_deletesRemoteWithParentRev() {
