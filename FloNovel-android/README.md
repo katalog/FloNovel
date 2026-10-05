@@ -37,9 +37,7 @@
 - 사용자 지정 배경·글자색, 글자 크기·줄 간격·자간·좌우/위/아래 여백.
 - 나눔고딕, 나눔명조, Noto Sans KR, 리디바탕, Pretendard 다운로드.
 - 밝기 직접 조절, 자동/세로/가로 방향, 화면 꺼짐 방지.
-- 일정 간격으로 넘기는 타이머 모드.
-- Android TTS로 읽고 발화 완료에 맞춰 넘기는 TTS 모드, 속도·음높이 조절(0.5–2.0).
-- TTS 초기화 후 재생하며, 한국어 음성 데이터가 없거나 재생 실패 시 안내.
+- 일정 간격으로 다음 페이지를 넘기는 자동 넘김(타이머) 기능.
 - 시스템 언어를 따르는 한국어·영어 UI.
 
 ## 시작하기
@@ -135,14 +133,13 @@ APK는 `app/build/outputs/apk/debug/app-debug.apk`입니다. 직접 설치하거
 - `app/src/androidTest`: Compose UI, Room, DataStore, Android 환경 검사. 기기/에뮬레이터가 필요하고 일부 글꼴 테스트는 네트워크를 사용합니다.
 - 결과 XML: `app/build/test-results/testDebugUnitTest/`. 실제 실행 건수와 실패를 확인하세요.
 
-소스는 `app/src/main/java/com/moonkata/flonovel/android/` 아래에 있습니다. `ui/`는 화면·ViewModel, `data/`는 파일·DB·설정·전처리·동기화, `tts/`는 TTS와 자동 넘김을 담당합니다.
+소스는 `app/src/main/java/com/moonkata/flonovel/android/` 아래에 있습니다. `ui/`는 화면·ViewModel, `data/`는 파일·DB·설정·전처리·동기화, `tts/`는 자동 넘김을 담당합니다.
 
 기술: Kotlin · Jetpack Compose/Material 3 · Room · DataStore · Navigation Compose · SAF · juniversalchardet. 기여 규칙은 [AGENTS.md](../AGENTS.md)를 참고하세요.
 
 ## 문제 해결 및 지원 범위
 
 - **빈 목차:** 제목 형식에 맞는 프리셋·정규식을 추가하세요. 탐지는 패턴 기반입니다.
-- **TTS 실패:** Android 음성 엔진과 해당 언어 음성이 설치되어 있는지 확인하세요.
 - **폴더 접근/쓰기 오류:** 폴더를 다시 선택해 SAF 권한을 받으세요.
 - **공유 키 없음:** Desktop을 같은 Dropbox 앱·계정에 먼저 연결하세요.
 - EPUB·PDF·MOBI는 지원하지 않습니다. 본문은 메모리에 읽어 들이므로 큰 책의 메모리 사용량은 기기에 따라 달라집니다.

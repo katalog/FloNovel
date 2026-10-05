@@ -39,7 +39,6 @@ import com.moonkata.flonovel.android.model.PageBreak
 import com.moonkata.flonovel.android.model.Paragraph
 import com.moonkata.flonovel.android.model.SearchResult
 import com.moonkata.flonovel.android.tts.AutoPageTurnController
-import com.moonkata.flonovel.android.tts.TtsController
 import com.moonkata.flonovel.android.ui.SettingsController
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -103,13 +102,6 @@ class ReaderViewModel(
      * the screen shows as a Toast. Not part of [uiState] since these aren't persistent UI state. */
     private val _messages = MutableSharedFlow<Int>(extraBufferCapacity = 4)
     val messages: SharedFlow<Int> = _messages
-
-    private var ttsStartJob: Job? = null
-    private var ttsController: TtsController? = null
-    private var ttsPendingRange: Pair<Int, Int>? = null
-    private var ttsPendingUtteranceId: String? = null
-    private var ttsUtteranceSequence = 0L
-    private val ttsChunkChars = 500
 
     /**
      * If the reading position stays put this long (5 minutes) without moving, also leave a checkpoint
@@ -206,7 +198,6 @@ class ReaderViewModel(
             }
             // A locally saved position does not prove that the remote accepted it.
             lastRemoteSyncedOffset = null
-            if (settings.autoAdvanceMode == AutoAdvanceMode.TTS) startTts()
             // Chapter detection (a line-by-line regex scan of the full text) isn't needed to show the
             // first page — pull it out of the loading gate to run in the background, and fill in
             // `chapters` later once it finishes.
@@ -735,15 +726,8 @@ class ReaderViewModel(
         settingsRepository.updateChapterCustomPatterns(current - pattern)
     }
 
-    override fun setTtsSpeechRate(value: Float) = launchSetting { settingsRepository.updateTtsSpeechRate(value.coerceIn(0.5f, 2f)) }
-    override fun setTtsPitch(value: Float) = launchSetting { settingsRepository.updateTtsPitch(value.coerceIn(0.5f, 2f)) }
-
     override fun setAutoAdvanceMode(mode: AutoAdvanceMode) {
-        if (mode == AutoAdvanceMode.TTS) {
-            startTts()
-        } else {
-            launchSetting { settingsRepository.updateAutoAdvanceMode(mode) }
-        }
+        launchSetting { settingsRepository.updateAutoAdvanceMode(mode) }
     }
 
     private fun launchSetting(block: suspend () -> Unit) {
@@ -753,82 +737,6 @@ class ReaderViewModel(
     // --- Font download ---
     override fun downloadFont(entry: FontCatalogEntry) = fontDownloadManager.download(entry)
     override fun isFontDownloaded(entry: FontCatalogEntry) = fontDownloadManager.isDownloaded(entry)
-
-    // --- TTS ---
-    fun startTts() {
-        ttsStartJob?.cancel()
-        ttsPendingRange = null
-        ttsPendingUtteranceId = null
-        ttsController?.stop()
-        if (ttsController == null) {
-            ttsController = TtsController(
-                getApplication(),
-                onUtteranceDone = ::onTtsUtteranceDone,
-                onPlaybackError = { utteranceId ->
-                    viewModelScope.launch {
-                        if (utteranceId != null && utteranceId == ttsPendingUtteranceId) onTtsFailure()
-                    }
-                },
-            )
-        }
-        val controller = ttsController ?: return
-        ttsStartJob = viewModelScope.launch {
-            settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.TTS)
-            try {
-                controller.awaitReady()
-                val settings = settingsRepository.settingsFlow.first()
-                if (settings.autoAdvanceMode != AutoAdvanceMode.TTS) return@launch
-                controller.setRate(settings.ttsSpeechRate)
-                controller.setPitch(settings.ttsPitch)
-                speakFromCurrentOffset()
-            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                onTtsFailure()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                onTtsFailure()
-            }
-        }
-    }
-
-    private suspend fun onTtsFailure() {
-        ttsPendingRange = null
-        ttsController?.shutdown()
-        ttsController = null
-        settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.OFF)
-        _messages.tryEmit(R.string.reader_tts_failed)
-    }
-
-    fun stopTts() {
-        ttsStartJob?.cancel()
-        ttsPendingRange = null
-        ttsController?.stop()
-        viewModelScope.launch { settingsRepository.updateAutoAdvanceMode(AutoAdvanceMode.OFF) }
-    }
-
-    private fun speakFromCurrentOffset() {
-        val state = _uiState.value
-        val start = state.currentOffset
-        if (start >= state.fullText.length) {
-            stopTts()
-            return
-        }
-        val end = (start + ttsChunkChars).coerceAtMost(state.fullText.length)
-        ttsPendingRange = start to end
-        val utteranceId = "page_${start}_${++ttsUtteranceSequence}"
-        ttsPendingUtteranceId = utteranceId
-        ttsController?.speak(utteranceId, state.fullText.substring(start, end))
-    }
-
-    private fun onTtsUtteranceDone(utteranceId: String) {
-        viewModelScope.launch {
-            val range = ttsPendingRange ?: return@launch
-            if (utteranceId != ttsPendingUtteranceId) return@launch
-            if (_uiState.value.settings.autoAdvanceMode != AutoAdvanceMode.TTS) return@launch
-            jumpToOffset(range.second)
-            speakFromCurrentOffset()
-        }
-    }
 
     // --- Auto-advance (timer) ---
     private fun advance() {
@@ -840,8 +748,6 @@ class ReaderViewModel(
     private var lastTimerIntervalSeconds: Int? = null
 
     private fun handleAutoAdvanceModeChange(settings: ReaderSettings) {
-        if (settings.autoAdvanceMode == AutoAdvanceMode.TTS && lastTimerMode != AutoAdvanceMode.TTS &&
-            _uiState.value.fullText.isNotEmpty() && ttsController == null) startTts()
         if (settings.autoAdvanceMode == AutoAdvanceMode.TIMER) {
             if (lastTimerMode != AutoAdvanceMode.TIMER || lastTimerIntervalSeconds != settings.autoPageTurnIntervalSeconds) {
                 autoPageTurnController.start(settings.autoPageTurnIntervalSeconds)
@@ -851,15 +757,6 @@ class ReaderViewModel(
         }
         lastTimerMode = settings.autoAdvanceMode
         lastTimerIntervalSeconds = settings.autoPageTurnIntervalSeconds
-        if (settings.autoAdvanceMode != AutoAdvanceMode.TTS) {
-            ttsStartJob?.cancel()
-            ttsPendingRange = null
-            ttsPendingUtteranceId = null
-            ttsController?.stop()
-        } else {
-            ttsController?.setRate(settings.ttsSpeechRate)
-            ttsController?.setPitch(settings.ttsPitch)
-        }
     }
 
     override fun onCleared() {
@@ -871,7 +768,6 @@ class ReaderViewModel(
         OpenBook.documentUri = null
         pageComputeJob?.cancel()
         autoPageTurnController.stop()
-        ttsController?.shutdown()
     }
 }
 

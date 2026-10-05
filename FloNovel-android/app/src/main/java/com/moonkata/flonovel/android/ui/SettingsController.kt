@@ -19,8 +19,7 @@ import kotlinx.coroutines.flow.Flow
  * based on real-usage feedback that users should be able to configure font/margins/theme/position sync
  * etc. without opening a book from the library screen.
  *
- * The reader-side implementation layers on side effects beyond just persisting the value (e.g. starting
- * TTS narration immediately if the auto-advance mode is set to TTS), while the library-side
+ * The reader-side implementation layers on side effects beyond just persisting the value, while the library-side
  * implementation just persists the value since there's no open book — later, when a book is actually
  * opened, `ReaderViewModel` reads the persisted settings and applies the necessary side effects at
  * that point.
@@ -49,8 +48,6 @@ interface SettingsController {
     fun setSwipeUpAction(value: PageGestureAction)
     fun setSwipeDownAction(value: PageGestureAction)
     fun setPageTransitionAnimation(value: PageTransitionAnimation)
-    fun setTtsSpeechRate(value: Float)
-    fun setTtsPitch(value: Float)
     fun setAutoAdvanceMode(mode: AutoAdvanceMode)
 
     fun toggleChapterPattern(id: String, enabled: Boolean)

@@ -106,10 +106,9 @@
     <string name="settings_orientation_auto">자동</string>
     <string name="settings_orientation_portrait">세로</string>
     <string name="settings_orientation_landscape">가로</string>
-    <string name="settings_section_auto_advance">자동 넘김 / TTS</string>
+    <string name="settings_section_auto_advance">자동 넘김</string>
     <string name="settings_auto_advance_off">끄기</string>
     <string name="settings_auto_advance_timer">타이머</string>
-    <string name="settings_auto_advance_tts">TTS</string>
     <string name="settings_auto_advance_interval">%1$d초</string>
     <string name="settings_auto_advance_interval_label">간격</string>
     <string name="settings_connected">연결됨</string>
@@ -199,7 +198,4 @@
     <string name="dropbox_sync_status_failed">동기화 실패</string>
     <string name="dropbox_sync_status_not_linked">드롭박스 연결 필요</string>
     <string name="reader_position_sync_failed">읽기 위치를 전송하지 못했습니다. 다음 전송 시 다시 시도합니다.</string>
-    <string name="reader_tts_failed">음성 재생에 실패했습니다. 음성 엔진과 한국어 음성 데이터를 확인해 주세요.</string>
-    <string name="settings_tts_rate">음성 속도</string>
-    <string name="settings_tts_pitch">음성 높이</string>
 </resources>

@@ -623,9 +623,8 @@ class LibraryViewModel(
 
     // --- SettingsController implementation — so QuickSettingsSheet can be reused as-is from the
     // library screen too. There's no open book here, so this does nothing beyond persisting values
-    // (no side effects like ReaderViewModel's immediate TTS start or resetting navigation history) —
-    // ReaderViewModel reads the saved values and applies them itself once a book is actually opened
-    // later. ---
+    // (no side effects like resetting navigation history) — ReaderViewModel reads the saved values
+    // and applies them itself once a book is actually opened later. ---
     override fun setFontSizeSp(value: Float) = launchSetting { settingsRepository.updateFontSizeSp(value) }
     override fun setLineHeightMultiplier(value: Float) = launchSetting { settingsRepository.updateLineHeightMultiplier(value) }
     override fun setLetterSpacingSp(value: Float) = launchSetting { settingsRepository.updateLetterSpacingSp(value) }
@@ -649,8 +648,6 @@ class LibraryViewModel(
     override fun setSwipeUpAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeUpAction(value) }
     override fun setSwipeDownAction(value: PageGestureAction) = launchSetting { settingsRepository.updateSwipeDownAction(value) }
     override fun setPageTransitionAnimation(value: PageTransitionAnimation) = launchSetting { settingsRepository.updatePageTransitionAnimation(value) }
-    override fun setTtsSpeechRate(value: Float) = launchSetting { settingsRepository.updateTtsSpeechRate(value.coerceIn(0.5f, 2f)) }
-    override fun setTtsPitch(value: Float) = launchSetting { settingsRepository.updateTtsPitch(value.coerceIn(0.5f, 2f)) }
 
     override fun setAutoAdvanceMode(mode: AutoAdvanceMode) = launchSetting { settingsRepository.updateAutoAdvanceMode(mode) }
 
