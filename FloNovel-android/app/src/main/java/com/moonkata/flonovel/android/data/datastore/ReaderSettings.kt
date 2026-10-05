@@ -6,7 +6,7 @@ import com.moonkata.flonovel.android.model.FolderSortOption
 enum class ThemePreset { WARM_IVORY, SEPIA_CREAM, DARK_NAVY, SOFT_GRAY, COOL_LIGHT, SOFT_DARK_BROWN, CUSTOM }
 enum class PageTurnMode { HORIZONTAL_PAGE, VERTICAL_SCROLL }
 enum class OrientationLock { AUTO, PORTRAIT, LANDSCAPE }
-enum class AutoAdvanceMode { OFF, TIMER, TTS }
+enum class AutoAdvanceMode { OFF, TIMER }
 
 enum class TouchZoneMode { STANDARD_3_COLUMN, GRID_3X3 }
 
@@ -48,8 +48,6 @@ data class ReaderSettings(
     val chapterJumpDivisions: Int = 4,
     val autoAdvanceMode: AutoAdvanceMode = AutoAdvanceMode.OFF,
     val autoPageTurnIntervalSeconds: Int = 15,
-    val ttsSpeechRate: Float = 1.0f,
-    val ttsPitch: Float = 1.0f,
     val lastUsedSafTreeUri: String? = null,
     val librarySortOption: FolderSortOption = FolderSortOption.NAME_ASC,
     val chapterPatternEnabledIds: Set<String> = ChapterPatternCatalog.defaultEnabledIds,

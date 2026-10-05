@@ -255,7 +255,6 @@ fun QuickSettingsSheet(
                 listOf(
                     AutoAdvanceMode.OFF to R.string.settings_auto_advance_off,
                     AutoAdvanceMode.TIMER to R.string.settings_auto_advance_timer,
-                    AutoAdvanceMode.TTS to R.string.settings_auto_advance_tts,
                 ).forEach { (mode, labelRes) ->
                     FilterChip(
                         selected = settings.autoAdvanceMode == mode,
@@ -268,15 +267,6 @@ fun QuickSettingsSheet(
                 val intervalFormat = stringResource(R.string.settings_auto_advance_interval)
                 LabeledStepper(stringResource(R.string.settings_auto_advance_interval_label), settings.autoPageTurnIntervalSeconds.toFloat(), 5f, 3f..60f, format = { intervalFormat.format(it.toInt()) }) {
                     viewModel.setAutoPageTurnIntervalSeconds(it.toInt())
-                }
-            }
-
-            if (settings.autoAdvanceMode == AutoAdvanceMode.TTS) {
-                LabeledStepper(stringResource(R.string.settings_tts_rate), settings.ttsSpeechRate, 0.1f, 0.5f..2f, format = { "%.1f".format(it) }) {
-                    viewModel.setTtsSpeechRate(it)
-                }
-                LabeledStepper(stringResource(R.string.settings_tts_pitch), settings.ttsPitch, 0.1f, 0.5f..2f, format = { "%.1f".format(it) }) {
-                    viewModel.setTtsPitch(it)
                 }
             }
 

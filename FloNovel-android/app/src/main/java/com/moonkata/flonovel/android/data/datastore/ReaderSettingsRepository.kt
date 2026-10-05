@@ -38,8 +38,6 @@ class ReaderSettingsRepository(private val context: Context) {
         val CHAPTER_JUMP_DIVISIONS = intPreferencesKey("chapter_skip_divisions")
         val AUTO_ADVANCE_MODE = stringPreferencesKey("auto_advance_mode")
         val AUTO_PAGE_TURN_INTERVAL_SECONDS = intPreferencesKey("auto_page_turn_interval_seconds")
-        val TTS_SPEECH_RATE = floatPreferencesKey("tts_speech_rate")
-        val TTS_PITCH = floatPreferencesKey("tts_pitch")
         val LAST_USED_SAF_TREE_URI = stringPreferencesKey("last_used_saf_tree_uri")
         val LIBRARY_SORT_OPTION = stringPreferencesKey("library_sort_option")
         val CHAPTER_PATTERN_ENABLED_IDS = stringSetPreferencesKey("chapter_pattern_enabled_ids")
@@ -82,8 +80,6 @@ class ReaderSettingsRepository(private val context: Context) {
             chapterJumpDivisions = prefs[Keys.CHAPTER_JUMP_DIVISIONS] ?: defaults.chapterJumpDivisions,
             autoAdvanceMode = prefs[Keys.AUTO_ADVANCE_MODE]?.let { runCatching { AutoAdvanceMode.valueOf(it) }.getOrNull() } ?: defaults.autoAdvanceMode,
             autoPageTurnIntervalSeconds = prefs[Keys.AUTO_PAGE_TURN_INTERVAL_SECONDS] ?: defaults.autoPageTurnIntervalSeconds,
-            ttsSpeechRate = prefs[Keys.TTS_SPEECH_RATE] ?: defaults.ttsSpeechRate,
-            ttsPitch = prefs[Keys.TTS_PITCH] ?: defaults.ttsPitch,
             lastUsedSafTreeUri = prefs[Keys.LAST_USED_SAF_TREE_URI] ?: defaults.lastUsedSafTreeUri,
             librarySortOption = prefs[Keys.LIBRARY_SORT_OPTION]?.let { runCatching { FolderSortOption.valueOf(it) }.getOrNull() } ?: defaults.librarySortOption,
             chapterPatternEnabledIds = prefs[Keys.CHAPTER_PATTERN_ENABLED_IDS] ?: defaults.chapterPatternEnabledIds,
@@ -134,8 +130,6 @@ class ReaderSettingsRepository(private val context: Context) {
     suspend fun updateChapterJumpDivisions(value: Int) = edit { it[Keys.CHAPTER_JUMP_DIVISIONS] = value }
     suspend fun updateAutoAdvanceMode(value: AutoAdvanceMode) = edit { it[Keys.AUTO_ADVANCE_MODE] = value.name }
     suspend fun updateAutoPageTurnIntervalSeconds(value: Int) = edit { it[Keys.AUTO_PAGE_TURN_INTERVAL_SECONDS] = value }
-    suspend fun updateTtsSpeechRate(value: Float) = edit { it[Keys.TTS_SPEECH_RATE] = value }
-    suspend fun updateTtsPitch(value: Float) = edit { it[Keys.TTS_PITCH] = value }
     suspend fun updateLastUsedSafTreeUri(value: String?) = edit {
         if (value != null) it[Keys.LAST_USED_SAF_TREE_URI] = value else it.remove(Keys.LAST_USED_SAF_TREE_URI)
     }

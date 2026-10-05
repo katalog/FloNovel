@@ -2,7 +2,7 @@
 
 # FloNovel for Android
 
-**Read and listen to text novels in your folders, and continue on desktop.**
+**Read text novels in your folders, and continue on desktop.**
 
 ![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
 ![Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
@@ -37,9 +37,7 @@ Default horizontal swipes navigate **chapters**; vertical swipes navigate **chap
 - Custom background/text colors, size, line height, letter spacing, horizontal/top/bottom margins.
 - Downloads for Nanum Gothic, Nanum Myeongjo, Noto Sans KR, RIDIBatang, and Pretendard.
 - Brightness override, automatic/portrait/landscape orientation, keep-screen-on.
-- Timer mode for fixed-interval page turns.
-- Android TTS with turns on speech completion and rate/pitch controls (0.5–2.0).
-- Playback waits for initialization and reports missing Korean voice data or playback failures.
+- Auto-advance (timer mode) for fixed-interval page turns.
 - Korean/English UI following the system language.
 
 ## Getting started
@@ -135,14 +133,13 @@ An `android-v*` tag triggers the [release workflow](../.github/workflows/android
 - `app/src/androidTest`: Compose UI, Room, DataStore, Android checks. A device/emulator is required; some font tests use the network.
 - Result XML: `app/build/test-results/testDebugUnitTest/`. Check executed counts and failures.
 
-Sources are under `app/src/main/java/com/moonkata/flonovel/android/`. `ui/` contains screens/ViewModels; `data/` handles files/database/settings/preprocessing/sync; `tts/` handles speech and automatic advance.
+Sources are under `app/src/main/java/com/moonkata/flonovel/android/`. `ui/` contains screens/ViewModels; `data/` handles files/database/settings/preprocessing/sync; `tts/` handles automatic advance.
 
 Stack: Kotlin · Jetpack Compose/Material 3 · Room · DataStore · Navigation Compose · SAF · juniversalchardet. See [AGENTS.md](../AGENTS.md) for contribution rules.
 
 ## Troubleshooting and scope
 
 - **Empty contents:** add a preset/regular expression matching headings. Detection is pattern-based.
-- **TTS failure:** check the Android speech engine and language voice data.
 - **Folder access/write errors:** choose the folder again for SAF permissions.
 - **Missing key:** link Desktop to the same Dropbox app/account first.
 - EPUB/PDF/MOBI are unsupported. Content is loaded into memory, so large-book memory usage varies by device.
