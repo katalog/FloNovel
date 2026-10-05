@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -100,10 +102,16 @@ fun QuickSettingsSheet(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+        ),
     ) {
         BackHandler(onBack = onDismiss)
         Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding(),
             topBar = {
                 TopAppBar(
                     title = {
@@ -276,6 +284,7 @@ private fun ViewSettingsTab(
                 )
             }
         }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -390,6 +399,7 @@ private fun ControlsSettingsTab(
                 viewModel.setAutoPageTurnIntervalSeconds(it.toInt())
             }
         }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -412,6 +422,7 @@ private fun ChaptersSettingsTab(
         OutlinedButton(onClick = onOpenChapterPatterns, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.settings_chapter_pattern_button))
         }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -458,6 +469,7 @@ private fun SyncSettingsTab(
                 Text(stringResource(R.string.library_change_folder))
             }
         }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
