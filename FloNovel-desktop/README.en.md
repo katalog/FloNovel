@@ -1,181 +1,158 @@
 **English** · [한국어](README.md)
 
+<div align="center">
+
+<img src="src/main/resources/icon.png" width="84" height="84" alt="FloNovel Desktop Icon" />
+
 # FloNovel for Desktop
 
-**A keyboard-driven text novel reader with one- and two-pane views and a library shared with Android.**
+**A keyboard-driven text novel reader · 1-pane/2-pane spread views and seamless mobile synchronization**
 
-![Desktop](https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-0078D6)
-![Compose](https://img.shields.io/badge/Compose%20Desktop-4285F4?logo=jetpackcompose&logoColor=white)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](../LICENSE)
+[![Desktop](https://img.shields.io/badge/Desktop-Windows%20%7C%20macOS%20%7C%20Linux-0078D6?logo=windows&logoColor=white)](https://github.com/katalog/FloNovel)
+[![Compose Desktop](https://img.shields.io/badge/Compose%20Desktop-4285F4?logo=jetpackcompose&logoColor=white)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin JVM](https://img.shields.io/badge/Kotlin-JVM-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](../LICENSE)
 
-[Overview](../README.en.md) · [Android app](../FloNovel-android/README.en.md) · [Issues](https://github.com/katalog/FloNovel/issues)
+[🌐 Project Overview](../README.en.md) · [📱 Android App](../FloNovel-android/README.en.md) · [💬 Issues](https://github.com/katalog/FloNovel/issues)
 
-## Features
+</div>
 
-### Reader and navigation
+---
 
-- One- or two-pane reading. **Default advance is half the visible content**; the right pane moves left in two-pane mode.
-- One-pane turn animation/speed and optional chapter alignment to the left pane.
-- Chapter detection, pattern presets/custom regular expressions, contents, full-text search.
-- Chapter jump points, four divisions by default; fixed-amount fallback without chapters.
-- Character-offset position/progress storage and startup restoration of the last book.
-- Remappable shortcuts, timed advance, stopping at the book's end.
+## ✨ Features
 
-### Library and files
+### 📖 Desktop Viewer (1-Pane / 2-Pane Spread)
+- 📖 **1-Pane & 2-Pane Views:** Tailored for widescreen displays with book-like side-by-side two-pane spreads.
+  - **Natural Eye Tracking:** In 2-pane mode, advancing moves forward by half the visible content (1 pane), **seamlessly shifting the right pane to the left** so reading flow is never interrupted.
+- 🎬 **Smooth Page Turns:** Animated page turn transitions in 1-pane view with configurable speed.
+- 🎯 **Character Offset Anchoring:** Resizing windows, altering fonts, or toggling between 1-pane/2-pane never loses your place.
+- 📑 **Smart Table of Contents:** Automatic regex chapter detection, 4-way sub-chapter jump points, and high-speed search (`F2`).
 
-- Browse the home folder/subfolders with breadcrumbs; recent/name/date/size sorting.
-- Unread/in-progress/completed states and low chapter-marker density indicators.
-- Folder watching to preprocess/register new text; hidden files/folders excluded.
-- Automatic UTF-8 and EUC-KR/CP949-family encoding detection.
-- Open locations in the file manager or files in the default application.
-- Send files to trash/chosen folder; delete empty folders.
+```text
+┌───────────────────────────┬───────────────────────────┐
+│        [Left Pane]        │        [Right Pane]       │
+│                           │                           │
+│  "He slowly drew his      │  "The wind began to howl  │
+│   sword."                 │   in the dark."           │
+│                           │                           │
+└───────────────────────────┴───────────────────────────┘
+               ▼ [Press Next Page (.)]
+┌───────────────────────────┬───────────────────────────┐
+│        [Left Pane]        │        [Right Pane]       │
+│                           │                           │
+│  "The wind began to howl  │  (Next fresh text content │
+│   in the dark."           │   continues here...)      │
+│  (Right pane moved left)  │                           │
+└───────────────────────────┴───────────────────────────┘
+```
 
-### Reading environment
+---
 
-- Six themes: warm ivory, sepia cream, dark navy, soft gray, cool light, soft dark brown.
-- Font family/weight/size, line height, letter spacing, margins, maximum text width.
-- Pane gap/ratio and **UI scale applying to both interface and text**.
-- System/downloaded fonts and custom `.ttf` / `.otf` in `fonts/`.
-- Catalog distinguishing direct downloads, vendor pages, and system-only fonts.
-- Korean/English UI with system/manual language selection; saved window position/size.
-- **20-20-20 reminder** prompting a 20-second rest every 20 minutes.
-- MP3/AAC internet radio, sleep timer, editable station list.
+### 🗂️ Library & Automated File Management
+- 📁 **Watched Home Folder:** Automatically detects new `.txt` files added to your novel directory, running preprocessing and adding them to the library.
+- 📊 **Reading Status & Diagnostics:** Unread / Reading / Completed indicators, plus warning flags for books with low chapter density.
+- 🔤 **Smart Encoding Conversion:** Seamlessly detects UTF-8 and legacy encodings (EUC-KR, CP949, MS949) and converts to clean UTF-8.
+- 🗑️ **Safe File Deletions:** Pressing `Delete` sends files to a **designated backup folder** or the **PC Recycle Bin / Trash**, never permanently deleting without recovery options.
 
-Radio needs direct streams; webpages/YouTube URLs are unsupported. Bundled station availability depends on external services. Desktop does not have Android's TTS.
+---
 
-## Getting started
+### 🎨 Reading Customization & Utilities
+- 🌈 **6 Visual Themes:** Warm Ivory, Sepia Cream, Dark Navy, Soft Gray, Cool Light, and Soft Dark Brown.
+- 🎛️ **Granular Typography:** Font weight slider, text size, line height, letter spacing, column max-width, and spread pane gap/ratios.
+- 🔍 **Global UI Scaling:** Full UI scale slider optimized for 4K and high-DPI displays.
+- 🔤 **Flexible Font Choices:** System fonts, built-in free fonts, and custom `.ttf` / `.otf` loaded directly from `fonts/`.
+- ☕ **20-20-20 Eye Rest Reminder:** Built-in wellness timer suggesting 20-second distant focus every 20 minutes.
+- 📻 **Integrated Internet Radio:** Stream MP3/AAC internet radio stations with an automatic sleep timer while reading.
 
-1. Run using the build instructions below.
-2. Choose **Set home folder** for a folder of `.txt` books.
-3. Open a book and use `,` / `.`. `F3` is contents, `F2` search, `F4` settings.
-4. Link Dropbox in cloud-sync settings and start the first full sync.
+---
 
-## Default shortcuts
+## ⌨️ Default Keyboard Shortcuts
 
-These actions can be remapped in settings.
+All shortcuts can be remapped anytime in Settings (`F4`).
 
-- `,` / `.`: previous / next screen advance.
-- `PgUp` / `PgDn`: previous / next chapter jump point.
-- `[` / `]`: previous / next chapter.
-- `Esc`: back; `F1`: home folder.
-- `F2`: search; `F3`: contents; `F4`: settings.
-- `F7`: file manager; `F8`: default application.
-- `P`: toggle automatic advance; `Delete`: handle selected file or delete empty folder.
+| Key | Action | Description |
+|---|---|---|
+| `,` / `.` | Previous / Next Page | Page turn (advances 1 pane in 2-pane spread) |
+| `PgUp` / `PgDn` | Previous / Next Jump | 4-part sub-chapter jump points |
+| `[` / `]` | Previous / Next Chapter | Jump to adjacent chapter headers |
+| `P` | Toggle Auto-Advance | Start/stop timed hands-free reading |
+| `F1` | Go to Home | Return to the library screen |
+| `F2` | Text Search | In-book search dialog |
+| `F3` | Table of Contents | Chapter index list |
+| `F4` | Settings | Open configuration dialog |
+| `F7` / `F8` | Open Externally | Open file location in file manager / default app |
+| `Delete` | Move to Trash / Backup | Safe deletion to Recycle Bin or backup folder |
+| `Esc` | Close / Back | Close current dialog or return to library |
 
-Actions depend on screen/selection. Deletion confirmation explains propagation to other devices.
+---
 
-## File preprocessing
+## ⚡ Text Preprocessing
 
-**Preprocessing rewrites actual books and may rename them.** Originals are backed up under `.flonovel/original/` in the home folder first.
+Raw novel files are preprocessed before first read. **Originals are safely backed up to `.flonovel/original/` inside your library directory.**
 
-- Detect encoding, read, and save as UTF-8.
-- Normalize line endings, strip indentation, remove adjacent duplicate content lines, normalize paragraph spacing.
-- Add `##` to recognized headings and add file start/end markers.
-- Remove Han from mixed Hangul/Han names; shorten to 50 Unicode code points excluding the extension.
-- Use temporary files/atomic replacement; do not reprocess books with processing records.
+- Saved as clean UTF-8.
+- Normalizes line endings (`\n`), trims indentations/tabs, collapses redundant blank lines, removes adjacent duplicate lines.
+- Adds markdown `##` chapter markers and book bounds.
+- Normalizes filenames (up to 50 Unicode code points).
+- *Guarantees 100% byte-for-byte parity with Android's preprocessing engine via shared fixtures.*
 
-Output bytes are checked against Android's fixtures. There is no UI preprocessing switch; use a library copy to retain original formatting.
+---
 
-## Sync
+## ☁️ Two-Way Synchronization
 
-See the [shared setup guide](../README.en.md#setting-up-sync-optional).
+See the [Project Synchronization Guide](../README.en.md#optional-synchronization-setup) for setup instructions.
 
-- Bidirectional file sync with `/books` inside the Dropbox app folder.
-- Compare local/remote against the last baseline independently; use content hashes/Dropbox revisions.
-- Preserve simultaneous edits as remote original and PC conflict copy; edits win over deletions.
-- Remote deletions move to the designated folder when configured, or fall back to the **PC trash** if unset or invalid.
-- Confirm mass deletion/empty remote libraries. Move reading records with moves/renames when one-to-one content-hash matching is possible.
-- Defer downloads/deletions/conflicts for the open book until it closes.
-- After first sync: Dropbox notifications, focus return at most once per minute, manual requests.
-- Progress display, pause/resume.
-- Reset baselines/cursors on home-folder change.
+- 📦 **Dropbox File Sync:** Bi-directional sync between your Desktop home folder and mobile `/books`.
+- ⚡ **Supabase Position Sync:** **Connect Desktop first** to generate `secret.json` for reading offset sync with Android.
+- 🛡️ **Trash Safety:** Remote deletions on PC are routed to the Recycle Bin or a designated backup folder.
 
-Supabase sharing needs server configuration. **Link Desktop first** to generate the shared key. More advanced positions are offered as jumps. Normal uploads cannot move backward; explicit **force upload** replaces incorrect remote positions. Regenerating the key selects a new position partition, so previous remote positions are no longer shared.
+---
 
-## Source builds
+## 🖥️ Build & Run Guide
 
-There are currently no Desktop binaries on [GitHub Releases](https://github.com/katalog/FloNovel/releases). Use **JDK 17 or newer**.
+### Prerequisites
+- **JDK 17+**
+- Supported Platforms: **Windows 10+**, **macOS 11+**, **Linux (x64 / arm64)**
 
+### Commands
 From the repository root:
 
 ```bash
 cd FloNovel-desktop
-./gradlew test build
-./gradlew run
+
+# Run tests and launch debug desktop app
+./gradlew test run
 ```
+*(On Windows PowerShell, use `.\gradlew.bat`)*
 
-On Windows, replace `./gradlew` with `.\gradlew.bat`.
-
-### Packaging
-
-Build on the target OS with its packaging tools, such as WiX for Windows installers.
+### Packaging Installers
+Generate native installer bundles for your host OS:
 
 ```bash
 ./gradlew packageDistributionForCurrentOS
 ```
+- Output location: `build/compose/binaries/main/`
+- Windows: `.msi` / `.exe`
+- macOS: `.dmg`
+- Linux: `.deb`
 
-Configured formats: Windows `.msi` / `.exe`, macOS `.dmg`, Linux `.deb`. Outputs are under `build/compose/binaries/`.
-
-Build a Windows EXE or application directory without an installer separately:
-
+Portable distribution directory:
 ```bash
-./gradlew packageExe
 ./gradlew createDistributable
 ```
 
-A Desktop release workflow is not currently included.
+---
 
-### Optional configuration
+## 📂 Configuration & Data Paths
 
-Copy [local.properties.example](local.properties.example) to `local.properties`.
+- **Windows:** `%APPDATA%/FloNovel/`
+- **macOS:** `~/Library/Application Support/FloNovel/`
+- **Linux:** `$XDG_CONFIG_HOME/FloNovel/` (defaults to `~/.config/FloNovel/`)
 
-- `DROPBOX_APP_KEY`: Dropbox App folder app key.
-- `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`: position server.
-- `FLONOVEL_DEV=true`: separate development settings/position partition.
+Data files: `settings.json`, `books.json`, `credentials.json`, `sync-state.json`, `radio_streams.json`, `fonts/`.
 
-Same-name environment variables and Gradle properties `-PdropboxAppKey`, `-PsupabaseUrl`, `-PsupabasePublishableKey`, `-PflonovelDev` are supported. Local-reading builds need no sync configuration.
+---
 
-> Development uses `FloNovelDev` for settings and `secret-dev.json` for the key. **Dropbox `/books` is shared**, and fonts/radio lists use the default `FloNovel` directory.
+## 📄 License
 
-## Data locations
-
-Default configuration directory:
-
-- Windows: `%APPDATA%/FloNovel/`.
-- macOS: `~/Library/Application Support/FloNovel/`.
-- Linux: `$XDG_CONFIG_HOME/FloNovel/`, or `~/.config/FloNovel/` when unset.
-
-Settings/library/credentials/baselines use `settings.json`, `books.json`, `credentials.json`, `sync-state.json`. Fonts use `fonts/`; radio uses `radio_streams.json`. Originals are backed up in **`.flonovel/original/` under the book home folder**.
-
-## Tests and structure
-
-```bash
-./gradlew test
-```
-
-JVM tests in `src/test/` cover navigation/layout, encoding/chapters, preprocessing, sync, settings, and related logic. Reader tests use a fake `TextFitter` without UI. Results: `build/test-results/test/`.
-
-Only for intentional preprocessing-output changes:
-
-```bash
-./gradlew test -PupdateGolden
-```
-
-Copy updated expectations from `src/test/resources/fixtures/parity/` to Android's corresponding folder and run both suites.
-
-Sources are under `src/main/kotlin/com/moonkata/flonovel/desktop/`. `reader/` contains UI-independent navigation/layout; `ui/` screens; `library/` books/settings; `preprocess/` intake; `sync/` synchronization; `platform/` OS-specific behavior.
-
-Stack: Kotlin/JVM · Compose Desktop · juniversalchardet · org.json · JNA · jlayer · javasound-aac. See [AGENTS.md](../AGENTS.md) for contribution rules.
-
-## Troubleshooting and scope
-
-- **Empty contents:** configure a matching heading pattern. Low marker density is an inspection hint, not an error verdict.
-- **Login browser fails to open:** copy the app's displayed URL into a browser.
-- **Missing library folder:** select the home folder again and start first sync.
-- Only `.txt`; EPUB/PDF/ZIP reading unsupported.
-- Content is loaded into memory; large-file time/memory usage depends on the environment.
-- Local reading works offline; sync, font downloads, and radio need a network.
-
-## License
-
-[Apache License 2.0](../LICENSE). Fonts retain their respective licenses.
+Distributed under the [Apache License 2.0](../LICENSE).
