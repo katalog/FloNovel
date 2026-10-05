@@ -172,6 +172,7 @@
     <string name="library_delete_title">\"%1$s\"을(를) 삭제할까요?</string>
     <string name="library_delete_file_message">이 폰에서 파일을 삭제합니다.</string>
     <string name="library_delete_file_message_synced">이 폰과 Dropbox, PC에서 파일을 삭제합니다. PC에서는 휴지통으로 갑니다.</string>
+    <string name="library_delete_preview_failed">폴더 내용물을 확인할 수 없습니다: %s</string>
     <string name="library_delete_folder_message">이 폰에서 폴더와 그 안의 모든 파일을 삭제합니다.</string>
     <string name="library_delete_folder_message_synced">이 폰과 Dropbox, PC에서 폴더와 그 안의 모든 파일을 삭제합니다. PC에서는 휴지통으로 갑니다.</string>
     <string name="library_delete_confirm">삭제</string>

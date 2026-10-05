@@ -23,6 +23,8 @@ import com.moonkata.flonovel.android.data.db.BookEntity
 import com.moonkata.flonovel.android.data.file.BookSource
 import com.moonkata.flonovel.android.data.file.FolderBrowser
 import com.moonkata.flonovel.android.data.file.SafFolderBrowser
+import com.moonkata.flonovel.android.data.file.RemovalChild
+import com.moonkata.flonovel.android.data.file.folderRemovalContents
 import com.moonkata.flonovel.android.data.font.FontCatalogEntry
 import com.moonkata.flonovel.android.data.font.FontDownloadManager
 import com.moonkata.flonovel.android.data.preprocess.LibraryPreprocessor
@@ -595,6 +597,32 @@ class LibraryViewModel(
     fun skipMassDeletion() {
         skippedMassDeletion = _dropboxState.value.pendingMassDeletion.orEmpty()
         _dropboxState.update { it.copy(pendingMassDeletion = null) }
+    }
+
+    /** Queries every document type because deletion also removes files the reader cannot open. */
+    suspend fun deletionContents(entry: FolderEntry): List<String> = withContext(Dispatchers.IO) {
+        if (entry !is FolderEntry.Folder) return@withContext emptyList()
+        val resolver = getApplication<Application>().contentResolver
+        folderRemovalContents(entry.uri) { parent ->
+            val queryUri = DocumentsContract.buildChildDocumentsUriUsingTree(parent, DocumentsContract.getDocumentId(parent))
+            val projection = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE)
+            val result = mutableListOf<RemovalChild<Uri>>()
+            val cursor = resolver.query(queryUri, projection, null, null, null)
+                ?: error("Unable to list folder contents")
+            cursor.use {
+                check(!it.extras.getBoolean(DocumentsContract.EXTRA_LOADING)) { "Folder listing is incomplete" }
+                it.extras.getString(DocumentsContract.EXTRA_ERROR)?.let { message -> error(message) }
+                while (it.moveToNext()) {
+                    result += RemovalChild(
+                        DocumentsContract.buildDocumentUriUsingTree(parent, it.getString(0)),
+                        it.getString(1) ?: error("Document name unavailable"),
+                        it.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR,
+                    )
+                }
+            }
+            result
+        }
     }
 
     /**
