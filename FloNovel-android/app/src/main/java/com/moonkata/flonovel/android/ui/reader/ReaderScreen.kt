@@ -7,6 +7,7 @@ import android.os.Build
 import android.view.KeyEvent
 import android.view.WindowManager
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -82,14 +83,18 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
     }
 
     LaunchedEffect(viewModel) {
-        viewModel.messages.collect { messageRes ->
+        viewModel.messages.collectLatest { messageRes ->
             transientNotice = context.getString(messageRes)
+            try {
+                delay(800)
+            } finally {
+                transientNotice = null
+            }
         }
     }
 
-    LaunchedEffect(transientNotice) {
-        if (transientNotice != null) {
-            delay(500)
+    LaunchedEffect(showChrome) {
+        if (showChrome) {
             transientNotice = null
         }
     }

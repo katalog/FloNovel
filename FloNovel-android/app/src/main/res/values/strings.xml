@@ -38,7 +38,12 @@
     <string name="chapter_pattern_preset_hash_label">Starts with ##</string>
     <string name="chapter_pattern_preset_hash_example">## Chapter 1: An Utterly Ordinary Beginning</string>
 
-    <!-- Quick settings sheet -->
+    <!-- Settings screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_tab_view">Display</string>
+    <string name="settings_tab_controls">Controls</string>
+    <string name="settings_tab_chapters">Chapters</string>
+    <string name="settings_tab_sync">Sync</string>
     <string name="settings_section_home_folder">Home folder</string>
     <string name="settings_section_font">Font</string>
     <string name="settings_font_size">Size</string>
@@ -136,7 +141,9 @@
     <string name="search_desc">Search</string>
 
     <!-- Table of contents sheet -->
+    <string name="toc_title">Table of contents</string>
     <string name="toc_empty">No table of contents found</string>
+    <string name="action_close">Close</string>
 
     <!-- PC file sync sheet -->
 
