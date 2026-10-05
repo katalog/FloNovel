@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -100,6 +103,13 @@ fun QuickSettingsSheet(
     var showFontPicker by remember { mutableStateOf(false) }
     var showChapterPatterns by remember { mutableStateOf(false) }
 
+    // Sample navigation bar insets from the host Activity context BEFORE entering the Dialog,
+    // because Android Dialog windows on Samsung One UI frequently drop or report 0 for insets.
+    // Fallback to 56.dp (covering 3-button navigation bar height on Galaxy phones) ensures
+    // the bottom content never collides with system navigation buttons.
+    val activityNavBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottomBarPadding = if (activityNavBarInset > 0.dp) activityNavBarInset else 56.dp
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -108,11 +118,15 @@ fun QuickSettingsSheet(
         ),
     ) {
         BackHandler(onBack = onDismiss)
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding(),
-            topBar = {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Scaffold(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = bottomBarPadding),
+                topBar = {
                 TopAppBar(
                     title = {
                         Text(
@@ -194,6 +208,7 @@ fun QuickSettingsSheet(
             }
         }
     }
+}
 
     if (showFontPicker) {
         FontPickerSheet(viewModel = viewModel, settings = settings, onDismiss = { showFontPicker = false })
