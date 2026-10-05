@@ -6,6 +6,8 @@ import com.moonkata.flonovel.desktop.library.Credentials
 import com.moonkata.flonovel.desktop.library.CredentialsStore
 import com.moonkata.flonovel.desktop.library.DeleteAction
 import com.moonkata.flonovel.desktop.library.DeleteSettings
+import com.moonkata.flonovel.desktop.library.FileRemover
+import com.moonkata.flonovel.desktop.library.LibraryScanner
 import com.moonkata.flonovel.desktop.library.RelativePath
 import com.moonkata.flonovel.desktop.library.SettingsStore
 import java.nio.file.Files
@@ -371,6 +373,51 @@ class DropboxSyncEngineTest {
         assertFalse(Files.exists(home.resolve("Series")))
         assertTrue(Files.exists(home.resolve("Other.txt")))
         assertEquals(setOf("Vol1.txt", "Vol2.txt"), Files.list(trashDir).use { s -> s.map { it.fileName.toString() }.toList().toSet() })
+    }
+
+    @Test
+    fun phoneFolderDeletion_fileDeltasRemoveFolderFromDesktopListing() {
+        localBook("Series/Vol1.txt", "1")
+        localBook("Series/Sub/Vol2.txt", "2")
+        localBook("Other.txt", "o")
+        sync()
+        // Phone sync sends conditional deletions for each tracked book, not a folder delta.
+        dropbox.remove("Series/Vol1.txt")
+        dropbox.remove("Series/Sub/Vol2.txt")
+
+        val result = sync()
+
+        assertEquals(2, result.deletedCount)
+        assertEquals(0, result.failedCount)
+        assertFalse(Files.exists(home.resolve("Series")))
+        val listing = LibraryScanner.scanDirectory(home, "", bookStore.load())
+        assertTrue(listing.subfolders.none { it.relativePath == "Series" })
+        assertEquals(listOf("Other.txt"), listing.books.map { it.relativePath })
+        assertEquals(setOf("other.txt"), stateStore.load().bases.keys)
+        sync()
+        assertEquals(setOf("Other.txt"), dropbox.paths())
+    }
+
+    @Test
+    fun desktopFolderRemoval_uploadsAllDeletionsWithoutResurrectingBooks() {
+        localBook("Series/Vol1.txt", "1")
+        localBook("Series/Sub/Vol2.txt", "2")
+        localBook("Other.txt", "o")
+        sync()
+        val revisions = listOf(dropbox.rev("Series/Vol1.txt"), dropbox.rev("Series/Sub/Vol2.txt")).toSet()
+        val folder = home.resolve("Series")
+        val result = FileRemover.removeFolder(folder, DeleteSettings(DeleteAction.MOVE, trashDir.toString()), home)
+        assertTrue(result is com.moonkata.flonovel.desktop.library.RemovalOutcome.Moved)
+
+        sync()
+
+        assertEquals(setOf("Other.txt"), dropbox.paths())
+        assertEquals(revisions, dropbox.deleteParentRevs.toSet())
+        assertEquals(setOf("other.txt"), stateStore.load().bases.keys)
+        assertEquals("2", trashDir.resolve("Series/Sub/Vol2.txt").readText())
+        sync()
+        assertFalse(Files.exists(folder))
+        assertEquals(setOf("Other.txt"), dropbox.paths())
     }
 
     @Test

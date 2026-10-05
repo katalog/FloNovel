@@ -238,6 +238,46 @@ class TwoWayBookSyncTest {
     }
 
     @Test
+    fun phoneFolderDeletion_uploadsEveryNestedBookDeletionAndStaysDeleted() {
+        dropbox.put("Series/One.txt", "1")
+        dropbox.put("Series/Sub/Two.txt", "2")
+        dropbox.put("Other.txt", "o")
+        sync()
+        val revisions = setOf(dropbox.rev("Series/One.txt"), dropbox.rev("Series/Sub/Two.txt"))
+        library.paths().filter { it.startsWith("Series/") }.forEach { library.delete(it) }
+
+        val result = sync()
+
+        assertEquals(2, result.deletedRemote)
+        assertEquals(setOf("Other.txt"), dropbox.paths())
+        assertEquals(revisions, dropbox.deleteParentRevs.toSet())
+        assertEquals(setOf("Other.txt"), library.paths())
+        sync()
+        assertEquals(setOf("Other.txt"), library.paths())
+        assertEquals(setOf("Other.txt"), dropbox.paths())
+    }
+
+    @Test
+    fun desktopFolderDeletion_fileDeltasRemoveAllPhoneDescendants() {
+        dropbox.put("Series/One.txt", "1")
+        dropbox.put("Series/Sub/Two.txt", "2")
+        dropbox.put("Other.txt", "o")
+        sync()
+        // Desktop sync emits one revision-checked deletion per tracked book.
+        dropbox.remove("Series/One.txt")
+        dropbox.remove("Series/Sub/Two.txt")
+
+        val result = sync()
+
+        assertEquals(2, result.deletedLocal)
+        assertEquals(setOf("Other.txt"), library.paths())
+        assertEquals(1, dao.rows.size)
+        sync()
+        assertEquals(setOf("Other.txt"), library.paths())
+        assertEquals(setOf("Other.txt"), dropbox.paths())
+    }
+
+    @Test
     fun bothEdited_conflictCopy_andOriginalKeepsItsUri() {
         syncedBook()
         val id = library.documentId("Book.txt")
