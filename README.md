@@ -2,155 +2,204 @@
 
 <div align="center">
 
+<img src="FloNovel-desktop/src/main/resources/icon.png" width="96" height="96" alt="FloNovel Icon" />
+
 # FloNovel
 
-**내가 가진 텍스트 소설을 Android와 PC에서 이어 읽는 오픈소스 리더.**
+**내가 가진 텍스트 소설을 Android와 PC에서 이어 읽는 오픈소스 리더**
 
-![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
-![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
-![Desktop](https://img.shields.io/badge/Desktop-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-0078D6)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)](FloNovel-android/README.md)
+[![Desktop](https://img.shields.io/badge/Desktop-Windows%20%7C%20macOS%20%7C%20Linux-0078D6?logo=windows&logoColor=white)](FloNovel-desktop/README.md)
+[![Compose Multiplatform](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Dropbox](https://img.shields.io/badge/Storage-Dropbox-0061FF?logo=dropbox&logoColor=white)](https://www.dropbox.com)
+[![Supabase](https://img.shields.io/badge/Sync-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-[Android 안내](FloNovel-android/README.md) · [Desktop 안내](FloNovel-desktop/README.md) · [이슈](https://github.com/katalog/FloNovel/issues)
+[📱 Android 안내](FloNovel-android/README.md) · [🖥️ Desktop 안내](FloNovel-desktop/README.md) · [💬 이슈 제보](https://github.com/katalog/FloNovel/issues)
 
 </div>
 
-FloNovel은 `.txt` 소설을 위한 두 개의 독립 앱입니다. 폴더 구조를 그대로 탐색하고, 텍스트를 정리하고, 챕터를 찾아 목차를 만듭니다. 읽기 위치를 페이지 번호가 아닌 **본문의 문자 오프셋**으로 저장하므로 글꼴·창 크기·읽기 방식을 바꿔도 읽던 위치를 기준으로 다시 배치합니다.
+---
 
-로컬 독서는 동기화 서비스 없이 사용할 수 있습니다. 선택적으로 **Dropbox에 책 파일**, **Supabase에 읽기 위치**를 동기화합니다. 별도의 FloNovel 계정을 만들지 않습니다.
+**FloNovel**은 `.txt` 소설을 위한 두 개의 독립형 리더 앱(Android · Desktop)입니다.
+폴더 구조를 그대로 탐색하고, 텍스트 서식을 깔끔하게 정리하며, 챕터를 자동으로 탐지해 목차를 만듭니다.
 
-## 주요 기능
+읽기 위치를 페이지 번호가 아닌 **본문의 디코딩된 문자 오프셋(Character Offset)**으로 저장하므로, 기기마다 다른 글꼴·창 크기·화면 모드(1-pane / 2-pane)를 사용하더라도 **오차 없이 정확하게 읽던 문장 위치를 복원**합니다.
 
-### 두 앱의 공통 기능
+로컬 독서는 인터넷 없이 완전 오프라인으로 사용할 수 있으며, 필요할 때 **Dropbox에 책 파일**, **Supabase에 읽기 위치**를 선택적으로 동기화합니다. 별도의 FloNovel 서비스 계정을 가입할 필요가 없습니다.
 
-- **텍스트 읽기:** UTF-8 및 EUC-KR/CP949 계열 인코딩 자동 판별.
-- **목차와 이동:** 챕터 자동 탐지, 패턴 프리셋·사용자 정규식, 챕터 내부 점프 지점, 본문 검색.
-- **읽기 위치:** 책별 진행률과 문자 오프셋 저장, 다른 기기의 더 앞선 위치로 이동 제안.
-- **독서 화면:** 여섯 테마, 글꼴·크기·줄 간격·자간·여백 조절, 글꼴 다운로드.
-- **텍스트 전처리:** 줄바꿈·들여쓰기·빈 줄 정리, 인접 중복 내용 줄 제거, 챕터 표식 추가, 파일명 정리, 처리 전 원본 백업.
-- **선택적 양방향 동기화:** 추가·수정·삭제·이동·이름 변경 반영, 충돌 사본 보존, 대량 삭제 확인.
-- **한국어·영어 UI:** Android는 시스템 언어를 따르고, Desktop은 언어를 직접 선택할 수도 있습니다.
+---
 
-### Android
+## 🔄 시스템 구조 및 동기화 흐름
 
-- 페이지 넘김 또는 세로 연속 스크롤.
-- 표준 3분할 터치 영역, 동작을 지정하는 3×3 그리드, 방향별 스와이프, 볼륨 키 넘김.
-- 타이머 모드로 일정 간격 자동 넘김.
-- SAF로 선택한 폴더 탐색, ZIP 내부 `.txt`를 디스크에 풀지 않고 읽기.
-- 사용자 지정 배경·글자색, 밝기 조절, 화면 방향 고정, 화면 꺼짐 방지.
+FloNovel은 두 앱이 코드를 공유하지 않으면서도 엄격한 계약(Contract)에 합의하여 완벽하게 호환됩니다.
 
-[Android 기능·사용법·빌드 →](FloNovel-android/README.md)
+```mermaid
+flowchart TD
+    subgraph Cloud ["☁️ 개인 클라우드 (자체 계정 불필요)"]
+        direction LR
+        DB[("📦 Dropbox App Folder<br/>(/books 텍스트 파일 저장소)")]
+        SB[("⚡ Supabase Database<br/>(flonovel_sync 읽기 위치)")]
+    end
 
-### Desktop
+    subgraph AndroidApp ["📱 FloNovel for Android"]
+        direction TB
+        A_UI["Compose UI (1-Pane / 세로 스크롤)"]
+        A_Lib["SAF 서재 탐색 (ZIP 직독 지원)"]
+        A_DB[("Room Database<br/>(sync_base & 읽기 위치)")]
+    end
 
-- 한 쪽 또는 두 쪽 보기. 기본 넘김은 보이는 분량의 절반만큼 전진하며, 두 쪽 보기에서는 오른쪽 내용이 왼쪽으로 이동.
-- 단축키 재지정, 자동 넘김, 한 쪽 보기 넘김 애니메이션.
-- 홈 폴더 감시와 새 파일 전처리, 최근·이름·날짜·크기 정렬, 챕터 표식이 적은 책 표시.
-- 글꼴 굵기·최대 본문 폭·두 쪽 간격과 비율·UI 배율, 시스템·사용자 글꼴 사용.
-- 20-20-20 눈 휴식 알림, 슬립 타이머가 있는 MP3/AAC 인터넷 라디오.
-- 파일 관리자·기본 앱으로 열기, 휴지통 또는 지정 폴더로 보내기.
+    subgraph DesktopApp ["🖥️ FloNovel for Desktop"]
+        direction TB
+        D_UI["Compose Desktop (1-Pane / 2-Pane)"]
+        D_Lib["홈 폴더 실시간 감시 & 전처리"]
+        D_State[("sync-state.json<br/>(sync_base & 읽기 위치)")]
+    end
 
-[Desktop 기능·단축키·빌드 →](FloNovel-desktop/README.md)
+    A_Lib <==>|"양방향 3자 비교 동기화<br/>(rev · content_hash)"| DB
+    DB <==>|"양방향 3자 비교 동기화<br/>(rev · content_hash)"| D_Lib
 
-## 시작하기
+    A_DB <==>|"문자 오프셋 동기화<br/>(max-wins, RLS 보안)"| SB
+    SB <==>|"문자 오프셋 동기화<br/>(max-wins, RLS 보안)"| D_State
+```
 
-1. 아래 안내로 앱을 빌드합니다.
-2. Android에서는 **폴더 추가**, Desktop에서는 **홈 폴더 설정**으로 책 폴더를 선택합니다.
-3. `.txt` 책을 엽니다. Android 기본 터치 영역은 왼쪽 이전·가운데 메뉴·오른쪽 다음입니다. Desktop은 `,` / `.`로 넘기고 `F4`로 설정을 엽니다.
-4. 여러 기기에서 이어 읽으려면 아래 동기화 설정을 적용합니다.
+---
 
-> **전처리는 실제 파일을 변경합니다.** 처음 처리할 때 원본을 책 폴더의 `.flonovel/original/`에 백업합니다. 들여쓰기·빈 줄을 정리하고 제목 표식을 추가하며 파일명을 바꿀 수 있습니다. 원래 서식을 유지해야 한다면 책 폴더의 사본을 사용하세요.
+## ✨ 주요 기능
 
-## 설치 및 소스 빌드
+### 🌐 두 앱 공통 핵심 경험
 
-현재 [GitHub Releases](https://github.com/katalog/FloNovel/releases)에 게시된 배포 파일은 없습니다. 각 앱을 소스에서 빌드할 수 있으며 Android APK 릴리스 워크플로는 저장소에 포함되어 있습니다.
+- 📖 **텍스트 엔진:** UTF-8 및 EUC-KR / CP949 계열 인코딩 자동 판별, 대용량 텍스트 안정적 렌더링.
+- 📑 **스마트 목차와 이동:** 챕터 자동 탐지, 패턴 프리셋 및 사용자 지정 정규식, 본문 통합 검색.
+- 🎯 **정밀한 읽기 위치 보존:** 글꼴 크기나 창 크기에 구애받지 않는 본문 문자 오프셋 기반 위치 저장, 상대 기기의 더 앞선 위치 발견 시 이동 제안.
+- 🎨 **쾌적한 독서 화면:** 6가지 프리셋 테마(웜 아이보리, 세피아, 다크 네이비 등), 글꼴·크기·줄 간격·자간·여백 조절, 한글 무료 폰트 다운로드(나눔, 리디바탕, Pretendard 등).
+- ⚡ **텍스트 전처리 (멱등성 보장):** 줄바꿈·들여쓰기·빈 줄 정리, 인접 중복 줄 제거, 챕터 `##` 표식 부여, 파일명 정규화, 처리 전 원본 자동 백업.
+- 🔄 **안전한 양방향 동기화:** 3자 비교(Local ↔ Base ↔ Remote) 기반 추가·수정·삭제·이동 반영, 충돌 사본 보존, 대량 삭제 안전장치.
+- 🌏 **다국어 지원:** 시스템 언어 및 설정에 맞춘 한국어 / 영어 UI.
 
-**JDK 17 이상**이 필요합니다. Android는 추가로 **Android SDK Platform 36**과 빌드 도구가 필요합니다. Android Studio에서 SDK를 설정하거나 `local.properties`에 `sdk.dir`을 지정하세요.
+---
 
-루트에는 Gradle 프로젝트가 없습니다. 각 앱 폴더에서 실행합니다.
+### 📱 Android 특징
+
+- **뷰어 모드:** 좌우 페이지 넘김 또는 부드러운 세로 연속 스크롤.
+- **다양한 제스처:** 표준 3분할 탭 영역, 사용자가 원하는 동작을 지정하는 **3×3 그리드**, 방향별 스와이프, 볼륨 키 페이지 넘김.
+- **자동 넘김:** 설정한 간격(초 단위)마다 자동으로 다음 페이지를 넘겨주는 타이머 모드.
+- **스마트 파일 탐색:** Storage Access Framework(SAF) 연동, ZIP 압축 파일 내부의 `.txt`를 풀지 않고 바로 열람.
+- **화면 제어:** 사용자 지정 배경·글자색, 밝기 조절, 화면 방향 고정(세로/가로), 화면 꺼짐 방지.
+
+👉 [Android 상세 안내·사용법 보기 →](FloNovel-android/README.md)
+
+---
+
+### 🖥️ Desktop 특징
+
+- **뷰어 모드:** 넓은 모니터를 위한 **1쪽 또는 2쪽 보기(양면 보기)** 지원.
+  - 2쪽 보기 이동 시 보이는 양의 절반(1페이지)만큼 전진하여 자연스럽게 좌우가 이어집니다.
+- **키보드 중심 제어:** 전체 단축키 재지정, 페이지 넘김 부드러운 애니메이션, 휠 스크롤 지원.
+- **홈 폴더 자동화:** 홈 폴더 실시간 감시 및 새 파일 자동 전처리, 챕터 표식 검사 리포트.
+- **디스플레이 최적화:** 본문 최대 폭, 두 쪽 간격 및 비율, 폰트 굵기, UI 배율 자유 조절.
+- **편의 기능:** 20-20-20 눈 휴식 알림, 슬립 타이머를 지원하는 MP3/AAC 인터넷 라디오 플레이어 내장.
+
+👉 [Desktop 상세 안내·단축키 보기 →](FloNovel-desktop/README.md)
+
+---
+
+## 🚀 빠른 시작
+
+1. 아래 가이드에 따라 원하는 플랫폼 앱을 빌드합니다.
+2. **책 폴더 등록:**
+   - **Android:** **폴더 추가** 버튼으로 소설이 있는 디렉터리를 선택합니다.
+   - **Desktop:** **홈 폴더 설정** 버튼으로 책 폴더를 지정합니다.
+3. 소설을 열고 편안하게 독서를 즐깁니다. (Android는 화면 중앙 터치로 메뉴 호출, Desktop은 `F4`로 설정 호출).
+4. PC와 스마트폰 간 이어 읽기를 원할 경우 아래 **동기화 설정**을 진행합니다.
+
+> ⚠️ **텍스트 전처리 안내:** 전처리는 소설 파일의 가독성을 높이기 위해 내용을 정리합니다. 첫 처리 시 원본은 책 폴더 내 `.flonovel/original/`에 자동 백업됩니다.
+
+---
+
+## 📦 설치 및 소스 빌드
+
+각 앱은 소스코드에서 즉시 빌드할 수 있습니다. **JDK 17 이상**이 필요합니다.
 
 ```bash
 git clone https://github.com/katalog/FloNovel.git
 cd FloNovel
 ```
 
-Android:
+### 📱 Android 빌드
+Android SDK Platform 36 및 빌드 툴이 필요합니다.
 
 ```bash
 cd FloNovel-android
 ./gradlew testDebugUnitTest assembleDebug
 ```
+- 생성된 APK 위치: `FloNovel-android/app/build/outputs/apk/debug/app-debug.apk` (Android 7.0+ 지원)
 
-APK: `FloNovel-android/app/build/outputs/apk/debug/app-debug.apk`. Android 7.0(API 24) 이상에서 설치할 수 있습니다.
-
-Desktop — 별도 터미널에서 저장소 루트부터:
+### 🖥️ Desktop 실행 및 빌드
+별도 터미널에서 저장소 루트 기준:
 
 ```bash
 cd FloNovel-desktop
-./gradlew test build
-./gradlew run
+./gradlew test run
 ```
+- Windows PowerShell에서는 `.\gradlew.bat`를 사용합니다.
+- 설치 패키징(MSI/DMG/DEB) 생성은 [Desktop 가이드](FloNovel-desktop/README.md#패키징)를 참고하세요.
 
-Windows에서는 `./gradlew` 대신 `.\gradlew.bat`를 사용합니다. 설치 파일 생성은 [Desktop 안내](FloNovel-desktop/README.md#패키징)를 참고하세요. 동기화 설정값 없이도 빌드할 수 있으며, 키가 없으면 해당 동기화 기능을 사용할 수 없습니다.
+---
 
-## 동기화 설정 (선택)
+## ☁️ 동기화 설정 (선택 사항)
 
-### 책 파일: Dropbox
+### 1. 책 파일 양방향 동기화: Dropbox
+Android와 Desktop 앱이 **동일한 Dropbox 앱 키 및 동일 계정**을 바라보아야 합니다.
 
-두 앱은 **같은 Dropbox 앱 키와 같은 Dropbox 계정**을 사용해야 합니다.
+1. [Dropbox Developers Console](https://www.dropbox.com/developers/apps)에서 **Scoped access** / **App folder** 앱을 생성합니다.
+2. Permissions 탭에서 `account_info.read`, `files.metadata.read`, `files.metadata.write`, `files.content.read`, `files.content.write` 권한을 켭니다.
+3. Desktop용 Redirect URI `http://localhost:52475/oauth/callback`을 추가합니다.
+4. 각 앱 폴더의 `local.properties.example`을 `local.properties`로 복사하고 발급받은 `DROPBOX_APP_KEY`를 입력한 뒤 빌드합니다.
+5. 앱 내 서재에서 Dropbox를 연결하고 첫 동기화를 시작합니다.
 
-1. Dropbox 개발자 콘솔에서 **App folder** 앱을 만듭니다.
-2. `account_info.read`, `files.metadata.read`, `files.metadata.write`, `files.content.read`, `files.content.write` 권한을 활성화합니다.
-3. Desktop 리디렉트 URI `http://localhost:52475/oauth/callback`을 등록합니다. Android의 `db-<app key>://1/connect` 스킴은 앱 키에서 만들어집니다.
-4. 각 앱의 [Android 예제](FloNovel-android/local.properties.example) / [Desktop 예제](FloNovel-desktop/local.properties.example)를 같은 폴더의 `local.properties`로 복사하고 `DROPBOX_APP_KEY`를 입력한 뒤 빌드합니다. Android SDK 설정도 유지하세요.
-5. 각 앱에서 Dropbox를 연결하고 첫 동기화를 직접 시작합니다.
+- 동기화 기준 디렉터리는 Dropbox 앱 폴더 루트의 `/books`입니다.
+- 충돌 발생 시 양쪽 내용이 모두 보존되며 로컬 파일에 `(충돌 사본 - PC/Android - 날짜)`가 붙습니다.
+- 대량 삭제 보호(20개 이상 또는 30% 이상 삭제 시 사용자 확인)가 내장되어 있어 라이브러리가 유실되지 않습니다.
 
-공유 서재는 Dropbox **앱 폴더의 `/books`**입니다. PC 책 폴더를 Dropbox 데스크톱 클라이언트의 동기화 폴더 안에 둘 필요는 없습니다.
+### 2. 읽기 위치 동기화: Supabase
+Dropbox 연결 후 읽기 위치도 실시간 동기화하려면 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`를 설정합니다.
 
-- Android: 서재가 앞으로 올 때 최대 1분에 한 번, 또는 수동으로 동기화.
-- Desktop: Dropbox 변경 알림, 창 포커스 복귀 시 최대 1분에 한 번, 또는 수동으로 동기화.
-- 양쪽 수정은 원격 파일과 로컬 충돌 사본으로 모두 보존합니다.
-- 원격 삭제를 PC에 반영할 때는 Delete 키 설정이 지정 폴더 이동이면 지정 폴더로 옮기고, 그 외에는 휴지통을 사용합니다.
-- 한 회차에 20개 이상, 또는 5개 이상이면서 추적 파일의 30% 이상을 삭제하거나 원격 서재가 비어 있으면 확인을 요청합니다.
-- 열린 책의 원격 변경은 닫을 때까지 미룹니다.
-- Android ZIP 내부 책은 파일 동기화 대상이 아닙니다.
+- **Desktop을 먼저 연결**하면 Dropbox의 `/.flonovel/secret.json`에 시크릿 키가 자동 생성되고, Android가 이를 읽어와 연결합니다.
+- 서버 측의 `flonovel_sync` 테이블과 트리거가 `greatest(new, old)` max-wins 규칙을 강제하므로 읽던 위치가 뒤로 되돌아가지 않습니다.
+- 세부 서버 스키마 및 프로토콜 계약은 [AGENTS.md §1](AGENTS.md#1-계약--하나라도-어기면-반대편-앱이-조용히-깨진다)을 참고하세요.
 
-이전 다운로드 전용 Android 버전에서 연결했다면 쓰기 권한을 받도록 Dropbox를 다시 연결하세요.
+---
 
-### 읽기 위치: Supabase
+## 📋 지원 범위 및 규격
 
-Dropbox만으로 파일 동기화를 사용할 수 있습니다. 위치 공유에는 두 빌드에 동일한 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`도 필요합니다.
+| 구분 | Android | Desktop |
+|---|---|---|
+| **지원 포맷** | `.txt`, ZIP 압축 내 `.txt` | `.txt` (EPUB/PDF/MOBI 미지원) |
+| **권장 환경** | Android 7.0 (API 24) 이상 | Windows 10+, macOS 11+, Linux |
+| **인코딩** | UTF-8, EUC-KR / CP949 / MS949 계열 자동 감지 | 동동 |
+| **네트워크** | 독서는 100% 오프라인 동작 (동기화 및 글꼴 다운로드 시만 필요) | 동동 |
 
-서버는 `flonovel_sync` 테이블, 공유 시크릿으로 사용자를 구분하는 트리거·RLS 정책, 가장 앞선 위치를 유지하는 max-wins 규칙을 구현해야 합니다. **서버 SQL과 배포 스크립트는 이 저장소에 포함되어 있지 않습니다.** 새 프로젝트에 URL과 키만 넣는 것으로 설정이 완료되지는 않습니다. 필요한 계약은 [AGENTS.md §1](AGENTS.md#1-계약--하나라도-어기면-반대편-앱이-조용히-깨진다)에 있습니다.
+---
 
-**Desktop을 먼저 연결하세요.** Desktop이 Dropbox의 `/.flonovel/secret.json`에 공유 키를 생성하고 Android는 이를 읽습니다. 일반 업로드는 원격 위치를 뒤로 되돌릴 수 없습니다. Desktop의 명시적인 강제 업로드는 잘못된 원격 위치를 현재 로컬 위치로 교체할 때 사용합니다.
-
-> **개발 모드의 격리 범위:** Android debug와 Desktop의 `FLONOVEL_DEV=true`는 `secret-dev.json`으로 읽기 위치 파티션을 분리합니다. 책 파일의 `/books`는 동일합니다. 실험용 파일 동기화에는 별도 Dropbox 계정/앱을 사용하세요.
-
-## 지원 범위
-
-- Desktop은 `.txt`, Android는 `.txt`와 ZIP 내부 `.txt`를 읽습니다. EPUB·PDF·MOBI는 지원하지 않습니다.
-- 본문은 메모리에 읽어 들입니다. 큰 파일의 시간·메모리 사용량은 기기와 파일에 따라 달라집니다.
-- 로컬 독서는 오프라인에서 가능합니다. 동기화·글꼴 다운로드·라디오는 네트워크가 필요합니다.
-- TTS는 Android 음성 엔진과 해당 언어의 음성 데이터가 필요합니다.
-
-## 개발 및 기여
+## 🛠️ 개발 및 기여 가이드
 
 ```text
-FloNovel-android/   Kotlin · Jetpack Compose · Room · DataStore
-FloNovel-desktop/   Kotlin/JVM · Compose Desktop · JSON persistence
-.github/workflows/  Android APK release workflow
+FloNovel-android/   Android 앱 (Kotlin · Compose · Room · DataStore)
+FloNovel-desktop/   Desktop 앱 (Kotlin/JVM · Compose Desktop)
+.github/workflows/  GitHub Actions 릴리스 워크플로
 ```
 
-두 앱은 코드를 공유하지 않고 문자 오프셋·경로 정규화·전처리·동기화 계약으로 호환됩니다.
+- **[AGENTS.md](AGENTS.md)**는 모든 AI 에이전트 및 기여자를 위한 단일 기준 계약 문서입니다. 변경 전 반드시 숙지해 주세요.
+- 두 앱은 코드를 공유하지 않으므로, 전처리기 변경 시 양쪽의 패리티 테스트(`parity fixtures`)를 함께 검증해야 합니다.
+- 테스트 게이트:
+  - Android: `cd FloNovel-android && ./gradlew testDebugUnitTest`
+  - Desktop: `cd FloNovel-desktop && ./gradlew test`
 
-- 변경 전 [AGENTS.md](AGENTS.md)를 읽으세요. 새 동작에는 테스트가 필요합니다.
-- 전처리 변경은 양쪽 구현과 패리티 픽스처를 함께 수정합니다. Desktop에서 `./gradlew test -PupdateGolden`으로 기대 출력을 갱신하고 Android의 `app/src/test/resources/fixtures/parity/`에도 복사합니다.
-- Android 단위 테스트는 `testDebugUnitTest`, Desktop은 `test`로 실행합니다. Android 계측 테스트는 기기/에뮬레이터가 필요하며 기본 게이트가 아닙니다.
-- 테스트 결과 XML의 실제 실행 건수를 확인하세요. `BUILD SUCCESSFUL`만으로 통과를 판단하지 않습니다.
-- 두 언어 README를 함께 갱신합니다. 코드·주석·커밋 메시지는 영어로 작성합니다.
-- 버그 보고에는 앱·OS 버전, 재현 절차, 예상/실제 결과를 포함하고 개인 책·토큰·공유 키는 제외하세요.
+---
 
-## 라이선스
+## 📄 라이선스
 
-[Apache License 2.0](LICENSE). 다운로드하는 글꼴에는 각 글꼴의 라이선스가 적용됩니다.
+이 프로젝트는 [Apache License 2.0](LICENSE) 하에 배포됩니다.
+내장 및 다운로드되는 글꼴들은 각각의 오픈 폰트 라이선스(OFL 등)를 따릅니다.

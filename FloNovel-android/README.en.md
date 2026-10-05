@@ -1,150 +1,129 @@
 **English** · [한국어](README.md)
 
+<div align="center">
+
+<img src="../FloNovel-desktop/src/main/resources/icon.png" width="84" height="84" alt="FloNovel Android Icon" />
+
 # FloNovel for Android
 
-**Read text novels in your folders, and continue on desktop.**
+**A mobile text novel reader to browse local folders and seamlessly sync reading positions with PC**
 
-![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
-![Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](../LICENSE)
+[![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Room](https://img.shields.io/badge/Storage-Room%20DB-orange)](https://developer.android.com/training/data-storage/room)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](../LICENSE)
 
-[Overview](../README.en.md) · [Desktop app](../FloNovel-desktop/README.en.md) · [Issues](https://github.com/katalog/FloNovel/issues)
+[🌐 Project Overview](../README.en.md) · [🖥️ Desktop App](../FloNovel-desktop/README.en.md) · [💬 Issues](https://github.com/katalog/FloNovel/issues)
 
-## Features
+</div>
 
-### Library and files
+---
 
-- Select folders through Storage Access Framework (SAF), browse subfolders with breadcrumbs.
-- Read `.txt` and ZIP-contained `.txt` without extracting to disk.
-- Sort by name/date/size in either direction, view progress, and get a startup resume prompt.
-- Long-press files/folders to delete. Synced-book deletions propagate to other devices.
-- Automatic UTF-8 and EUC-KR/CP949-family encoding detection.
+## ✨ Features
 
-### Reading and controls
+### 🗂️ Library & Smart File Browsing
+- 📁 **Seamless SAF Integration:** Select any device folder through Storage Access Framework (SAF) and navigate subdirectories with breadcrumb navigation.
+- 📦 **Direct ZIP Reading:** Read `.txt` directly inside `.zip` archives **without uncompressing to disk**.
+- 🗃️ **Library Organization:** Sort by name, date, or size; visual reading progress percentages; auto-resume prompt on app launch.
+- 🗑️ **Safe File Management:** Long-press to delete files and folders with full cloud sync trash safeguards.
+- 🔤 **Smart Encoding Detection:** Auto-identifies UTF-8 and legacy Korean encodings (EUC-KR / CP949 / MS949).
 
-- **Page turns** or **continuous vertical scrolling**, with none/slide/cover transitions.
-- Standard three-column tap zones: left previous, center menu, right next.
-- A configurable **3×3 grid** and directional swipe actions.
-- Assign page/chapter/chapter-jump navigation, menu toggle, or no action; volume-key paging is available.
-- Contents, pattern presets/custom regular expressions, full-text search, and position navigation by progress.
-- Character-offset positions used as the basis for relayout after appearance changes.
+---
 
-Default horizontal swipes navigate **chapters**; vertical swipes navigate **chapter jump points**. Vertical swipe assignments apply in page mode; scroll mode uses vertical scrolling.
+### 📖 Reader & Gesture Controls
+- 📄 **Viewer Modes:** Horizontal page turns or smooth continuous vertical scrolling (Transitions: None / Slide / Cover).
+- 🎮 **Configurable 3×3 Grid & Gestures:**
+  - **Standard 3-Column:** Left (previous page) / Center (toggle toolbar) / Right (next page).
+  - **3×3 Touch Grid:** Divides screen into 9 cells with customizable actions (page turn, chapter skip, menu toggle, etc.).
+  - **Swipes & Volume Keys:** Directional swipe gestures and physical volume key page turns.
+- 📑 **Precision Navigation:** Automatically detected chapters, preset/custom regex patterns, and instant full-text search.
+- 🎯 **Character Offset Anchoring:** Position is anchored by decoded character offsets so font or layout changes never shift your current sentence.
 
-### Appearance and automatic advance
+```text
+┌────────────────────────────────────────┐
+│            3×3 Touch Grid Zone         │
+├──────────────┬──────────────┬──────────┤
+│  Prev Page   │ Toggle Menu  │ Next Page│
+├──────────────┼──────────────┼──────────┤
+│ Prev Chapter │  Next Page   │ Next Page│
+├──────────────┼──────────────┼──────────┤
+│  Prev Jump   │  Next Page   │Next Chap │
+└──────────────┴──────────────┴──────────┘
+```
 
-- Six themes: warm ivory, sepia cream, dark navy, soft gray, cool light, soft dark brown.
-- Custom background/text colors, size, line height, letter spacing, horizontal/top/bottom margins.
-- Downloads for Nanum Gothic, Nanum Myeongjo, Noto Sans KR, RIDIBatang, and Pretendard.
-- Brightness override, automatic/portrait/landscape orientation, keep-screen-on.
-- Auto-advance (timer mode) for fixed-interval page turns.
-- Korean/English UI following the system language.
+---
 
-## Getting started
+### 🎨 Reading Environment Customization
+- 🌈 **6 Color Themes:** Warm Ivory, Sepia Cream, Dark Navy, Soft Gray, Cool Light, and Soft Dark Brown.
+- 🎛️ **Granular Typography:** Fine-tune font size (sp), line height multiplier, letter spacing, and 4-way padding margins.
+- 🔤 **Free Korean Font Downloader:** One-click downloader for Nanum Gothic, Nanum Myeongjo, Noto Sans KR, RIDIBatang, and Pretendard.
+- ⏱️ **Timed Auto-Advance:** Hands-free reading with adjustable second-by-second auto page turns.
+- ☀️ **Display Controls:** In-app brightness slider, orientation lock (portrait/landscape), and keep-screen-on toggle.
 
-1. Install and choose **Add folder**. Preprocessing/sync also need write access.
-2. Tap a book. Tap the center in the default layout to show the toolbar.
-3. Adjust fonts, themes, margins, gestures, and automatic advance in settings.
-4. For Dropbox, link from the library and tap **Sync now**.
+---
 
-### Text preprocessing
+## ⚡ Text Preprocessing
 
-Local `.txt` files are cleaned before first opening/uploading. Originals are backed up under `.flonovel/original/` in the library first.
+Raw `.txt` novels are automatically formatted for reading comfort before first opening or cloud upload. **Originals are safely backed up to `.flonovel/original/` inside your library directory.**
 
-- Normalize line endings, remove leading whitespace/tabs, adjacent duplicate content lines, and excessive blank lines.
-- Add `##` to recognized headings and add file start/end markers.
-- Shorten filenames to 50 Unicode code points excluding the extension; remove Han characters from mixed Hangul/Han names.
-- Write a hidden temporary file before replacement; interrupted processing is recovered during the next sync.
-- Already processed books are not processed again; fully downloaded Dropbox copies are already preprocessed.
+- Unifies line breaks (`\n`), trims irregular indents and tabs, collapses redundant blank lines.
+- Strips spam/repeated delimiter lines.
+- Adds markdown-style `##` chapter headers and start/end book markers.
+- Shortens long filenames (up to 50 Unicode code points) and cleans irregular characters.
+- *Preprocessing is completely idempotent and guarantees 100% byte-for-byte parity with the Desktop version.*
 
-Output bytes are checked against Desktop's fixtures. Use a library copy to retain original formatting.
+---
 
-## Sync
+## ☁️ Two-Way Synchronization
 
-See the [shared setup guide](../README.en.md#setting-up-sync-optional). File sync needs a Dropbox app key in the build.
+See the [Project Synchronization Guide](../README.en.md#optional-synchronization-setup) for setup instructions.
 
-- Share `/books` bidirectionally with Desktop on the same Dropbox app/account.
-- Propagate additions, edits, deletions, moves, renames; exclude ZIP entries from file sync.
-- Preserve simultaneous edits as the remote original and an Android conflict copy; edits win over deletions.
-- Confirm mass deletion/empty remote libraries; download interrupted copies again instead of uploading them as edits.
-- Sync on library foreground at most once per minute, or manually; no separate background job.
-- Defer downloads/deletions/conflicts for the open book until it closes.
-- Reset baselines/cursors when changing the home folder, then start the first sync again.
+- 📦 **Dropbox File Sync:** Bi-directional sync with Desktop under `/books` (adds, edits, deletes, and renames).
+- ⚡ **Supabase Position Sync:** Prompts to jump forward when a further reading position is detected on your PC.
+- 🛡️ **Conflict Safeguards:** Concurrent edits fork into `(conflicted copy - Android - Date)` to prevent data loss.
 
-Positions additionally need Supabase configuration and a shared key. **Link Desktop first to create the key.** Android reads it rather than generating it. A more advanced position is offered as a jump.
+---
 
-Reconnect an older download-only Dropbox link to grant write permissions.
+## 📱 Build & Installation Guide
 
-## Build and install
+### Prerequisites
+- **JDK 17+**
+- **Android SDK Platform 36** (Build Tools 36)
+- Target Device: **Android 7.0 (API level 24) or higher**
 
-There are currently no published APKs on [GitHub Releases](https://github.com/katalog/FloNovel/releases).
-
-Requirements:
-
-- JDK 17 or newer to run Gradle.
-- Android SDK Platform 36 and build tools, or Android Studio to configure them.
-- Android 7.0 (API 24) or newer. `compileSdk` / `targetSdk` are 36; bytecode targets Java 11.
-
+### Build Commands
 From the repository root:
 
 ```bash
 cd FloNovel-android
+
+# Run unit tests and assemble Debug APK
 ./gradlew testDebugUnitTest assembleDebug
-```
 
-On Windows, use `.\gradlew.bat testDebugUnitTest assembleDebug`.
-
-APK: `app/build/outputs/apk/debug/app-debug.apk`. Install directly or use a connected device:
-
-```bash
+# Install directly to a connected Android device or emulator
 ./gradlew installDebug
 ```
+*(On Windows PowerShell, use `.\gradlew.bat`)*
 
-Debug ID: `com.moonkata.flonovel.android.dev`, allowing installation alongside release.
+- The debug build uses application ID `com.moonkata.flonovel.android.dev` and installs side-by-side with production releases.
 
-### Optional build configuration
+---
 
-Copy [local.properties.example](local.properties.example) to `local.properties`, retaining SDK settings (`sdk.dir`).
-
-- `DROPBOX_APP_KEY`: the same Dropbox app as Desktop.
-- `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`: the shared position server.
-- `RELEASE_KEYSTORE_PATH`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`: release signing.
-
-Same-name environment variables are supported. Sync values are optional.
+## 🧪 Testing & Architecture
 
 ```bash
-./gradlew assembleRelease
+cd FloNovel-android
+./gradlew testDebugUnitTest          # JVM unit tests (Fast gate)
+./gradlew compileDebugAndroidTestKotlin # Instrumentation test compilation check
 ```
 
-Release APK: `app/build/outputs/apk/release/app-release.apk`. **Without a keystore path, builds succeed with debug signing**, so verify the distribution certificate.
+- **Clean Architecture:**
+  - `ui/`: Jetpack Compose screens (Library, Reader) with MVI ViewModel.
+  - `data/`: Room Database, DataStore Preferences, SAF file engine, charset detector, preprocessor.
+  - `tts/`: Timed auto page turn controller (`AutoPageTurnController`).
 
-An `android-v*` tag triggers the [release workflow](../.github/workflows/android-release.yml). After unit tests, it builds/publishes the APK using the tag for version name and CI run number for version code. Distribution needs repository signing/sync configuration.
+---
 
-> Debug uses `secret-dev.json` for separate positions, but Dropbox `/books` is shared with release. Development file sync can affect real book files.
+## 📄 License
 
-## Tests and structure
-
-```bash
-./gradlew testDebugUnitTest
-./gradlew connectedDebugAndroidTest
-```
-
-- `app/src/test`: JVM tests for encoding, chapters/pagination, preprocessing parity, two-way sync, and related logic.
-- `app/src/androidTest`: Compose UI, Room, DataStore, Android checks. A device/emulator is required; some font tests use the network.
-- Result XML: `app/build/test-results/testDebugUnitTest/`. Check executed counts and failures.
-
-Sources are under `app/src/main/java/com/moonkata/flonovel/android/`. `ui/` contains screens/ViewModels; `data/` handles files/database/settings/preprocessing/sync; `tts/` handles automatic advance.
-
-Stack: Kotlin · Jetpack Compose/Material 3 · Room · DataStore · Navigation Compose · SAF · juniversalchardet. See [AGENTS.md](../AGENTS.md) for contribution rules.
-
-## Troubleshooting and scope
-
-- **Empty contents:** add a preset/regular expression matching headings. Detection is pattern-based.
-- **Folder access/write errors:** choose the folder again for SAF permissions.
-- **Missing key:** link Desktop to the same Dropbox app/account first.
-- EPUB/PDF/MOBI are unsupported. Content is loaded into memory, so large-book memory usage varies by device.
-- The DataStore file containing Dropbox tokens/shared key is excluded from Android cloud backup.
-
-## License
-
-[Apache License 2.0](../LICENSE). Fonts retain their respective licenses.
+Distributed under the [Apache License 2.0](../LICENSE).
