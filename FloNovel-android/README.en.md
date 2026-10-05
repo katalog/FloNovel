@@ -2,7 +2,7 @@
 
 # FloNovel for Android
 
-**Read and listen to text novels in your folders, and continue on desktop.**
+**Read text novels in your folders, and continue on desktop.**
 
 ![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
 ![Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)

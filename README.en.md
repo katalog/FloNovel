@@ -35,7 +35,7 @@ Local reading works without sync services. Optionally sync **book files through 
 
 - Page turns or continuous vertical scrolling.
 - Standard three-column tap zones, configurable 3×3 grid, directional swipes, and volume-key paging.
-- System TTS read-aloud with speech rate/pitch controls and timed page turns.
+- Timed auto-advance page turns.
 - Browse SAF-selected folders; read ZIP-contained `.txt` without extracting to disk.
 - Custom background/text colors, brightness override, orientation lock, and keep-screen-on.
 

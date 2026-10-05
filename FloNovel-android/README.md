@@ -2,7 +2,7 @@
 
 # FloNovel for Android
 
-**폴더에 있는 텍스트 소설을 읽고, 듣고, PC와 이어 읽는 Android 리더.**
+**폴더에 있는 텍스트 소설을 읽고, PC와 이어 읽는 Android 리더.**
 
 ![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
 ![Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)
