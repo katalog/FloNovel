@@ -173,6 +173,8 @@
     <string name="library_delete_file_message">The file is deleted from this phone.</string>
     <string name="library_delete_file_message_synced">The file is deleted from this phone, Dropbox and the PC. The PC keeps it in its Recycle Bin.</string>
     <string name="library_delete_preview_failed">Unable to list folder contents: %s</string>
+    <string name="library_delete_failed_details">Could not delete %1$s: %2$s</string>
+    <string name="library_delete_provider_refused">The storage provider refused deletion.</string>
     <string name="library_delete_folder_message">The folder and everything in it are deleted from this phone.</string>
     <string name="library_delete_folder_message_synced">The folder and everything in it are deleted from this phone, Dropbox and the PC. The PC keeps them in its Recycle Bin.</string>
     <string name="library_delete_confirm">Delete</string>

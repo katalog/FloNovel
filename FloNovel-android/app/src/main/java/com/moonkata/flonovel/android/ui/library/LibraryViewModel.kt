@@ -37,6 +37,7 @@ import com.moonkata.flonovel.android.data.sync.DropboxOAuth
 import com.moonkata.flonovel.android.data.sync.DropboxSyncProgress
 import com.moonkata.flonovel.android.data.sync.OpenBook
 import com.moonkata.flonovel.android.data.sync.SafLibraryFiles
+import com.moonkata.flonovel.android.data.sync.folderDeletionSync
 import com.moonkata.flonovel.android.data.sync.isSyncedCopy
 import com.moonkata.flonovel.android.data.sync.shouldAutoSync
 import com.moonkata.flonovel.android.data.sync.TwoWayBookSync
@@ -516,6 +517,9 @@ class LibraryViewModel(
                     prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
                     isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
                     onBookMoved = { fromRel, toRel -> followMovedBook(files, fromRel, toRel, settings) },
+                    folderDeletionJournal = folderDeletionSync(app, rootUri, files, dropboxClient, settings.dropboxAccountEmail) { rel ->
+                        OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false
+                    },
                 )
                 val result = withContext(Dispatchers.IO) {
                     sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
@@ -636,12 +640,34 @@ class LibraryViewModel(
             is FolderEntry.TextFile -> (entry.source as? BookSource.PlainTxt)?.uri ?: return
         }
         val app = getApplication<Application>()
+        val deletionRoot = uiState.value.rootUri
+        val deletionFolder = (uiState.value.path.drop(1).map { it.name } + entry.name).joinToString("/")
+        val deletionAccount = uiState.value.settings.dropboxAccountEmail
         viewModelScope.launch {
             val deleted = withContext(Dispatchers.IO) {
-                runCatching { DocumentsContract.deleteDocument(app.contentResolver, uri) }.getOrDefault(false)
+                var journal: com.moonkata.flonovel.android.data.sync.FolderDeletionSync? = null
+                var intent: String? = null
+                try {
+                    if (entry is FolderEntry.Folder && dropboxClient.isLinked()) {
+                        val root = deletionRoot ?: error("Library folder is not selected")
+                        val files = SafLibraryFiles(app, root)
+                        journal = folderDeletionSync(app, root, files, dropboxClient, deletionAccount) { false }
+                        intent = journal.prepare(deletionFolder)
+                    }
+                    check(DocumentsContract.deleteDocument(app.contentResolver, uri)) {
+                        app.getString(R.string.library_delete_provider_refused)
+                    }
+                    Result.success(Unit)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (intent != null) runCatching { journal?.cancel(intent) }
+                    Result.failure(e)
+                }
             }
-            if (!deleted) {
-                Toast.makeText(app, app.getString(R.string.library_delete_failed, entry.name), Toast.LENGTH_SHORT).show()
+            if (deleted.isFailure) {
+                val reason = deleted.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }.orEmpty()
+                Toast.makeText(app, app.getString(R.string.library_delete_failed_details, entry.name, reason), Toast.LENGTH_LONG).show()
                 return@launch
             }
             loadCurrent()

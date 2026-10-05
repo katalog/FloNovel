@@ -181,6 +181,7 @@ fun main(args: Array<String>) {
                 settingsStore = settingsStore,
                 dropboxClient = dropboxClient,
                 syncStateStore = SyncStateStore(appConfigDir.resolve("sync-state.json")),
+                folderDeletionStateFile = appConfigDir.resolve("folder-deletions.json"),
             )
         } else null
     }
@@ -499,8 +500,17 @@ fun main(args: Array<String>) {
         }
         coroutineScope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                if (request.isFolder) FileRemover.removeFolder(request.path, settings.delete, homePath ?: request.path.parent)
-                else FileRemover.removeBook(request.path, settings.delete, homePath ?: request.path.parent)
+                if (request.isFolder) {
+                    try {
+                        val intent = if (dropboxClient.isLinked) syncEngine?.prepareFolderDeletion(request.path) else null
+                        val result = FileRemover.removeFolder(request.path, settings.delete, homePath ?: request.path.parent)
+                        if (intent != null && result !is RemovalOutcome.Trashed && result !is RemovalOutcome.Moved &&
+                            result !is RemovalOutcome.FolderRemoved) syncEngine?.cancelFolderDeletion(intent)
+                        result
+                    } catch (e: Exception) {
+                        RemovalOutcome.Failed(e.message ?: e.javaClass.simpleName)
+                    }
+                } else FileRemover.removeBook(request.path, settings.delete, homePath ?: request.path.parent)
             }
             floatingToast.show(removalOutcomeMessage(outcome))
             val removed = outcome is RemovalOutcome.Trashed ||

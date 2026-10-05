@@ -66,7 +66,7 @@ class DropboxSyncEngineTest {
         root.deleteRecursively()
     }
 
-    private fun engine(openInReader: Path? = null, homeFolder: Path = home): DropboxSyncEngine {
+    private fun engine(openInReader: Path? = null, homeFolder: Path = home, folderIntents: Boolean = false): DropboxSyncEngine {
         val creds = CredentialsStore(config.resolve("credentials.json"))
         creds.save(Credentials(dropboxRefreshToken = "refresh"))
         val base = server.url("").toString().removeSuffix("/")
@@ -80,6 +80,7 @@ class DropboxSyncEngineTest {
             syncStateStore = stateStore,
             trash = if (trashAvailable) { path -> Files.move(path, trashDir.resolve(path.fileName.toString())); true } else null,
             today = { LocalDate.of(2026, 9, 23) },
+            folderDeletionStateFile = if (folderIntents) config.resolve("folder-deletions") else null,
         ).also { e -> e.isOpenInReader = { it == openInReader } }
     }
 
@@ -373,6 +374,114 @@ class DropboxSyncEngineTest {
         assertFalse(Files.exists(home.resolve("Series")))
         assertTrue(Files.exists(home.resolve("Other.txt")))
         assertEquals(setOf("Vol1.txt", "Vol2.txt"), Files.list(trashDir).use { s -> s.map { it.fileName.toString() }.toList().toSet() })
+    }
+
+    private fun folderIntent(folder: String): FolderDeletionIntent = FolderDeletionIntent(
+        java.util.UUID.randomUUID().toString(), folder,
+        Files.walk(home.resolve(folder)).use { paths -> paths.filter { Files.isRegularFile(it) }.map {
+            FolderDeletionFile(home.relativize(it).toString().replace('\\', '/'), ContentHash.of(it))
+        }.toList() },
+    )
+
+    @Test
+    fun explicitPhoneFolderDeletion_removesEpubZipAndDesktopFolderListing() {
+        localBook("Series/Book.txt", "text")
+        localBook("Other.txt", "other")
+        Files.writeString(home.resolve("Series/Book.epub"), "epub")
+        Files.createDirectories(home.resolve("Series/Sub"))
+        Files.writeString(home.resolve("Series/Sub/Archive.zip"), "zip")
+        val e = engine(folderIntents = true)
+        sync(e)
+        e.dropboxClient.publishFolderDeletion(folderIntent("Series"))
+        dropbox.remove("Series/Book.txt")
+
+        val result = sync(e)
+
+        assertEquals(3, result.deletedCount)
+        assertEquals(0, result.failedCount)
+        assertFalse(Files.exists(home.resolve("Series")))
+        assertTrue(LibraryScanner.scanDirectory(home, "", bookStore.load()).subfolders.isEmpty())
+        assertEquals("epub", trashDir.resolve("Book.epub").readText())
+        assertEquals("zip", trashDir.resolve("Archive.zip").readText())
+        sync(e)
+        assertFalse(Files.exists(home.resolve("Series")))
+    }
+
+    @Test
+    fun individualTxtDeletion_doesNotRemoveEpubWithoutFolderIntent() {
+        localBook("Series/Book.txt", "text")
+        localBook("Other.txt", "other")
+        Files.writeString(home.resolve("Series/Book.epub"), "epub")
+        val e = engine(folderIntents = true)
+        sync(e)
+        dropbox.remove("Series/Book.txt")
+        sync(e)
+        assertEquals("epub", home.resolve("Series/Book.epub").readText())
+        assertTrue(Files.exists(home.resolve("Series")))
+    }
+
+    @Test
+    fun nonBookFolderDeletion_participatesInMassDeletionGuard() {
+        localBook("Series/Book.txt", "text")
+        localBook("Other.txt", "other")
+        repeat(20) { Files.writeString(home.resolve("Series/$it.epub"), "$it") }
+        val e = engine(folderIntents = true)
+        sync(e)
+        e.dropboxClient.publishFolderDeletion(folderIntent("Series"))
+        dropbox.remove("Series/Book.txt")
+        val blocked = sync(e)
+        assertEquals(21, blocked.withheldDeletions.size)
+        assertTrue(Files.exists(home.resolve("Series/Book.txt")))
+        assertTrue(Files.exists(home.resolve("Series/0.epub")))
+        val allowed = sync(e, allowMassDeletion = true)
+        assertEquals(21, allowed.deletedCount)
+        assertFalse(Files.exists(home.resolve("Series")))
+    }
+
+    @Test
+    fun readerOpenInDeletedFolder_defersNonBooksAndCursor() {
+        val book = localBook("Series/Book.txt", "text")
+        localBook("Other.txt", "other")
+        Files.writeString(home.resolve("Series/Book.epub"), "epub")
+        val e = engine(openInReader = book, folderIntents = true)
+        sync(e)
+        val oldCursor = stateStore.load().cursor
+        e.dropboxClient.publishFolderDeletion(folderIntent("Series"))
+        dropbox.remove("Series/Book.txt")
+        val result = sync(e)
+        assertEquals(1, result.deferredCount)
+        assertEquals(oldCursor, stateStore.load().cursor)
+        assertTrue(Files.exists(book))
+        assertTrue(Files.exists(home.resolve("Series/Book.epub")))
+    }
+
+    @Test
+    fun folderManifestRemoteCleanupUsesRevisionAndPreservesModifiedFiles() {
+        val e = engine(folderIntents = true)
+        val rev = dropbox.put("Series/book.epub", "epub")
+        dropbox.put("Series/archive.zip", "modified")
+        e.dropboxClient.removeFolderDeletionFile(FolderDeletionFile("Series/book.epub", ContentHash.of("epub".toByteArray())))
+        e.dropboxClient.removeFolderDeletionFile(FolderDeletionFile("Series/archive.zip", ContentHash.of("original".toByteArray())))
+        assertNull(dropbox.content("Series/book.epub"))
+        assertEquals("modified", dropbox.content("Series/archive.zip"))
+        assertEquals(listOf<String?>(rev), dropbox.deleteParentRevs)
+    }
+
+    @Test
+    fun explicitDesktopFolderRemoval_publishesDurableManifestForNonBooks() {
+        localBook("Series/Book.txt", "text")
+        localBook("Other.txt", "other")
+        Files.writeString(home.resolve("Series/Book.epub"), "epub")
+        val e = engine(folderIntents = true)
+        sync(e)
+        e.prepareFolderDeletion(home.resolve("Series"))
+        FileRemover.removeFolder(home.resolve("Series"), DeleteSettings(DeleteAction.MOVE, trashDir.toString()), home)
+        sync(e)
+        val events = e.dropboxClient.listFolderDeletionIntents()
+        assertEquals(1, events.size)
+        assertEquals(setOf("Series/Book.txt", "Series/Book.epub"), events.single().files.map { it.path }.toSet())
+        sync(e)
+        assertEquals(1, e.dropboxClient.listFolderDeletionIntents().size)
     }
 
     @Test

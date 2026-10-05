@@ -261,6 +261,59 @@ class DropboxClient(
     /**
      * Downloads file content from Dropbox. Returns null if not found or on error.
      */
+    fun listFolderDeletionIntents(skipIds: Set<String> = emptySet()): List<FolderDeletionIntent> {
+        val entries = mutableListOf<DropboxEntry>()
+        var page = listFolder(FolderDeletionIntent.REMOTE_ROOT)
+        if (page is DropboxListFolderResult.Failure && page.statusCode == 409 && page.message.contains("not_found")) return emptyList()
+        while (true) {
+            val result = page as? DropboxListFolderResult.Success ?: error("Folder deletion listing failed")
+            entries += result.entries
+            if (!result.hasMore) break
+            page = listFolderContinue(result.cursor)
+        }
+        return entries.filterIsInstance<DropboxEntry.FileEntry>().filter {
+            it.pathLower.startsWith(FolderDeletionIntent.REMOTE_ROOT + "/") && it.name.endsWith(".json") &&
+                it.name.removeSuffix(".json") !in skipIds
+        }.map { entry ->
+            val bytes = downloadFile(entry.pathDisplay) ?: error("Folder deletion download failed")
+            check(ContentHash.of(bytes) == entry.contentHash) { "Folder deletion content hash mismatch" }
+            FolderDeletionIntent.decode(bytes.toString(Charsets.UTF_8)).also {
+                check(entry.name == "${it.id}.json") { "Folder deletion name mismatch" }
+            }
+        }
+    }
+
+    fun publishFolderDeletion(event: FolderDeletionIntent) {
+        val path = "${FolderDeletionIntent.REMOTE_ROOT}/${event.id}.json"
+        val bytes = event.encode().toByteArray(Charsets.UTF_8)
+        val result = uploadFile(path, bytes)
+        check(result is DropboxUploadResult.Success ||
+            result is DropboxUploadResult.Conflict && downloadFile(path)?.contentEquals(bytes) == true) {
+            "Folder deletion upload failed"
+        }
+    }
+
+    fun folderDeletionRemoteHash(relative: String): String? = when (val result = getMetadata("/books/$relative")) {
+        is DropboxMetadataResult.Found -> (result.entry as? DropboxEntry.FileEntry)?.contentHash ?: "<directory>"
+        DropboxMetadataResult.NotFound -> null
+        is DropboxMetadataResult.Failure -> error("Folder deletion metadata lookup failed")
+    }
+
+    fun removeFolderDeletionFile(file: FolderDeletionFile) {
+        when (val result = getMetadata("/books/${file.path}")) {
+            is DropboxMetadataResult.Found -> {
+                val entry = result.entry as? DropboxEntry.FileEntry ?: return
+                if (entry.contentHash != file.hash || entry.pathLower.startsWith(FolderDeletionIntent.REMOTE_ROOT + "/")) return
+                val deleted = deleteFile(entry.pathDisplay, entry.rev)
+                check(deleted == DropboxDeleteResult.Deleted || deleted == DropboxDeleteResult.NotFound) {
+                    "Folder deletion revision check failed"
+                }
+            }
+            DropboxMetadataResult.NotFound -> Unit
+            is DropboxMetadataResult.Failure -> error("Folder deletion metadata lookup failed")
+        }
+    }
+
     fun downloadFile(path: String): ByteArray? {
         val normPath = if (path.startsWith("/")) path else "/$path"
         val argJson = JSONObject().apply {

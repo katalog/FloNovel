@@ -60,9 +60,11 @@ class TwoWayBookSync(
     /** After a book was moved or renamed (either side): carry its reading position to the new path. */
     private val onBookMoved: suspend (fromRel: String, toRel: String) -> Unit = { _, _ -> },
     private val deviceName: String = "Android",
+    private val folderDeletionJournal: FolderDeletionSync? = null,
 ) {
     private data class LocalEntry(val file: LibraryFile, val state: LocalFileState)
-    private data class RemoteSnapshot(val files: Map<String, RemoteFileState>, val cursor: String, val isFullListing: Boolean)
+    private data class RemoteSnapshot(val files: Map<String, RemoteFileState>, val cursor: String, val isFullListing: Boolean,
+        val folderIntentIds: Set<String>)
     /**
      * One unit of work. A [move] replaces the two plans it was paired from; if the move cannot be
      * carried out, those two ([fallback]) run instead.
@@ -99,6 +101,8 @@ class TwoWayBookSync(
         val remote = fetchRemote(startCursor, bases) ?: return null
         val scan = scanLocal(bases)
         val local = scan.files
+        val folderBatch = folderDeletionJournal?.plan(remote.files.mapValues { it.value.contentHash }, bases.isNotEmpty(),
+            if (remote.isFullListing) emptySet() else remote.folderIntentIds)
 
         val keys = ((bases.keys + local.keys + remote.files.keys) - scan.excludedKeys).sorted()
         val decided = keys.mapNotNull { key ->
@@ -136,9 +140,13 @@ class TwoWayBookSync(
         }
 
         val deletions = plans.filter { it.action is SyncAction.DeleteLocal || it.action is SyncAction.DeleteRemote }
-        val withhold = !allowMassDeletion && deletions.isNotEmpty() &&
-            SyncDecision.isMassDeletion(deletions.size, bases.size, remote.isFullListing && remote.files.isEmpty())
-        val toApply = if (withhold) plans - deletions.toSet() else plans
+        val deletionPaths = (deletions.map { it.key } + folderBatch?.deletionPaths.orEmpty()).distinctBy(FolderDeletionIntent::key)
+        val withhold = !allowMassDeletion && deletionPaths.isNotEmpty() &&
+            SyncDecision.isMassDeletion(deletionPaths.size, bases.size, remote.isFullListing && remote.files.isEmpty())
+        val toApply = (if (withhold) plans - deletions.toSet() else plans).filter { plan ->
+            !(folderBatch?.listingFailed == true && (plan.action is SyncAction.DeleteLocal || plan.action is SyncAction.DeleteRemote)) &&
+                folderBatch?.blockedFolders.orEmpty().none { plan.key.startsWith(FolderDeletionIntent.key(it) + "/") }
+        }
 
         var result = TwoWaySyncResult()
         // Unreadable files must receive the same remote delta after access recovers.
@@ -170,10 +178,18 @@ class TwoWayBookSync(
             }
         }
 
+        if (!withhold && folderBatch != null) {
+            val effect = folderDeletionJournal!!.apply(folderBatch, canWrite)
+            result = result.copy(deletedLocal = result.deletedLocal + effect.deleted,
+                failed = result.failed + effect.failed.size,
+                failedPaths = result.failedPaths + effect.failed.map { "${it.path}: ${it.reason}" },
+                deferred = result.deferred + effect.deferred)
+            if (effect.failed.isNotEmpty() || effect.deferred > 0) complete = false
+        }
         // Bases were written as each action landed; the cursor only moves once everything did.
         if (complete) saveCursor(remote.cursor)
         return result.copy(
-            withheldDeletions = if (withhold) deletions.map { displayPath(it.key, local, remote, bases) } else emptyList(),
+            withheldDeletions = if (withhold) deletionPaths else emptyList(),
         )
     }
 
@@ -478,18 +494,24 @@ class TwoWayBookSync(
             result = listRoot()
         }
         val remote = LinkedHashMap<String, RemoteFileState>()
+        val folderIntentIds = mutableSetOf<String>()
         if (!full) bases.values.forEach { remote[it.key] = RemoteFileState(it.pathDisplay, it.rev, it.contentHash, it.localSize) }
 
         while (true) {
             when (val current = result) {
                 is DropboxListResult.Success -> {
-                    for (entry in current.entries) applyListingEntry(entry, remote)
-                    if (!current.hasMore) return RemoteSnapshot(remote, current.cursor, full)
+                    for (entry in current.entries) {
+                        if (entry is DropboxEntry.File && entry.pathLower.startsWith(FolderDeletionIntent.REMOTE_ROOT + "/") &&
+                            entry.pathDisplay.endsWith(".json")) folderIntentIds += entry.pathDisplay.substringAfterLast('/').removeSuffix(".json")
+                        applyListingEntry(entry, remote)
+                    }
+                    if (!current.hasMore) return RemoteSnapshot(remote, current.cursor, full, folderIntentIds)
                     result = client.listFolderContinue(current.cursor)
                 }
                 DropboxListResult.CursorReset -> {
                     full = true
                     remote.clear()
+                    folderIntentIds.clear()
                     result = listRoot()
                 }
                 is DropboxListResult.Failure -> return null

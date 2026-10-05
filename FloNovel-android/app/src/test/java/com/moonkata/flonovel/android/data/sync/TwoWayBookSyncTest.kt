@@ -53,7 +53,36 @@ class TwoWayBookSyncTest {
     }
 
     private var openBook: String? = null
+    @Test
+    fun folderManifestRemoteCleanupUsesRevisionAndPreservesModifiedFiles() = runBlocking {
+        val rev = dropbox.put("Series/book.epub", "epub")
+        dropbox.put("Series/archive.zip", "modified")
+        client.removeFolderDeletionFile(FolderDeletionFile("Series/book.epub", ContentHash.of("epub".toByteArray())))
+        client.removeFolderDeletionFile(FolderDeletionFile("Series/archive.zip", ContentHash.of("original".toByteArray())))
+        assertNull(dropbox.content("Series/book.epub"))
+        assertEquals("modified", dropbox.content("Series/archive.zip"))
+        assertEquals(listOf(rev), dropbox.deleteParentRevs)
+    }
+
+    private var folderIntentsEnabled = false
+    private var folderIntentState: String? = null
+    private val folderIntentLock = Any()
     private val movedBooks = mutableListOf<Pair<String, String>>()
+
+    private fun deletionJournal() = FolderDeletionSync(
+        "test-library", { folderIntentState }, { folderIntentState = it },
+        { folder -> library.folderFiles(folder).map { file ->
+            FolderDeletionFile(file.relativePath, library.openRead(file.relativePath)!!.use { ContentHash.of(it) })
+        } }, library::folderExists, library::delete, library::pruneFolder,
+        client::listFolderDeletionIntents, client::publishFolderDeletion, { it == openBook }, folderIntentLock,
+        lookupRemoteHash = client::folderDeletionRemoteHash,
+        removeRemoteFile = client::removeFolderDeletionFile,
+    )
+
+    private fun deletionEvent() = FolderDeletionIntent(java.util.UUID.randomUUID().toString(), "Series",
+        library.folderFiles("Series").map { file ->
+            FolderDeletionFile(file.relativePath, library.openRead(file.relativePath)!!.use { ContentHash.of(it) })
+        })
 
     private fun engine(canWrite: Boolean = true, syncedOneWayBefore: Boolean = false) = TwoWayBookSync(
         files = library,
@@ -74,6 +103,7 @@ class TwoWayBookSyncTest {
         },
         isInUse = { rel -> rel == openBook },
         onBookMoved = { from, to -> movedBooks += from to to },
+        folderDeletionJournal = if (folderIntentsEnabled) deletionJournal() else null,
     )
 
     private fun sync(
@@ -221,6 +251,91 @@ class TwoWayBookSyncTest {
 
         sync()
 
+        assertEquals(setOf("Other.txt"), library.paths())
+    }
+
+    @Test
+    fun explicitDesktopFolderDeletion_removesMatchingTxtEpubAndZip() = runBlocking {
+        folderIntentsEnabled = true
+        dropbox.put("Series/Book.txt", "text")
+        dropbox.put("Other.txt", "other")
+        sync()
+        library.put("Series/Book.epub", "epub")
+        library.put("Series/Sub/Archive.zip", "zip")
+        client.publishFolderDeletion(deletionEvent())
+        dropbox.remove("Series/Book.txt")
+        val result = sync()
+        assertEquals(3, result.deletedLocal)
+        assertEquals(0, result.failed)
+        assertEquals(setOf("Other.txt"), library.paths())
+        sync()
+        assertEquals(setOf("Other.txt"), library.paths())
+    }
+
+    @Test
+    fun phoneFolderDeletion_publishesManifestForNonBookFiles() = runBlocking {
+        folderIntentsEnabled = true
+        dropbox.put("Series/Book.txt", "text")
+        dropbox.put("Other.txt", "other")
+        sync()
+        library.put("Series/Book.epub", "epub")
+        library.put("Series/Sub/Archive.zip", "zip")
+        deletionJournal().prepare("Series")
+        library.paths().filter { it.startsWith("Series/") }.forEach { library.delete(it) }
+        sync()
+        val events = client.listFolderDeletionIntents()
+        assertEquals(1, events.size)
+        assertEquals(setOf("Series/Book.txt", "Series/Book.epub", "Series/Sub/Archive.zip"), events.single().files.map { it.path }.toSet())
+        sync()
+        assertEquals(1, client.listFolderDeletionIntents().size)
+    }
+
+    @Test
+    fun individualTxtDeletion_keepsNonBooksWithoutAnIntent() {
+        folderIntentsEnabled = true
+        dropbox.put("Series/Book.txt", "text")
+        dropbox.put("Other.txt", "other")
+        sync()
+        library.put("Series/Book.epub", "epub")
+        dropbox.remove("Series/Book.txt")
+        sync()
+        assertEquals("epub", library.content("Series/Book.epub"))
+    }
+
+    @Test
+    fun nonBookManifestUsesMassDeletionConfirmation() = runBlocking {
+        folderIntentsEnabled = true
+        dropbox.put("Series/Book.txt", "text")
+        dropbox.put("Other.txt", "other")
+        sync()
+        repeat(20) { library.put("Series/$it.epub", "$it") }
+        client.publishFolderDeletion(deletionEvent())
+        dropbox.remove("Series/Book.txt")
+        val blocked = sync()
+        assertEquals(21, blocked.withheldDeletions.size)
+        assertEquals("text", library.content("Series/Book.txt"))
+        val allowed = sync(allowMassDeletion = true)
+        assertEquals(21, allowed.deletedLocal)
+        assertEquals(setOf("Other.txt"), library.paths())
+    }
+
+    @Test
+    fun openBookDefersFolderManifestAndKeepsCursor() = runBlocking {
+        folderIntentsEnabled = true
+        dropbox.put("Series/Book.txt", "text")
+        dropbox.put("Other.txt", "other")
+        sync()
+        library.put("Series/Book.epub", "epub")
+        openBook = "Series/Book.txt"
+        val previous = cursor
+        client.publishFolderDeletion(deletionEvent())
+        dropbox.remove("Series/Book.txt")
+        val result = sync()
+        assertEquals(1, result.deferred)
+        assertEquals(previous, cursor)
+        assertEquals("epub", library.content("Series/Book.epub"))
+        openBook = null
+        sync()
         assertEquals(setOf("Other.txt"), library.paths())
     }
 

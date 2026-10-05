@@ -74,6 +74,17 @@ object FileRemover {
         trash: ((Path) -> Boolean)? = if (SystemTrash.isSupported) SystemTrash::moveToTrash else null,
     ): RemovalOutcome {
         if (!Files.isRegularFile(file)) return RemovalOutcome.Refused(RemovalRefusal.NOT_FOUND)
+        return removeFile(file, settings, homeFolder, trash)
+    }
+
+    /** Folder manifests also contain non-book files; they use the same recovery destination. */
+    fun removeFile(
+        file: Path,
+        settings: DeleteSettings,
+        homeFolder: Path,
+        trash: ((Path) -> Boolean)? = if (SystemTrash.isSupported) SystemTrash::moveToTrash else null,
+    ): RemovalOutcome {
+        if (!Files.isRegularFile(file)) return RemovalOutcome.Refused(RemovalRefusal.NOT_FOUND)
         return when (settings.action) {
             DeleteAction.TRASH -> {
                 if (trash == null) return RemovalOutcome.Refused(RemovalRefusal.TRASH_UNSUPPORTED)
