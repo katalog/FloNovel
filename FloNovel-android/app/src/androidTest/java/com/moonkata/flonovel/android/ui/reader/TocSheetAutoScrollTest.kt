@@ -5,6 +5,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.moonkata.flonovel.android.R
@@ -53,6 +61,47 @@ class TocSheetAutoScrollTest {
 
         composeTestRule.onNodeWithText("제60장").performClick()
         assertEquals(chapters[59].charOffset, jumpedTo)
+    }
+
+    @Test
+    fun scrollingAndFlingingNeverDismissOrSelectAChapter() {
+        var dismissals = 0
+        var jumps = 0
+        composeTestRule.setContent {
+            MaterialTheme {
+                TocSheet(
+                    chapters = (1..100).map { Chapter("Chapter $it", it * 1000) },
+                    currentOffset = 50_000,
+                    fullTextLength = 100_000,
+                    onJump = { jumps++ },
+                    onDismiss = { dismissals++ },
+                )
+            }
+        }
+        repeat(3) {
+            composeTestRule.onNode(hasScrollAction()).performTouchInput { swipeUp() }
+            composeTestRule.waitForIdle()
+            composeTestRule.onNode(hasScrollAction()).performTouchInput { swipeDown() }
+            composeTestRule.waitForIdle()
+        }
+        composeTestRule.onNode(hasScrollAction()).assertExists()
+        assertEquals(0, dismissals)
+        assertEquals(0, jumps)
+        composeTestRule.onNodeWithContentDescription(application.getString(R.string.action_close)).performClick()
+        assertEquals(1, dismissals)
+    }
+
+    @Test
+    fun tappingOutsidePanelDismissesTheToc() {
+        var dismissals = 0
+        composeTestRule.setContent {
+            MaterialTheme {
+                TocSheet(emptyList(), 0, 0, {}, { dismissals++ })
+            }
+        }
+        composeTestRule.onNodeWithTag("toc_scrim").performTouchInput { click(Offset(center.x, 8f)) }
+        composeTestRule.waitForIdle()
+        assertEquals(1, dismissals)
     }
 
     @Test
