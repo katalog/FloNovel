@@ -40,10 +40,10 @@
 
     <!-- Settings screen -->
     <string name="settings_title">설정</string>
-    <string name="settings_tab_view">화면 / 글꼴</string>
-    <string name="settings_tab_controls">조작 / 넘김</string>
-    <string name="settings_tab_chapters">목차 / 챕터</string>
-    <string name="settings_tab_sync">동기화 / 서재</string>
+    <string name="settings_tab_view">화면</string>
+    <string name="settings_tab_controls">조작</string>
+    <string name="settings_tab_chapters">챕터</string>
+    <string name="settings_tab_sync">동기화</string>
     <string name="settings_section_home_folder">홈 폴더</string>
     <string name="settings_section_font">글자</string>
     <string name="settings_font_size">크기</string>
