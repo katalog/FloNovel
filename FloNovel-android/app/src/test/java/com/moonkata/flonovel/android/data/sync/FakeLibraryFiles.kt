@@ -40,6 +40,13 @@ class FakeLibraryFiles : LibraryFiles {
 
     fun paths(): Set<String> = entries.keys.toSet()
 
+    override fun folderFiles(relativeFolder: String): List<LibraryFile> = entries.filterKeys { it.startsWith("$relativeFolder/") }
+        .map { (rel, entry) -> LibraryFile(rel, entry.bytes.size.toLong(), entry.mtime) }
+
+    override fun folderExists(relativeFolder: String): Boolean = entries.keys.any { it.startsWith("$relativeFolder/") }
+
+    override fun pruneFolder(relativeFolder: String): Boolean = true
+
     override fun list(includeHidden: Boolean): List<LibraryFile> = entries
         .filterKeys { rel -> rel.endsWith(".txt", ignoreCase = true) && (includeHidden || rel.split('/').none { it.startsWith(".") }) }
         .map { (rel, e) -> LibraryFile(rel, e.bytes.size.toLong(), e.mtime) }

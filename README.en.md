@@ -29,6 +29,8 @@ Reading progress is saved as the **decoded character offset** in the text rather
 
 Local reading works 100% offline without any account. When desired, **book files sync via Dropbox** and **reading positions sync via Supabase** — without requiring a proprietary FloNovel account.
 
+Regular file synchronization covers TXT files. Deleting an entire folder in the app publishes a separate deletion record, allowing the other device to remove matching EPUB, ZIP, and other files and prune empty folders. Files modified or added afterwards are preserved. Both apps must be updated for this feature; it does not retroactively apply to earlier deletions.
+
 ---
 
 ## 🔄 Architecture & Synchronization Flow

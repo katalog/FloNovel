@@ -40,10 +40,10 @@
 
     <!-- Settings screen -->
     <string name="settings_title">설정</string>
-    <string name="settings_tab_view">화면 / 글꼴</string>
-    <string name="settings_tab_controls">조작 / 넘김</string>
-    <string name="settings_tab_chapters">목차 / 챕터</string>
-    <string name="settings_tab_sync">동기화 / 서재</string>
+    <string name="settings_tab_view">화면</string>
+    <string name="settings_tab_controls">조작</string>
+    <string name="settings_tab_chapters">챕터</string>
+    <string name="settings_tab_sync">동기화</string>
     <string name="settings_section_home_folder">홈 폴더</string>
     <string name="settings_section_font">글자</string>
     <string name="settings_font_size">크기</string>
@@ -172,6 +172,9 @@
     <string name="library_delete_title">\"%1$s\"을(를) 삭제할까요?</string>
     <string name="library_delete_file_message">이 폰에서 파일을 삭제합니다.</string>
     <string name="library_delete_file_message_synced">이 폰과 Dropbox, PC에서 파일을 삭제합니다. PC에서는 휴지통으로 갑니다.</string>
+    <string name="library_delete_preview_failed">폴더 내용물을 확인할 수 없습니다: %s</string>
+    <string name="library_delete_failed_details">%1$s을(를) 삭제하지 못했습니다: %2$s</string>
+    <string name="library_delete_provider_refused">저장소 제공자가 삭제를 거부했습니다.</string>
     <string name="library_delete_folder_message">이 폰에서 폴더와 그 안의 모든 파일을 삭제합니다.</string>
     <string name="library_delete_folder_message_synced">이 폰과 Dropbox, PC에서 폴더와 그 안의 모든 파일을 삭제합니다. PC에서는 휴지통으로 갑니다.</string>
     <string name="library_delete_confirm">삭제</string>

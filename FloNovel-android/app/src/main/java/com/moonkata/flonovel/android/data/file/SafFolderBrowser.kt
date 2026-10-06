@@ -30,6 +30,7 @@ class SafFolderBrowser(private val context: Context) : FolderBrowser {
         val entries = mutableListOf<FolderEntry>()
         for (child in dir.listFiles()) {
             val name = child.name ?: continue
+            if (child.isDirectory && !isVisibleLibraryFolder(name)) continue
             when {
                 child.isDirectory -> entries += FolderEntry.Folder(name, child.uri)
                 name.endsWith(".txt", ignoreCase = true) -> entries += FolderEntry.TextFile(

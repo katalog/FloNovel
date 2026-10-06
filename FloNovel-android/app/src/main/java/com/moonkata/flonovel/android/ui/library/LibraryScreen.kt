@@ -5,6 +5,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -240,23 +242,46 @@ fun LibraryScreen(
     }
 
     entryToDelete?.let { entry ->
+        var contents by remember(entry) { mutableStateOf<List<String>?>(null) }
+        var previewError by remember(entry) { mutableStateOf<String?>(null) }
+        LaunchedEffect(entry) {
+            try {
+                contents = viewModel.deletionContents(entry)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                previewError = e.message ?: e.javaClass.simpleName
+            }
+        }
         AlertDialog(
             onDismissRequest = { entryToDelete = null },
             title = { Text(stringResource(R.string.library_delete_title, entry.name)) },
             text = {
-                Text(
-                    stringResource(
-                        when {
-                            entry is FolderEntry.Folder && isDropboxLinked -> R.string.library_delete_folder_message_synced
-                            entry is FolderEntry.Folder -> R.string.library_delete_folder_message
-                            isDropboxLinked -> R.string.library_delete_file_message_synced
-                            else -> R.string.library_delete_file_message
-                        },
-                    ),
-                )
+                Column {
+                    Text(
+                        stringResource(
+                            when {
+                                entry is FolderEntry.Folder && isDropboxLinked -> R.string.library_delete_folder_message_synced
+                                entry is FolderEntry.Folder -> R.string.library_delete_folder_message
+                                isDropboxLinked -> R.string.library_delete_file_message_synced
+                                else -> R.string.library_delete_file_message
+                            },
+                        ),
+                    )
+                    if (previewError != null) {
+                        Text(stringResource(R.string.library_delete_preview_failed, previewError!!))
+                    } else if (contents == null) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth())
+                    } else if (contents!!.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Column(Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+                            contents!!.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+                        }
+                    }
+                }
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(enabled = contents != null && previewError == null, onClick = {
                     entryToDelete = null
                     viewModel.deleteEntry(entry)
                 }) { Text(stringResource(R.string.library_delete_confirm)) }

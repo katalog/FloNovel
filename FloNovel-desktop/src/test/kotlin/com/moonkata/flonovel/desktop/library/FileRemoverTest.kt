@@ -147,6 +147,61 @@ class FileRemoverTest {
     // ── Folders ──────────────────────────────────────────────────────────
 
     @Test
+    fun folderPreview_includesNestedHiddenAndNonBookFiles() {
+        val dir = Files.createDirectories(library.resolve("series"))
+        Files.createDirectories(dir.resolve("nested"))
+        Files.writeString(dir.resolve("nested/book.txt"), "text")
+        Files.writeString(dir.resolve("cover.jpg"), "image")
+        Files.writeString(dir.resolve(".hidden"), "hidden")
+        assertEquals(listOf(".hidden", "cover.jpg", "nested", "nested/book.txt"), FileRemover.folderContents(dir))
+    }
+
+    @Test
+    fun nonEmptyFolder_movesWholeTreeWithoutOverwritingDestination() {
+        val dir = Files.createDirectories(library.resolve("series"))
+        Files.writeString(dir.resolve("cover.jpg"), "image")
+        Files.createDirectories(outside.resolve("series"))
+        val outcome = FileRemover.removeFolder(dir, moveSettings, library)
+        val destination = assertIs<RemovalOutcome.Moved>(outcome).to
+        assertEquals(outside.resolve("series_1"), destination)
+        assertFalse(Files.exists(dir))
+        assertEquals("image", Files.readString(destination.resolve("cover.jpg")))
+    }
+
+    @Test
+    fun nonEmptyFolder_trashesWholeFolderAndPreservesOnFailure() {
+        val dir = Files.createDirectories(library.resolve("series"))
+        Files.writeString(dir.resolve("book.txt"), "text")
+        val requested = mutableListOf<Path>()
+        assertEquals(RemovalOutcome.Trashed(dir), FileRemover.removeFolder(dir, DeleteSettings(), library) {
+            requested.add(it)
+            true
+        })
+        assertEquals(listOf(dir), requested)
+        assertEquals(RemovalOutcome.Refused(RemovalRefusal.TRASH_FAILED),
+            FileRemover.removeFolder(dir, DeleteSettings(), library) { false })
+        assertTrue(Files.exists(dir.resolve("book.txt")))
+    }
+
+    @Test
+    fun folderRemoval_refusesLibraryRootAndInvalidMoveDestination() {
+        assertEquals(RemovalOutcome.Refused(RemovalRefusal.NOT_FOUND),
+            FileRemover.removeFolder(library, moveSettings, library))
+        val dir = Files.createDirectories(library.resolve("series"))
+        Files.writeString(dir.resolve("book.txt"), "text")
+        assertEquals(RemovalOutcome.Refused(RemovalRefusal.MOVE_FOLDER_NOT_SET),
+            FileRemover.removeFolder(dir, DeleteSettings(DeleteAction.MOVE, ""), library))
+        assertTrue(Files.exists(dir.resolve("book.txt")))
+    }
+
+    @Test
+    fun folderRemoval_deletesEmptyFolder() {
+        val dir = Files.createDirectories(library.resolve("empty"))
+        assertEquals(RemovalOutcome.FolderRemoved(dir), FileRemover.removeFolder(dir, DeleteSettings(), library))
+        assertFalse(Files.exists(dir))
+    }
+
+    @Test
     fun emptyFolder_isDeleted() {
         val dir = Files.createDirectories(library.resolve("empty"))
         assertEquals(RemovalOutcome.FolderRemoved(dir), FileRemover.removeEmptyFolder(dir))

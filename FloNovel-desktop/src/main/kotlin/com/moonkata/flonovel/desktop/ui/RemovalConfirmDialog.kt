@@ -2,6 +2,9 @@ package com.moonkata.flonovel.desktop.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +36,7 @@ import com.moonkata.flonovel.desktop.library.RemovalRefusal
 import java.nio.file.Path
 
 /** A Delete-key press waiting for the user to confirm. */
-data class RemovalRequest(val path: Path, val isFolder: Boolean)
+data class RemovalRequest(val path: Path, val isFolder: Boolean, val contents: List<String> = emptyList())
 
 @Composable
 fun RemovalConfirmDialog(
@@ -44,7 +47,7 @@ fun RemovalConfirmDialog(
 ) {
     val name = request.path.fileName?.toString() ?: request.path.toString()
     val (title, message, button) = when {
-        request.isFolder -> Triple(
+        request.isFolder && request.contents.isEmpty() -> Triple(
             stringResource("removal_confirm_folder_title"),
             stringResource("removal_confirm_folder_message", name),
             stringResource("removal_confirm_delete_button"),
@@ -91,6 +94,12 @@ fun RemovalConfirmDialog(
                     lineHeight = 18.sp,
                 )
                 Spacer(modifier = Modifier.height(18.dp))
+                if (request.contents.isNotEmpty()) {
+                    Column(Modifier.fillMaxWidth().heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+                        request.contents.forEach { Text(it, color = Color.White, fontSize = 13.sp) }
+                    }
+                    Spacer(Modifier.height(18.dp))
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,

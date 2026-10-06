@@ -45,6 +45,34 @@ class SafLibraryFiles(context: Context, private val treeUri: Uri) : LibraryFiles
         return LibraryFile(relativePath, child.size, child.mtime)
     }
 
+    override fun folderFiles(relativeFolder: String): List<LibraryFile> {
+        val root = find(relativeFolder) ?: return emptyList()
+        check(root.isDirectory) { "Folder deletion target is not a directory" }
+        val result = mutableListOf<LibraryFile>()
+        val visited = mutableSetOf<String>()
+        fun walk(id: String, prefix: String) {
+            check(visited.add(id)) { "Repeated folder document" }
+            children(id).forEach { child ->
+                val path = "$prefix/${child.name}"
+                if (child.isDirectory) walk(child.documentId, path)
+                else result += LibraryFile(path, child.size, child.mtime)
+            }
+        }
+        walk(root.documentId, relativeFolder)
+        return result
+    }
+
+    override fun folderExists(relativeFolder: String): Boolean = find(relativeFolder)?.isDirectory == true
+
+    override fun pruneFolder(relativeFolder: String): Boolean {
+        val root = find(relativeFolder) ?: return true
+        fun prune(id: String): Boolean {
+            for (child in children(id).filter { it.isDirectory }) if (!prune(child.documentId)) return false
+            return children(id).isNotEmpty() || DocumentsContract.deleteDocument(resolver, documentUri(id))
+        }
+        return root.isDirectory && prune(root.documentId)
+    }
+
     override fun openRead(relativePath: String): InputStream? {
         val child = find(relativePath) ?: return null
         return runCatching { resolver.openInputStream(documentUri(child.documentId)) }.getOrNull()

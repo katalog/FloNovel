@@ -26,19 +26,59 @@ sealed class RemovalOutcome {
 }
 
 /**
- * Removes a book file (to the trash, or out to a user-chosen folder) or an empty library folder.
+ * Removes a book or folder to the trash or a user-chosen folder; empty folders can be deleted.
  *
- * Only the file itself is touched. The library watcher notices it is gone and handles the
+ * The library watcher notices removed files and handles the
  * books.json record and the Dropbox deletion, exactly as if the user had removed it in Explorer.
  * The preprocessing backup under `.flonovel/original` is left alone on purpose, as a way back.
  */
 object FileRemover {
+
+    /** Includes entries hidden by the book browser; walking never follows symbolic links. */
+    fun folderContents(dir: Path): List<String> = Files.walk(dir).use { paths ->
+        paths.filter { it != dir }.map { dir.relativize(it).toString().replace('\\', '/') }
+            .sorted().toList()
+    }
+
+    fun removeFolder(
+        dir: Path,
+        settings: DeleteSettings,
+        homeFolder: Path,
+        trash: ((Path) -> Boolean)? = if (SystemTrash.isSupported) SystemTrash::moveToTrash else null,
+    ): RemovalOutcome {
+        if (!Files.isDirectory(dir) || !canonical(dir).startsWith(canonical(homeFolder)) ||
+            canonical(dir) == canonical(homeFolder)) return RemovalOutcome.Refused(RemovalRefusal.NOT_FOUND)
+        return try {
+            if (isEmptyFolder(dir)) removeEmptyFolder(dir)
+            else if (settings.action == DeleteAction.MOVE) {
+                checkMoveFolder(settings.moveFolder, homeFolder)?.let { return RemovalOutcome.Refused(it) }
+                moveToFolder(dir, Path.of(settings.moveFolder))
+            } else {
+                if (trash == null) RemovalOutcome.Refused(RemovalRefusal.TRASH_UNSUPPORTED)
+                else if (trash(dir)) RemovalOutcome.Trashed(dir)
+                else RemovalOutcome.Refused(RemovalRefusal.TRASH_FAILED)
+            }
+        } catch (e: Exception) {
+            RemovalOutcome.Failed(e.message ?: e.javaClass.simpleName)
+        }
+    }
 
     /**
      * @param trash moves a path to the OS trash and reports success; null when the OS has no
      *   trash. Injected so tests never touch the real recycle bin.
      */
     fun removeBook(
+        file: Path,
+        settings: DeleteSettings,
+        homeFolder: Path,
+        trash: ((Path) -> Boolean)? = if (SystemTrash.isSupported) SystemTrash::moveToTrash else null,
+    ): RemovalOutcome {
+        if (!Files.isRegularFile(file)) return RemovalOutcome.Refused(RemovalRefusal.NOT_FOUND)
+        return removeFile(file, settings, homeFolder, trash)
+    }
+
+    /** Folder manifests also contain non-book files; they use the same recovery destination. */
+    fun removeFile(
         file: Path,
         settings: DeleteSettings,
         homeFolder: Path,

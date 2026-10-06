@@ -25,6 +25,12 @@ interface LibraryFiles {
      */
     fun list(includeHidden: Boolean = false): List<LibraryFile>
 
+    /** Every file below an explicit deletion target, including EPUB, ZIP and hidden files. */
+    fun folderFiles(relativeFolder: String): List<LibraryFile>
+    fun folderExists(relativeFolder: String): Boolean
+    /** Removes empty descendants only; modified or unlisted files must survive. */
+    fun pruneFolder(relativeFolder: String): Boolean
+
     fun stat(relativePath: String): LibraryFile?
 
     fun openRead(relativePath: String): InputStream?

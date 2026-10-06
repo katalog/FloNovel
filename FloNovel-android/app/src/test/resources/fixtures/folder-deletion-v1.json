@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "12345678-1234-4234-8234-123456789abc",
+  "folder": "Series",
+  "files": [
+    {
+      "path": "Series/book.txt",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Series/book.epub",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Series/Sub/archive.zip",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

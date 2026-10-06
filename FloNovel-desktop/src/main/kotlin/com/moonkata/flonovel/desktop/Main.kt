@@ -181,6 +181,7 @@ fun main(args: Array<String>) {
                 settingsStore = settingsStore,
                 dropboxClient = dropboxClient,
                 syncStateStore = SyncStateStore(appConfigDir.resolve("sync-state.json")),
+                folderDeletionStateFile = appConfigDir.resolve("folder-deletions.json"),
             )
         } else null
     }
@@ -452,18 +453,27 @@ fun main(args: Array<String>) {
     // Checks that can fail before the user is asked anything, so a confirmation is never shown
     // for an action that is already known to be refused.
     val requestRemoval: (Path, Boolean) -> Unit = { path, isFolder ->
-        val refusal = when {
-            isFolder ->
-                if (runCatching { FileRemover.isEmptyFolder(path) }.getOrDefault(false)) null
-                else RemovalRefusal.FOLDER_NOT_EMPTY
-            settings.delete.action == DeleteAction.TRASH ->
-                if (SystemTrash.isSupported) null else RemovalRefusal.TRASH_UNSUPPORTED
-            else -> FileRemover.checkMoveFolder(settings.delete.moveFolder, homePath)
-        }
-        if (refusal != null) {
-            floatingToast.show(removalRefusalMessage(refusal))
-        } else {
-            pendingRemoval = RemovalRequest(path, isFolder)
+        coroutineScope.launch {
+            try {
+                val contents = withContext(Dispatchers.IO) {
+                    if (isFolder) FileRemover.folderContents(path) else emptyList()
+                }
+                val refusal = when {
+                    isFolder && contents.isEmpty() -> null
+                    settings.delete.action == DeleteAction.TRASH ->
+                        if (SystemTrash.isSupported) null else RemovalRefusal.TRASH_UNSUPPORTED
+                    else -> FileRemover.checkMoveFolder(settings.delete.moveFolder, homePath)
+                }
+                if (refusal != null) {
+                    floatingToast.show(removalRefusalMessage(refusal))
+                } else {
+                    pendingRemoval = RemovalRequest(path, isFolder, contents)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                floatingToast.show(Strings.get("removal_failed", e.message ?: e.javaClass.simpleName))
+            }
         }
     }
 
@@ -490,8 +500,17 @@ fun main(args: Array<String>) {
         }
         coroutineScope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                if (request.isFolder) FileRemover.removeEmptyFolder(request.path)
-                else FileRemover.removeBook(request.path, settings.delete, homePath ?: request.path.parent)
+                if (request.isFolder) {
+                    try {
+                        val intent = if (dropboxClient.isLinked) syncEngine?.prepareFolderDeletion(request.path) else null
+                        val result = FileRemover.removeFolder(request.path, settings.delete, homePath ?: request.path.parent)
+                        if (intent != null && result !is RemovalOutcome.Trashed && result !is RemovalOutcome.Moved &&
+                            result !is RemovalOutcome.FolderRemoved) syncEngine?.cancelFolderDeletion(intent)
+                        result
+                    } catch (e: Exception) {
+                        RemovalOutcome.Failed(e.message ?: e.javaClass.simpleName)
+                    }
+                } else FileRemover.removeBook(request.path, settings.delete, homePath ?: request.path.parent)
             }
             floatingToast.show(removalOutcomeMessage(outcome))
             val removed = outcome is RemovalOutcome.Trashed ||

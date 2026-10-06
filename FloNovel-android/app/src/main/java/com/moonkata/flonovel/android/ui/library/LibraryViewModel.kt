@@ -23,6 +23,8 @@ import com.moonkata.flonovel.android.data.db.BookEntity
 import com.moonkata.flonovel.android.data.file.BookSource
 import com.moonkata.flonovel.android.data.file.FolderBrowser
 import com.moonkata.flonovel.android.data.file.SafFolderBrowser
+import com.moonkata.flonovel.android.data.file.RemovalChild
+import com.moonkata.flonovel.android.data.file.folderRemovalContents
 import com.moonkata.flonovel.android.data.font.FontCatalogEntry
 import com.moonkata.flonovel.android.data.font.FontDownloadManager
 import com.moonkata.flonovel.android.data.preprocess.LibraryPreprocessor
@@ -35,6 +37,7 @@ import com.moonkata.flonovel.android.data.sync.DropboxOAuth
 import com.moonkata.flonovel.android.data.sync.DropboxSyncProgress
 import com.moonkata.flonovel.android.data.sync.OpenBook
 import com.moonkata.flonovel.android.data.sync.SafLibraryFiles
+import com.moonkata.flonovel.android.data.sync.folderDeletionSync
 import com.moonkata.flonovel.android.data.sync.isSyncedCopy
 import com.moonkata.flonovel.android.data.sync.shouldAutoSync
 import com.moonkata.flonovel.android.data.sync.TwoWayBookSync
@@ -514,6 +517,9 @@ class LibraryViewModel(
                     prepareNewBook = { rel -> preprocessInLibrary(files, rel) },
                     isInUse = { rel -> OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false },
                     onBookMoved = { fromRel, toRel -> followMovedBook(files, fromRel, toRel, settings) },
+                    folderDeletionJournal = folderDeletionSync(app, rootUri, files, dropboxClient, settings.dropboxAccountEmail) { rel ->
+                        OpenBook.documentUri?.let { open -> files.uriOf(rel)?.toString() == open } ?: false
+                    },
                 )
                 val result = withContext(Dispatchers.IO) {
                     sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
@@ -597,6 +603,32 @@ class LibraryViewModel(
         _dropboxState.update { it.copy(pendingMassDeletion = null) }
     }
 
+    /** Queries every document type because deletion also removes files the reader cannot open. */
+    suspend fun deletionContents(entry: FolderEntry): List<String> = withContext(Dispatchers.IO) {
+        if (entry !is FolderEntry.Folder) return@withContext emptyList()
+        val resolver = getApplication<Application>().contentResolver
+        folderRemovalContents(entry.uri) { parent ->
+            val queryUri = DocumentsContract.buildChildDocumentsUriUsingTree(parent, DocumentsContract.getDocumentId(parent))
+            val projection = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE)
+            val result = mutableListOf<RemovalChild<Uri>>()
+            val cursor = resolver.query(queryUri, projection, null, null, null)
+                ?: error("Unable to list folder contents")
+            cursor.use {
+                check(!it.extras.getBoolean(DocumentsContract.EXTRA_LOADING)) { "Folder listing is incomplete" }
+                it.extras.getString(DocumentsContract.EXTRA_ERROR)?.let { message -> error(message) }
+                while (it.moveToNext()) {
+                    result += RemovalChild(
+                        DocumentsContract.buildDocumentUriUsingTree(parent, it.getString(0)),
+                        it.getString(1) ?: error("Document name unavailable"),
+                        it.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR,
+                    )
+                }
+            }
+            result
+        }
+    }
+
     /**
      * Deletes a book, a zip, or a whole folder from the library, then syncs so the deletion reaches
      * Dropbox (and from there the PC). A file inside a zip cannot be deleted on its own.
@@ -608,12 +640,34 @@ class LibraryViewModel(
             is FolderEntry.TextFile -> (entry.source as? BookSource.PlainTxt)?.uri ?: return
         }
         val app = getApplication<Application>()
+        val deletionRoot = uiState.value.rootUri
+        val deletionFolder = (uiState.value.path.drop(1).map { it.name } + entry.name).joinToString("/")
+        val deletionAccount = uiState.value.settings.dropboxAccountEmail
         viewModelScope.launch {
             val deleted = withContext(Dispatchers.IO) {
-                runCatching { DocumentsContract.deleteDocument(app.contentResolver, uri) }.getOrDefault(false)
+                var journal: com.moonkata.flonovel.android.data.sync.FolderDeletionSync? = null
+                var intent: String? = null
+                try {
+                    if (entry is FolderEntry.Folder && dropboxClient.isLinked()) {
+                        val root = deletionRoot ?: error("Library folder is not selected")
+                        val files = SafLibraryFiles(app, root)
+                        journal = folderDeletionSync(app, root, files, dropboxClient, deletionAccount) { false }
+                        intent = journal.prepare(deletionFolder)
+                    }
+                    check(DocumentsContract.deleteDocument(app.contentResolver, uri)) {
+                        app.getString(R.string.library_delete_provider_refused)
+                    }
+                    Result.success(Unit)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (intent != null) runCatching { journal?.cancel(intent) }
+                    Result.failure(e)
+                }
             }
-            if (!deleted) {
-                Toast.makeText(app, app.getString(R.string.library_delete_failed, entry.name), Toast.LENGTH_SHORT).show()
+            if (deleted.isFailure) {
+                val reason = deleted.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }.orEmpty()
+                Toast.makeText(app, app.getString(R.string.library_delete_failed_details, entry.name, reason), Toast.LENGTH_LONG).show()
                 return@launch
             }
             loadCurrent()

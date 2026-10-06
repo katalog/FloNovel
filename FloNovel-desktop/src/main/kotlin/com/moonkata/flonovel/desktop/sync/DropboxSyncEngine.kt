@@ -85,7 +85,16 @@ class DropboxSyncEngine(
     private val trash: ((Path) -> Boolean)? = if (SystemTrash.isSupported) SystemTrash::moveToTrash else null,
     private val deviceName: String = "PC",
     private val today: () -> LocalDate = LocalDate::now,
+    private val folderDeletionStateFile: Path? = null,
 ) {
+    private fun folderDeletionJournal(): FolderDeletionSync? = folderDeletionStateFile?.let {
+        folderDeletionSync(homeFolder, it, dropboxClient, settingsStore, trash, canApply = { !isPaused.get() }) { path -> isOpenInReader(path) }
+    }
+
+    fun prepareFolderDeletion(path: Path): String? = folderDeletionJournal()?.prepare(
+        homeFolder.toAbsolutePath().normalize().relativize(path.toAbsolutePath().normalize()).toString().replace('\\', '/'))
+
+    fun cancelFolderDeletion(id: String) { folderDeletionJournal()?.cancel(id) }
     @Volatile
     var status: SyncStatus = SyncStatus.IDLE
         private set
@@ -230,6 +239,7 @@ class DropboxSyncEngine(
         val files: Map<String, RemoteFileState>,
         val cursor: String,
         val isFullListing: Boolean,
+        val folderIntentIds: Set<String>,
     )
 
     /**
@@ -276,6 +286,11 @@ class DropboxSyncEngine(
         }
         val local = scanLocal(startState.bases)
         val bases = startState.bases.toMutableMap()
+        val folderJournal = folderDeletionJournal()
+        val folderBatch = kotlinx.coroutines.runBlocking {
+            folderJournal?.plan(remote.files.mapValues { it.value.contentHash }, startState.bases.isNotEmpty(),
+                if (remote.isFullListing) emptySet() else remote.folderIntentIds)
+        }
 
         val keys = (bases.keys + local.files.keys + remote.files.keys) - local.excludedKeys
         val decided = keys.sorted().mapNotNull { key ->
@@ -317,10 +332,15 @@ class DropboxSyncEngine(
 
         val deletions = plans.filter { it.action is SyncAction.DeleteLocal || it.action is SyncAction.DeleteRemote }
         val remoteIsEmpty = remote.isFullListing && remote.files.isEmpty()
+        val deletionPaths = (deletions.map { it.key } + folderBatch?.deletionPaths.orEmpty())
+            .distinctBy(FolderDeletionIntent::key)
         val withhold = !allowMassDeletion &&
-            SyncDecision.isMassDeletion(deletions.size, bases.size, remoteIsEmpty) &&
-            deletions.isNotEmpty()
-        val toApply = if (withhold) plans - deletions.toSet() else plans
+            SyncDecision.isMassDeletion(deletionPaths.size, bases.size, remoteIsEmpty) &&
+            deletionPaths.isNotEmpty()
+        val toApply = (if (withhold) plans - deletions.toSet() else plans).filter { plan ->
+            !(folderBatch?.listingFailed == true && (plan.action is SyncAction.DeleteLocal || plan.action is SyncAction.DeleteRemote)) &&
+                folderBatch?.blockedFolders.orEmpty().none { plan.key.startsWith(FolderDeletionIntent.key(it) + "/") }
+        }
 
         val totalBytes = toApply.sumOf { plan ->
             when (val a = plan.action) {
@@ -385,6 +405,12 @@ class DropboxSyncEngine(
             if (processed % SAVE_EVERY == 0) syncStateStore.save(startState.copy(bases = bases))
         }
 
+        if (!withhold && !stoppedEarly && folderBatch != null) {
+            val result = kotlinx.coroutines.runBlocking { folderJournal!!.apply(folderBatch, true) }
+            deleted += result.deleted
+            deferred += result.deferred
+            failures += result.failed.map { SyncFileFailure(it.path, it.reason) }
+        }
         val complete = !stoppedEarly && !withhold && deferred == 0 && failures.isEmpty() && local.excludedKeys.isEmpty()
         val cursor = if (complete) remote.cursor.ifBlank { null } else startState.cursor
         syncStateStore.save(startState.copy(cursor = cursor, bases = bases))
@@ -403,7 +429,7 @@ class DropboxSyncEngine(
             deletedCount = deleted,
             conflictCount = conflicts,
             withheldDeletions = if (withhold) {
-                deletions.map { local.files[it.key]?.rel ?: bases[it.key]?.pathDisplay ?: it.key }
+                deletionPaths
             } else emptyList(),
             deferredCount = deferred,
             movedCount = moved,
@@ -833,6 +859,7 @@ class DropboxSyncEngine(
         }
 
         val files = LinkedHashMap<String, RemoteFileState>()
+        val folderIntentIds = mutableSetOf<String>()
         if (!full) {
             for (base in state.bases.values) {
                 files[base.key] = RemoteFileState(base.pathDisplay, base.rev, base.contentHash, base.localSize)
@@ -842,14 +869,19 @@ class DropboxSyncEngine(
         while (true) {
             when (val current = result) {
                 is DropboxListFolderResult.Success -> {
-                    for (entry in current.entries) applyListingEntry(entry, files)
-                    if (!current.hasMore) return RemoteSnapshot(files, current.cursor, full)
+                    for (entry in current.entries) {
+                        if (entry is DropboxEntry.FileEntry && entry.pathLower.startsWith(FolderDeletionIntent.REMOTE_ROOT + "/") &&
+                            entry.name.endsWith(".json")) folderIntentIds += entry.name.removeSuffix(".json")
+                        applyListingEntry(entry, files)
+                    }
+                    if (!current.hasMore) return RemoteSnapshot(files, current.cursor, full, folderIntentIds)
                     result = dropboxClient.listFolderContinue(current.cursor)
                 }
                 DropboxListFolderResult.Reset -> {
                     // A reset mid-way invalidates the pages already read; start over from scratch.
                     full = true
                     files.clear()
+                    folderIntentIds.clear()
                     result = listBooksRoot()
                 }
                 is DropboxListFolderResult.Failure -> return null
