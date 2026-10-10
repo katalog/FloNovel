@@ -208,4 +208,8 @@
     <string name="dropbox_sync_status_failed">동기화 실패</string>
     <string name="dropbox_sync_status_not_linked">드롭박스 연결 필요</string>
     <string name="reader_position_sync_failed">읽기 위치를 전송하지 못했습니다. 다음 전송 시 다시 시도합니다.</string>
+    <string name="reader_progress_intro">도입부</string>
+    <string name="reader_progress_no_chapter">챕터 없음</string>
+    <string name="reader_progress_chapter">, C %1$.1f%%</string>
+    <string name="reader_progress_total">, A %1$.1f%%</string>
 </resources>

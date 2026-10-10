@@ -208,4 +208,8 @@
     <string name="dropbox_sync_status_failed">Sync failed</string>
     <string name="dropbox_sync_status_not_linked">Connect Dropbox</string>
     <string name="reader_position_sync_failed">Could not sync reading position. It will be retried.</string>
+    <string name="reader_progress_intro">Introduction</string>
+    <string name="reader_progress_no_chapter">No chapters</string>
+    <string name="reader_progress_chapter">, C %1$.1f%%</string>
+    <string name="reader_progress_total">, A %1$.1f%%</string>
 </resources>

@@ -16,9 +16,12 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +45,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
@@ -376,6 +380,7 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .safeDrawingPadding()
+                        .fillMaxWidth(0.4f)
                         .padding(8.dp),
                 ) {
                     Surface(
@@ -404,13 +409,39 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .safeDrawingPadding()
+                        .fillMaxWidth(0.6f)
+                        .wrapContentWidth(Alignment.End)
                         .padding(8.dp),
                 ) {
-                    Text(
-                        text = "%.3f%%".format(progress * 100),
-                        style = MaterialTheme.typography.labelSmall,
+                    val chapter = remember(uiState.chapters, uiState.currentOffset, uiState.fullText.length) {
+                        chapterProgress(uiState.chapters, uiState.currentOffset, uiState.fullText.length)
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
+                    ) {
+                        Text(
+                            text = compactChapterTitle(chapter?.title ?: stringResource(
+                                if (chapter == null) R.string.reader_progress_no_chapter else R.string.reader_progress_intro,
+                            )),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (chapter != null) {
+                            Text(
+                                text = stringResource(R.string.reader_progress_chapter, chapter.fraction * 100),
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.reader_progress_total, progress * 100),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
