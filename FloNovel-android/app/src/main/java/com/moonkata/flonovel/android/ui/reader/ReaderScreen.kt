@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -409,6 +410,7 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                         .align(Alignment.BottomEnd)
                         .safeDrawingPadding()
                         .fillMaxWidth(0.6f)
+                        .wrapContentWidth(Alignment.End)
                         .padding(8.dp),
                 ) {
                     val chapter = remember(uiState.chapters, uiState.currentOffset, uiState.fullText.length) {
@@ -423,7 +425,7 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                                 if (chapter == null) R.string.reader_progress_no_chapter else R.string.reader_progress_intro,
                             )),
                             style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f, fill = false),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )

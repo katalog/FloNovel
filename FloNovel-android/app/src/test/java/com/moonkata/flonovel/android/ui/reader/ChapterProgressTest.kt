@@ -11,7 +11,16 @@ class ChapterProgressTest {
     @Test fun shortTitleStaysUnchanged() { assertEquals("## 제목", compactChapterTitle("## 제목")) }
     @Test fun sevenCharacterTitleStaysUnchanged() { assertEquals("1234567", compactChapterTitle("1234567")) }
     @Test fun longTitleIncludesEllipsisWithinSevenCharacters() {
-        assertEquals("## 긴제목…", compactChapterTitle("## 긴제목입니다"))
+        assertEquals("123456…", compactChapterTitle("12345678"))
+    }
+    @Test fun markerDoesNotConsumeTitleBudget() {
+        assertEquals("## 긴제목입니다", compactChapterTitle("## 긴제목입니다"))
+    }
+    @Test fun markedLongTitleUsesSevenCharactersAfterMarker() {
+        assertEquals("## 아주긴챕터제…", compactChapterTitle("## 아주긴챕터제목입니다"))
+    }
+    @Test fun markerWhitespaceDoesNotConsumeTitleBudget() {
+        assertEquals("## 긴제목입니다", compactChapterTitle("  ##   긴제목입니다  "))
     }
     @Test fun titleDoesNotSplitSupplementaryCharacters() {
         assertEquals("😀12345…", compactChapterTitle("😀1234567"))
