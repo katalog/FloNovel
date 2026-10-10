@@ -16,7 +16,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -399,13 +399,12 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
             // A small always-on indicator so the read percentage isn't lost even while the top bar is
             // hidden. Plain semi-transparent text with no background would overlap whatever body text
             // happens to be on the last line there and look like a "cut-off line", so a pill-shaped
-            // background keeps it clearly separated from the body text. The expanded three-line
-            // indicator uses smaller corners so the chapter title stays inside the background.
+            // background keeps it clearly separated from the body text.
             if (!showChrome) {
                 Surface(
                     color = readerColors.background.copy(alpha = 0.85f),
                     contentColor = readerColors.text,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(50),
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .safeDrawingPadding()
@@ -415,15 +414,16 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                     val chapter = remember(uiState.chapters, uiState.currentOffset, uiState.fullText.length) {
                         chapterProgress(uiState.chapters, uiState.currentOffset, uiState.fullText.length)
                     }
-                    Column(
-                        horizontalAlignment = Alignment.End,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
                         Text(
-                            text = chapter?.title ?: stringResource(
+                            text = compactChapterTitle(chapter?.title ?: stringResource(
                                 if (chapter == null) R.string.reader_progress_no_chapter else R.string.reader_progress_intro,
-                            ),
+                            )),
                             style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.weight(1f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -431,11 +431,13 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                             Text(
                                 text = stringResource(R.string.reader_progress_chapter, chapter.fraction * 100),
                                 style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
                             )
                         }
                         Text(
                             text = stringResource(R.string.reader_progress_total, progress * 100),
                             style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
                         )
                     }
                 }

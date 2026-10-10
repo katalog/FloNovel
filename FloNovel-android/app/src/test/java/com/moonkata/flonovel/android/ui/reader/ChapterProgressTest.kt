@@ -8,6 +8,15 @@ import org.junit.Test
 class ChapterProgressTest {
     private val chapters = listOf(Chapter("First", 20), Chapter("Second", 100))
 
+    @Test fun shortTitleStaysUnchanged() { assertEquals("## 제목", compactChapterTitle("## 제목")) }
+    @Test fun sevenCharacterTitleStaysUnchanged() { assertEquals("1234567", compactChapterTitle("1234567")) }
+    @Test fun longTitleIncludesEllipsisWithinSevenCharacters() {
+        assertEquals("## 긴제목…", compactChapterTitle("## 긴제목입니다"))
+    }
+    @Test fun titleDoesNotSplitSupplementaryCharacters() {
+        assertEquals("😀12345…", compactChapterTitle("😀1234567"))
+    }
+
     @Test fun chapterStart() = assertProgress(20, "First", 0f)
     @Test fun chapterMidpoint() = assertProgress(60, "First", 0.5f)
     @Test fun nextBoundaryStartsNewChapter() = assertProgress(100, "Second", 0f)

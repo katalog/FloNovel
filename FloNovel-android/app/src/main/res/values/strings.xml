@@ -210,6 +210,6 @@
     <string name="reader_position_sync_failed">Could not sync reading position. It will be retried.</string>
     <string name="reader_progress_intro">Introduction</string>
     <string name="reader_progress_no_chapter">No chapters</string>
-    <string name="reader_progress_chapter">Chapter %1$.3f%%</string>
-    <string name="reader_progress_total">Total %1$.3f%%</string>
+    <string name="reader_progress_chapter">, C %1$.1f%%</string>
+    <string name="reader_progress_total">, A %1$.1f%%</string>
 </resources>

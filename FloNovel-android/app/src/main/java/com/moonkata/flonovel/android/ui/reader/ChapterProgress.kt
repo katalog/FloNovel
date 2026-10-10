@@ -4,6 +4,11 @@ import com.moonkata.flonovel.android.model.Chapter
 
 data class ChapterProgress(val title: String?, val fraction: Float)
 
+fun compactChapterTitle(title: String): String {
+    val length = title.codePointCount(0, title.length)
+    return if (length <= 7) title else title.substring(0, title.offsetByCodePoints(0, 6)) + "…"
+}
+
 fun chapterProgress(chapters: List<Chapter>, currentOffset: Int, textLength: Int): ChapterProgress? {
     if (chapters.isEmpty() || textLength <= 0) return null
     val offset = currentOffset.coerceIn(0, textLength)
