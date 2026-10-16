@@ -108,4 +108,74 @@ object ChapterJumpNavigator {
         val prevIdx = if (idx >= 0) idx - 1 else -idx - 2
         return if (prevIdx in breakpoints.indices) breakpoints[prevIdx] else null
     }
+
+    /**
+     * Estimates how many lines fit on a single screen page.
+     *
+     * @param viewportHeightPx Available vertical text area height in pixels.
+     * @param fontSizeSp Font size in SP.
+     * @param lineHeightMultiplier Line height multiplier (e.g. 1.5f).
+     * @param densityScale Scale factor from SP/DP to pixels (usually from LocalDensity).
+     */
+    fun estimateLinesPerPage(
+        viewportHeightPx: Int,
+        fontSizeSp: Float,
+        lineHeightMultiplier: Float,
+        densityScale: Float = 1f,
+    ): Int {
+        val lineHeightPx = fontSizeSp * lineHeightMultiplier * densityScale
+        return if (lineHeightPx > 0f && viewportHeightPx > 0) {
+            (viewportHeightPx / lineHeightPx).toInt().coerceAtLeast(1)
+        } else {
+            25
+        }
+    }
+
+    /**
+     * Calculates the leading context lines before a chapter heading to place it
+     * at approximately 2/5 (40%) of the visible screen height.
+     */
+    fun leadingLinesForChapter(linesPerPage: Int): Int {
+        return ((linesPerPage * 2) / 5).coerceAtLeast(1)
+    }
+
+    /**
+     * Returns the character offset positioned [lines] lines before [targetOffset].
+     *
+     * Counts newline characters backwards from [targetOffset].
+     * If [maxCharsBefore] is exceeded before finding [lines] lines, the search is clamped
+     * to ensure the target chapter heading never gets pushed below the screen by huge paragraphs.
+     */
+    fun rewindLinesBefore(
+        text: String,
+        targetOffset: Int,
+        lines: Int = 10,
+        maxCharsBefore: Int = lines * 45,
+    ): Int {
+        if (targetOffset <= 0 || lines <= 0) return 0
+        val safeTarget = targetOffset.coerceIn(0, text.length)
+        val minOffset = maxOf(0, safeTarget - maxCharsBefore)
+
+        var pos = safeTarget - 1
+
+        // Skip any newlines immediately preceding targetOffset so the delimiter
+        // between the preceding line and targetOffset is not counted as a line of text.
+        while (pos >= minOffset && text[pos] == '\n') {
+            pos--
+        }
+
+        var lineCount = 0
+        while (pos >= minOffset && lineCount < lines) {
+            if (text[pos] == '\n') {
+                lineCount++
+                if (lineCount == lines) {
+                    return pos + 1
+                }
+            }
+            pos--
+        }
+
+        return maxOf(0, pos + 1)
+    }
 }
+
