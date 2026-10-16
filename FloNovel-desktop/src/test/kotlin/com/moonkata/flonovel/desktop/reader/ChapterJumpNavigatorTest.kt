@@ -8,16 +8,16 @@ class ChapterJumpNavigatorTest {
 
     @Test
     fun rewindLinesBefore_exactLinesCount() {
-        // Construct 10 lines of text
-        val lines = (1..10).map { "Line $it: Some prose content" }
+        // Construct 15 lines of text
+        val lines = (1..15).map { "Line %02d: Some prose content".format(it) }
         val text = lines.joinToString("\n") + "\n[Chapter 2: The Adventure]"
         val chapterOffset = text.indexOf("[Chapter 2: The Adventure]")
         assertTrue(chapterOffset > 0)
 
-        // Rewind 6 lines before chapterOffset
-        // Expected: should start at "Line 5: Some prose content"
-        val expectedStartIndex = text.indexOf("Line 5: Some prose content")
-        val actualStartIndex = ChapterJumpNavigator.rewindLinesBefore(text, chapterOffset, lines = 6)
+        // Rewind default 10 lines before chapterOffset
+        // Expected: should start at "Line 06: Some prose content"
+        val expectedStartIndex = text.indexOf("Line 06: Some prose content")
+        val actualStartIndex = ChapterJumpNavigator.rewindLinesBefore(text, chapterOffset, lines = 10)
 
         assertEquals(expectedStartIndex, actualStartIndex)
     }

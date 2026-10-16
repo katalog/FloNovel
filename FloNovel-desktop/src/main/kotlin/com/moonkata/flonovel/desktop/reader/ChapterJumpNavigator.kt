@@ -119,8 +119,8 @@ object ChapterJumpNavigator {
     fun rewindLinesBefore(
         text: String,
         targetOffset: Int,
-        lines: Int = 6,
-        maxCharsBefore: Int = 250,
+        lines: Int = 10,
+        maxCharsBefore: Int = 400,
     ): Int {
         if (targetOffset <= 0 || lines <= 0) return 0
         val safeTarget = targetOffset.coerceIn(0, text.length)

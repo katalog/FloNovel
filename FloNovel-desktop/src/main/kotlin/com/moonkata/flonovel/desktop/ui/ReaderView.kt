@@ -605,12 +605,12 @@ fun ReaderView(
         onAcceptRemoteSync?.invoke(offset)
     }
 
-    // A chapter jump positions the view 6 lines before the target so the heading sits
+    // A chapter jump positions the view 10 lines before the target so the heading sits
     // comfortably below the top without requiring multi-pass Skia text fitting.
     // Executed synchronously on the event thread for instant (<16ms) response.
     fun jumpToChapterTarget(target: Int) {
         lastChapterJumpOffset = target
-        val leadingAnchor = ChapterJumpNavigator.rewindLinesBefore(fullText, target, lines = 6)
+        val leadingAnchor = ChapterJumpNavigator.rewindLinesBefore(fullText, target, lines = 10)
         navigator.jumpTo(offset = target, leadingAnchor = leadingAnchor)
         currentAnchor = navigator.anchor
         onAnchorChanged?.invoke(currentAnchor)
