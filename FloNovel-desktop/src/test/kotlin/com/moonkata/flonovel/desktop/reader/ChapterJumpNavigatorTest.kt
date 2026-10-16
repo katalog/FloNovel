@@ -81,4 +81,32 @@ class ChapterJumpNavigatorTest {
         val nextState = navigator.advance()
         assertEquals(targetChapter, nextState.anchor)
     }
+
+    @Test
+    fun estimateLinesPerPage_calculatesCorrectly() {
+        // 800px viewport, 20sp font, 1.5 multiplier, 1.0 density -> lineHeight = 30px
+        // 800 / 30 = 26.66 -> 26 lines
+        val lines = ChapterJumpNavigator.estimateLinesPerPage(
+            viewportHeightPx = 800,
+            fontSizeSp = 20f,
+            lineHeightMultiplier = 1.5f,
+            densityScale = 1f,
+        )
+        assertEquals(26, lines)
+    }
+
+    @Test
+    fun leadingLinesForChapter_calculatesTwoFifthsCorrectly() {
+        // 25 lines -> 2/5 is exactly 10 lines
+        assertEquals(10, ChapterJumpNavigator.leadingLinesForChapter(25))
+
+        // 15 lines -> 2/5 is exactly 6 lines
+        assertEquals(6, ChapterJumpNavigator.leadingLinesForChapter(15))
+
+        // 35 lines -> 2/5 is exactly 14 lines
+        assertEquals(14, ChapterJumpNavigator.leadingLinesForChapter(35))
+
+        // 2 lines -> 2/5 would be 0, coerced to at least 1 line
+        assertEquals(1, ChapterJumpNavigator.leadingLinesForChapter(2))
+    }
 }

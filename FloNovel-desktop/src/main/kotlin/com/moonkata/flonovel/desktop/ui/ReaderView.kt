@@ -605,12 +605,36 @@ fun ReaderView(
         onAcceptRemoteSync?.invoke(offset)
     }
 
-    // A chapter jump positions the view 10 lines before the target so the heading sits
-    // comfortably below the top without requiring multi-pass Skia text fitting.
+    // Estimates visible lines on the current screen once per text/layout change,
+    // and places chapter headings at approximately 2/5 (40%) of the screen height.
+    val linesPerPage = remember(
+        navigator.spec.heightPx,
+        viewSettings.fontSizeSp,
+        viewSettings.lineHeightMultiplier,
+        density.density,
+    ) {
+        ChapterJumpNavigator.estimateLinesPerPage(
+            viewportHeightPx = navigator.spec.heightPx,
+            fontSizeSp = viewSettings.fontSizeSp,
+            lineHeightMultiplier = viewSettings.lineHeightMultiplier,
+            densityScale = density.density,
+        )
+    }
+
+    val chapterLeadingLines = remember(linesPerPage) {
+        ChapterJumpNavigator.leadingLinesForChapter(linesPerPage)
+    }
+
+    // A chapter jump positions the view 2/5 of screen lines before the target so the heading sits
+    // comfortably near the vertical golden ratio (40%) without requiring multi-pass Skia text fitting.
     // Executed synchronously on the event thread for instant (<16ms) response.
     fun jumpToChapterTarget(target: Int) {
         lastChapterJumpOffset = target
-        val leadingAnchor = ChapterJumpNavigator.rewindLinesBefore(fullText, target, lines = 10)
+        val leadingAnchor = ChapterJumpNavigator.rewindLinesBefore(
+            text = fullText,
+            targetOffset = target,
+            lines = chapterLeadingLines,
+        )
         navigator.jumpTo(offset = target, leadingAnchor = leadingAnchor)
         currentAnchor = navigator.anchor
         onAnchorChanged?.invoke(currentAnchor)
