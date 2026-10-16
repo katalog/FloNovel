@@ -605,35 +605,15 @@ fun ReaderView(
         onAcceptRemoteSync?.invoke(offset)
     }
 
-    // A chapter jump lands on its target at once but is centred on screen one frame later.
-    // Centring is a reverse-fit of a dozen text measurements; done inside the key handler it
-    // outlasted the key-repeat interval, so holding PgDn queued up events, froze for about a
-    // second without drawing, then skipped five or six chapters at once. Deferring it lets
-    // repeats that arrive within the same frame collapse into a single centring.
-    var pendingCenterTarget by remember { mutableStateOf<Int?>(null) }
-
+    // A chapter jump positions the view 6 lines before the target so the heading sits
+    // comfortably below the top without requiring multi-pass Skia text fitting.
+    // Executed synchronously on the event thread for instant (<16ms) response.
     fun jumpToChapterTarget(target: Int) {
         lastChapterJumpOffset = target
-        navigator.jumpTo(target)
-        onAnchorChanged?.invoke(target)
-        if (navigator.spec.paneMode == PaneMode.ONE) {
-            pendingCenterTarget = target
-        } else {
-            // 2-pane never centres; its layout is already computed once per frame.
-            currentAnchor = navigator.anchor
-        }
-    }
-
-    LaunchedEffect(pendingCenterTarget) {
-        val target = pendingCenterTarget ?: return@LaunchedEffect
-        // Anything else that moved the reader in the meantime (a page turn, TOC, remote sync)
-        // has already set currentAnchor itself; centring now would undo it.
-        if (navigator.anchor == target) {
-            navigator.jumpTo(target, centerInOnePane = true, ratio = viewSettings.advanceRatio)
-            currentAnchor = navigator.anchor
-            onAnchorChanged?.invoke(currentAnchor)
-        }
-        pendingCenterTarget = null
+        val leadingAnchor = ChapterJumpNavigator.rewindLinesBefore(fullText, target, lines = 6)
+        navigator.jumpTo(offset = target, leadingAnchor = leadingAnchor)
+        currentAnchor = navigator.anchor
+        onAnchorChanged?.invoke(currentAnchor)
     }
 
     fun performNextChapterJump() {
@@ -1287,10 +1267,7 @@ fun ReaderView(
                 currentAnchor = maxOf(currentAnchor, lastChapterJumpOffset ?: Int.MIN_VALUE),
                 totalCharCount = fullText.length,
                 onChapterSelected = { chapter ->
-                    lastChapterJumpOffset = chapter.charOffset
-                    navigator.jumpTo(chapter.charOffset, centerInOnePane = true, ratio = viewSettings.advanceRatio)
-                    currentAnchor = navigator.anchor
-                    onAnchorChanged?.invoke(currentAnchor)
+                    jumpToChapterTarget(chapter.charOffset)
                     showToc = false
                 },
                 onDismiss = { showToc = false },

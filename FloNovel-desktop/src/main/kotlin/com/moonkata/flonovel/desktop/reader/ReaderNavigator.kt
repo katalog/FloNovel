@@ -151,14 +151,28 @@ class ReaderNavigator(
      * Jumps directly to [offset] (e.g. from TOC, search, chapter jump, remote sync).
      * Clears both visit history and forward history, recalculating layout from target offset.
      *
-     * In 1-pane mode, if [centerInOnePane] is true, reverse-estimates the previous anchor
-     * by [ratio] of the viewport height so that [offset] lands vertically in the middle (at [ratio] of the screen),
-     * and saves [offset] into the forward stack so the next regular [advance] moves it to the very top.
+     * If [leadingAnchor] is supplied (e.g. starting a few lines before [offset]), [leadingAnchor]
+     * becomes the current [anchor] while [offset] is preserved in the forward stack so the next
+     * regular [advance] moves directly to [offset].
+     *
+     * In 1-pane mode, if [centerInOnePane] is true and no [leadingAnchor] was given, reverse-estimates
+     * the previous anchor by [ratio] of the viewport height so that [offset] lands vertically in the middle,
+     * and saves [offset] into the forward stack.
      */
-    fun jumpTo(offset: Int, centerInOnePane: Boolean = false, ratio: Float = 0.5f): ReaderState {
+    fun jumpTo(
+        offset: Int,
+        leadingAnchor: Int? = null,
+        centerInOnePane: Boolean = false,
+        ratio: Float = 0.5f,
+    ): ReaderState {
         history.clear()
         forwardStack.clear()
         val target = offset.coerceIn(0, totalLength)
+        if (leadingAnchor != null && leadingAnchor in 0 until target) {
+            anchor = leadingAnchor
+            forwardStack.addLast(target)
+            return state
+        }
         if (centerInOnePane && spec.paneMode == PaneMode.ONE && target > 0) {
             val height = maxOf(1, (spec.heightPx * ratio).toInt())
             val cacheKey = (target.toLong() shl 32) or (height.toLong() and 0xFFFFFFFFL)

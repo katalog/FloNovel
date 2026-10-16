@@ -108,4 +108,44 @@ object ChapterJumpNavigator {
         val prevIdx = if (idx >= 0) idx - 1 else -idx - 2
         return if (prevIdx in breakpoints.indices) breakpoints[prevIdx] else null
     }
+
+    /**
+     * Returns the character offset positioned [lines] lines before [targetOffset].
+     *
+     * Counts newline characters backwards from [targetOffset].
+     * If [maxCharsBefore] is exceeded before finding [lines] lines, the search is clamped
+     * to ensure the target chapter heading never gets pushed below the screen by huge paragraphs.
+     */
+    fun rewindLinesBefore(
+        text: String,
+        targetOffset: Int,
+        lines: Int = 6,
+        maxCharsBefore: Int = 250,
+    ): Int {
+        if (targetOffset <= 0 || lines <= 0) return 0
+        val safeTarget = targetOffset.coerceIn(0, text.length)
+        val minOffset = maxOf(0, safeTarget - maxCharsBefore)
+
+        var pos = safeTarget - 1
+
+        // Skip any newlines immediately preceding targetOffset so the delimiter
+        // between the preceding line and targetOffset is not counted as a line of text.
+        while (pos >= minOffset && text[pos] == '\n') {
+            pos--
+        }
+
+        var lineCount = 0
+        while (pos >= minOffset && lineCount < lines) {
+            if (text[pos] == '\n') {
+                lineCount++
+                if (lineCount == lines) {
+                    return pos + 1
+                }
+            }
+            pos--
+        }
+
+        return maxOf(0, pos + 1)
+    }
 }
+
