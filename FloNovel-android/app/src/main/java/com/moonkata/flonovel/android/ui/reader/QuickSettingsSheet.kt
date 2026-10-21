@@ -650,7 +650,7 @@ private fun SmartGestureDiagram() {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(110.dp),
+            .height(144.dp),
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -659,7 +659,7 @@ private fun SmartGestureDiagram() {
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(28.dp)
+                    .height(26.dp)
                     .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -675,33 +675,83 @@ private fun SmartGestureDiagram() {
                     .height(1.dp)
                     .background(MaterialTheme.colorScheme.outlineVariant),
             )
-            Box(
-                Modifier
+            Column(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center,
+                    .weight(1f),
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.CenterStart,
                 ) {
-                    Text(
-                        stringResource(R.string.reader_smart_guide_tap),
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(4.dp))
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(stringResource(R.string.reader_smart_guide_swipe_up), style = MaterialTheme.typography.labelSmall)
-                        Text(stringResource(R.string.reader_smart_guide_swipe_down), style = MaterialTheme.typography.labelSmall)
-                        Text(stringResource(R.string.reader_smart_guide_swipe_left), style = MaterialTheme.typography.labelSmall)
-                        Text(stringResource(R.string.reader_smart_guide_swipe_right), style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            stringResource(R.string.reader_smart_guide_swipe_top),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            stringResource(R.string.reader_smart_guide_swipe_right),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        )
                     }
+                }
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.09f))
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            stringResource(R.string.reader_smart_guide_swipe_mid),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            stringResource(R.string.reader_smart_guide_tap),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        )
+                    }
+                }
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Text(
+                        stringResource(R.string.reader_smart_guide_swipe_bot),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
                 }
             }
         }

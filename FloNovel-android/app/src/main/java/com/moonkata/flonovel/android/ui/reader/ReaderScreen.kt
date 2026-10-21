@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -40,6 +41,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -304,8 +308,13 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                         // and a vertical action.
                         var dragTotalX = 0f
                         var dragTotalY = 0f
+                        var dragStartY = 0f
                         detectDragGestures(
-                            onDragStart = { dragTotalX = 0f; dragTotalY = 0f },
+                            onDragStart = { offset ->
+                                dragTotalX = 0f
+                                dragTotalY = 0f
+                                dragStartY = offset.y
+                            },
                             onDrag = { change, dragAmount ->
                                 dragTotalX += dragAmount.x
                                 dragTotalY += dragAmount.y
@@ -315,13 +324,11 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                                 if (currentSettings.touchZoneMode == TouchZoneMode.SMART_GESTURE) {
                                     if (abs(dragTotalX) >= abs(dragTotalY)) {
                                         when {
-                                            dragTotalX <= -swipeThresholdPx -> viewModel.onSmartSwipeLeft()
+                                            dragTotalX <= -swipeThresholdPx -> {
+                                                val zone = resolveSmartSwipeZone(dragStartY, size.height.toFloat())
+                                                viewModel.onSmartSwipeLeft(zone)
+                                            }
                                             dragTotalX >= swipeThresholdPx -> viewModel.onSmartSwipeRight()
-                                        }
-                                    } else {
-                                        when {
-                                            dragTotalY <= -swipeThresholdPx -> viewModel.onSmartSwipeUp()
-                                            dragTotalY >= swipeThresholdPx -> viewModel.onSmartSwipeDown()
                                         }
                                     }
                                 } else {
@@ -344,8 +351,12 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                         // (ReaderScrollContent's LazyColumn), so only horizontal swipe is
                         // available here — swipe up/down actions don't apply in this mode.
                         var dragTotalX = 0f
+                        var dragStartY = 0f
                         detectHorizontalDragGestures(
-                            onDragStart = { dragTotalX = 0f },
+                            onDragStart = { offset ->
+                                dragTotalX = 0f
+                                dragStartY = offset.y
+                            },
                             onHorizontalDrag = { change, dragAmount ->
                                 dragTotalX += dragAmount
                                 change.consume()
@@ -353,7 +364,10 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                             onDragEnd = {
                                 if (currentSettings.touchZoneMode == TouchZoneMode.SMART_GESTURE) {
                                     when {
-                                        dragTotalX <= -swipeThresholdPx -> viewModel.onSmartSwipeLeft()
+                                        dragTotalX <= -swipeThresholdPx -> {
+                                            val zone = resolveSmartSwipeZone(dragStartY, size.height.toFloat())
+                                            viewModel.onSmartSwipeLeft(zone)
+                                        }
                                         dragTotalX >= swipeThresholdPx -> viewModel.onSmartSwipeRight()
                                     }
                                 } else {
@@ -373,6 +387,9 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                 ReaderPagerContent(viewModel = viewModel, uiState = uiState, readerColors = readerColors)
             } else {
                 ReaderScrollContent(viewModel = viewModel, uiState = uiState, readerColors = readerColors)
+            }
+            if (!uiState.isLoading && settings.touchZoneMode == TouchZoneMode.SMART_GESTURE) {
+                SmartGestureZoneOverlay(color = readerColors.text)
             }
         }
 
@@ -557,5 +574,71 @@ internal fun resolveTapAction(
             val index = row * 3 + col
             gridActions.getOrElse(index) { PageGestureAction.NEXT_PAGE }
         }
+    }
+}
+
+/**
+ * Resolves the vertical 1/3 zone for a swipe-left gesture in Smart Navigation mode:
+ * - TOP (0 .. <height/3): next chapter
+ * - MIDDLE (height/3 .. <2*height/3): next page
+ * - BOTTOM (>= 2*height/3): chapter jump
+ */
+internal fun resolveSmartSwipeZone(y: Float, height: Float): SmartSwipeZone {
+    if (height <= 0f) return SmartSwipeZone.MIDDLE
+    val third = height / 3f
+    return when {
+        y < third -> SmartSwipeZone.TOP
+        y < third * 2f -> SmartSwipeZone.MIDDLE
+        else -> SmartSwipeZone.BOTTOM
+    }
+}
+
+/**
+ * Subtle tick marks on the screen edges (at 1/3 and 2/3 height) indicating the
+ * 3 swipe-left gesture zones without distracting from reading.
+ */
+@Composable
+private fun SmartGestureZoneOverlay(
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier.fillMaxSize()) {
+        val tickLength = 10.dp.toPx()
+        val strokeWidth = 1.5.dp.toPx()
+        val tickColor = color.copy(alpha = 0.20f)
+        val y1 = size.height / 3f
+        val y2 = size.height * 2f / 3f
+
+        // Left edge tick marks
+        drawLine(
+            color = tickColor,
+            start = Offset(0f, y1),
+            end = Offset(tickLength, y1),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = tickColor,
+            start = Offset(0f, y2),
+            end = Offset(tickLength, y2),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+
+        // Right edge tick marks
+        drawLine(
+            color = tickColor,
+            start = Offset(size.width, y1),
+            end = Offset(size.width - tickLength, y1),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = tickColor,
+            start = Offset(size.width, y2),
+            end = Offset(size.width - tickLength, y2),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
     }
 }

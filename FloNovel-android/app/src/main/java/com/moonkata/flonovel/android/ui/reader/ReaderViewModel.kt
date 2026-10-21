@@ -78,6 +78,18 @@ enum class SmartForwardAction {
     }
 }
 
+/**
+ * Vertical zone for swipe-left gestures in Smart Navigation mode:
+ * - TOP (upper 1/3): advances to next chapter
+ * - MIDDLE (middle 1/3): advances to next page
+ * - BOTTOM (lower 1/3): jumps to next chapter breakpoint
+ */
+enum class SmartSwipeZone {
+    TOP,
+    MIDDLE,
+    BOTTOM,
+}
+
 data class ReaderUiState(
     val isLoading: Boolean = true,
     val book: BookEntity? = null,
@@ -552,22 +564,27 @@ class ReaderViewModel(
         }
     }
 
-    /** Smart Navigation (Plan C): swipe up advances to next chapter and tracks it as the forward action. */
-    fun onSmartSwipeUp() {
-        _smartForwardAction.value = SmartForwardAction.NEXT_CHAPTER
-        nextChapter()
-    }
-
-    /** Smart Navigation (Plan C): swipe down jumps to next chapter breakpoint and tracks it. */
-    fun onSmartSwipeDown() {
-        _smartForwardAction.value = SmartForwardAction.NEXT_CHAPTER_JUMP
-        nextChapterJump()
-    }
-
-    /** Smart Navigation (Plan C): swipe left turns page normally and tracks it. */
-    fun onSmartSwipeLeft() {
-        _smartForwardAction.value = SmartForwardAction.NEXT_PAGE
-        nextPage()
+    /**
+     * Smart Navigation: swipe left advances based on the vertical 1/3 zone:
+     * - Top 1/3: Next chapter
+     * - Middle 1/3: Next page
+     * - Bottom 1/3: Chapter breakpoint jump
+     */
+    fun onSmartSwipeLeft(zone: SmartSwipeZone) {
+        when (zone) {
+            SmartSwipeZone.TOP -> {
+                _smartForwardAction.value = SmartForwardAction.NEXT_CHAPTER
+                nextChapter()
+            }
+            SmartSwipeZone.MIDDLE -> {
+                _smartForwardAction.value = SmartForwardAction.NEXT_PAGE
+                nextPage()
+            }
+            SmartSwipeZone.BOTTOM -> {
+                _smartForwardAction.value = SmartForwardAction.NEXT_CHAPTER_JUMP
+                nextChapterJump()
+            }
+        }
     }
 
     /** Smart Navigation (Plan C): swipe right reverses the last forward action without altering it. */

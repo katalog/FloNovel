@@ -126,17 +126,17 @@ private fun SmartGestureGuideBar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = stringResource(R.string.reader_smart_guide_swipe_up),
+                    text = stringResource(R.string.reader_smart_guide_swipe_top),
                     style = MaterialTheme.typography.bodySmall,
                     color = readerColors.text.copy(alpha = 0.9f),
                 )
                 Text(
-                    text = stringResource(R.string.reader_smart_guide_swipe_down),
+                    text = stringResource(R.string.reader_smart_guide_swipe_mid),
                     style = MaterialTheme.typography.bodySmall,
                     color = readerColors.text.copy(alpha = 0.9f),
                 )
                 Text(
-                    text = stringResource(R.string.reader_smart_guide_swipe_left),
+                    text = stringResource(R.string.reader_smart_guide_swipe_bot),
                     style = MaterialTheme.typography.bodySmall,
                     color = readerColors.text.copy(alpha = 0.9f),
                 )

@@ -75,7 +75,7 @@
     <string name="settings_touch_zone_grid">3x3 Custom Grid</string>
     <string name="settings_touch_zone_grid_desc">Tap each grid cell below to configure its action.</string>
     <string name="settings_touch_zone_smart">Smart Navigation</string>
-    <string name="settings_touch_zone_smart_desc">Gestures: Swipe Up (Next chapter) | Down (Chapter jump) | Left (Next page) | Right (Reverse). Tap repeats last forward action. Tap top 20% to open menu.</string>
+    <string name="settings_touch_zone_smart_desc">Gestures: Swipe Left (Top 1/3: Next chapter | Middle: Next page | Bottom: Chapter jump) | Swipe Right: Reverse. Tap repeats last forward action. Tap top 20% to open menu.</string>
     <string name="settings_swipe_left">Swipe left</string>
     <string name="settings_swipe_right">Swipe right</string>
     <string name="settings_swipe_up">Swipe up</string>
@@ -95,9 +95,9 @@
     <string name="settings_gesture_none">No action</string>
     <string name="settings_gesture_smart_repeat">Repeat last forward action</string>
     <string name="reader_smart_guide_title">Smart Navigation</string>
-    <string name="reader_smart_guide_swipe_up">↑ Next Chapter</string>
-    <string name="reader_smart_guide_swipe_down">↓ Chapter Jump</string>
-    <string name="reader_smart_guide_swipe_left">← Next Page</string>
+    <string name="reader_smart_guide_swipe_top">← [Top] Next Chapter</string>
+    <string name="reader_smart_guide_swipe_mid">← [Mid] Next Page</string>
+    <string name="reader_smart_guide_swipe_bot">← [Bot] Chapter Jump</string>
     <string name="reader_smart_guide_swipe_right">→ Prev (Reverse)</string>
     <string name="reader_smart_guide_tap">Tap: Repeat</string>
     <string name="reader_smart_guide_top_tap">Top 20%: Menu</string>
