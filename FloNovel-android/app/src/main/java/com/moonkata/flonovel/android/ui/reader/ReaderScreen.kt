@@ -603,8 +603,8 @@ private fun SmartGestureZoneOverlay(
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier.fillMaxSize()) {
-        val tickLength = 10.dp.toPx()
-        val strokeWidth = 1.5.dp.toPx()
+        val tickLength = 5.dp.toPx()
+        val strokeWidth = 1.dp.toPx()
         val tickColor = color.copy(alpha = 0.20f)
         val y1 = size.height / 3f
         val y2 = size.height * 2f / 3f
