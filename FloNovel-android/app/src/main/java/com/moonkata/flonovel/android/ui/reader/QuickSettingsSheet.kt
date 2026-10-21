@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -303,6 +305,7 @@ private fun ViewSettingsTab(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ControlsSettingsTab(
     viewModel: SettingsController,
@@ -347,7 +350,10 @@ private fun ControlsSettingsTab(
         SectionDivider()
         Text(stringResource(R.string.settings_section_page_turn_options), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.settings_touch_zone_mode), style = MaterialTheme.typography.bodyMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             listOf(
                 TouchZoneMode.STANDARD_3_COLUMN to R.string.settings_touch_zone_standard,
                 TouchZoneMode.GRID_3X3 to R.string.settings_touch_zone_grid,
@@ -723,7 +729,7 @@ private fun Grid3x3Customizer(
                     val currentAction = actions.getOrElse(index) { PageGestureAction.NEXT_PAGE }
                     var expanded by remember { mutableStateOf(false) }
 
-                    Box(modifier = Modifier.weight(if (col == 1) 0.2f else 0.4f)) {
+                    Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { expanded = true },
                             modifier = Modifier
@@ -744,7 +750,7 @@ private fun Grid3x3Customizer(
                             expanded = expanded,
                             onDismissRequest = { expanded = false },
                         ) {
-                            PageGestureAction.entries.forEach { action ->
+                            PageGestureAction.entries.filter { it != PageGestureAction.SMART_REPEAT }.forEach { action ->
                                 DropdownMenuItem(
                                     text = { Text(stringResource(gestureActionLabelRes(action))) },
                                     onClick = {

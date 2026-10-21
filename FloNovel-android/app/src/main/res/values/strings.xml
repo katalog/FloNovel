@@ -70,11 +70,11 @@
     <string name="settings_transition_cover">Cover</string>
     <string name="settings_section_page_turn_options">Touch &amp; Swipe Gestures</string>
     <string name="settings_touch_zone_mode">Touch zone mode</string>
-    <string name="settings_touch_zone_standard">Plan A: Standard 3-Column</string>
+    <string name="settings_touch_zone_standard">Standard 3-Column</string>
     <string name="settings_touch_zone_standard_desc">Left: Previous page | Center: Toggle menu | Right: Next page</string>
-    <string name="settings_touch_zone_grid">Plan B: 3x3 Custom Grid</string>
+    <string name="settings_touch_zone_grid">3x3 Custom Grid</string>
     <string name="settings_touch_zone_grid_desc">Tap each grid cell below to configure its action.</string>
-    <string name="settings_touch_zone_smart">Plan C: Smart Navigation</string>
+    <string name="settings_touch_zone_smart">Smart Navigation</string>
     <string name="settings_touch_zone_smart_desc">Gestures: Swipe Up (Next chapter) | Down (Chapter jump) | Left (Next page) | Right (Reverse). Tap repeats last forward action. Tap top 20% to open menu.</string>
     <string name="settings_swipe_left">Swipe left</string>
     <string name="settings_swipe_right">Swipe right</string>

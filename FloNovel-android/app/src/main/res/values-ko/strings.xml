@@ -70,11 +70,11 @@
     <string name="settings_transition_cover">덮기</string>
     <string name="settings_section_page_turn_options">터치 영역 및 스와이프 제스처</string>
     <string name="settings_touch_zone_mode">터치 영역 모드</string>
-    <string name="settings_touch_zone_standard">방안 A: 표준 3분할</string>
+    <string name="settings_touch_zone_standard">표준 3분할</string>
     <string name="settings_touch_zone_standard_desc">좌측: 이전 페이지 | 중앙: 메뉴 보이기 | 우측: 다음 페이지</string>
-    <string name="settings_touch_zone_grid">방안 B: 3x3 맞춤 그리드</string>
+    <string name="settings_touch_zone_grid">3x3 맞춤 그리드</string>
     <string name="settings_touch_zone_grid_desc">아래 3x3 격자의 각 구역을 탭하여 동작을 지정할 수 있습니다.</string>
-    <string name="settings_touch_zone_smart">방안 C: 스마트 제스처</string>
+    <string name="settings_touch_zone_smart">스마트 제스처</string>
     <string name="settings_touch_zone_smart_desc">제스처: 위로(다음 챕터) | 아래로(챕터점프) | 왼쪽으로(다음 페이지) | 오른쪽으로(반대 동작). 터치는 직전 동작 반복. 상단 20% 터치 시 메뉴.</string>
     <string name="settings_swipe_left">스와이프 왼쪽</string>
     <string name="settings_swipe_right">스와이프 오른쪽</string>
