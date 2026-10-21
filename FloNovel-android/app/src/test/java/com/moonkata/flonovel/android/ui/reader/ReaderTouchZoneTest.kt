@@ -116,5 +116,41 @@ class ReaderTouchZoneTest {
             PageGestureAction.SHOW_MENU,
             resolveTapAction(10f, 10f, 100f, 0f, TouchZoneMode.GRID_3X3, defaultGridActions),
         )
+        assertEquals(
+            PageGestureAction.SHOW_MENU,
+            resolveTapAction(10f, 10f, 0f, 100f, TouchZoneMode.SMART_GESTURE, defaultGridActions),
+        )
+    }
+
+    @Test
+    fun smartGesture_resolvesTop20PercentToMenuAndRestToRepeat() {
+        // height = 900f, so top 20% is y < 180f
+        // Top 20% area should always trigger SHOW_MENU
+        assertEquals(
+            PageGestureAction.SHOW_MENU,
+            resolveTapAction(100f, 0f, width, height, TouchZoneMode.SMART_GESTURE, defaultGridActions),
+        )
+        assertEquals(
+            PageGestureAction.SHOW_MENU,
+            resolveTapAction(500f, 100f, width, height, TouchZoneMode.SMART_GESTURE, defaultGridActions),
+        )
+        assertEquals(
+            PageGestureAction.SHOW_MENU,
+            resolveTapAction(900f, 179.9f, width, height, TouchZoneMode.SMART_GESTURE, defaultGridActions),
+        )
+
+        // Remaining 80% (y >= 180f) should always trigger SMART_REPEAT regardless of x
+        assertEquals(
+            PageGestureAction.SMART_REPEAT,
+            resolveTapAction(100f, 180f, width, height, TouchZoneMode.SMART_GESTURE, defaultGridActions),
+        )
+        assertEquals(
+            PageGestureAction.SMART_REPEAT,
+            resolveTapAction(500f, 450f, width, height, TouchZoneMode.SMART_GESTURE, defaultGridActions),
+        )
+        assertEquals(
+            PageGestureAction.SMART_REPEAT,
+            resolveTapAction(900f, 850f, width, height, TouchZoneMode.SMART_GESTURE, defaultGridActions),
+        )
     }
 }

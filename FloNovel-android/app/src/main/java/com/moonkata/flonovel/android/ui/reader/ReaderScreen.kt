@@ -68,6 +68,7 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
     val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModelFactory(application, bookId))
     val uiState by viewModel.uiState.collectAsState()
     val settings = uiState.settings
+    val smartForwardAction by viewModel.smartForwardAction.collectAsState()
     val activity = context as? MainActivity
 
     var showChrome by remember { mutableStateOf(true) }
@@ -311,15 +312,29 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                                 change.consume()
                             },
                             onDragEnd = {
-                                if (abs(dragTotalX) >= abs(dragTotalY)) {
-                                    when {
-                                        dragTotalX <= -swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeLeftAction)
-                                        dragTotalX >= swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeRightAction)
+                                if (currentSettings.touchZoneMode == TouchZoneMode.SMART_GESTURE) {
+                                    if (abs(dragTotalX) >= abs(dragTotalY)) {
+                                        when {
+                                            dragTotalX <= -swipeThresholdPx -> viewModel.onSmartSwipeLeft()
+                                            dragTotalX >= swipeThresholdPx -> viewModel.onSmartSwipeRight()
+                                        }
+                                    } else {
+                                        when {
+                                            dragTotalY <= -swipeThresholdPx -> viewModel.onSmartSwipeUp()
+                                            dragTotalY >= swipeThresholdPx -> viewModel.onSmartSwipeDown()
+                                        }
                                     }
                                 } else {
-                                    when {
-                                        dragTotalY <= -swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeUpAction)
-                                        dragTotalY >= swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeDownAction)
+                                    if (abs(dragTotalX) >= abs(dragTotalY)) {
+                                        when {
+                                            dragTotalX <= -swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeLeftAction)
+                                            dragTotalX >= swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeRightAction)
+                                        }
+                                    } else {
+                                        when {
+                                            dragTotalY <= -swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeUpAction)
+                                            dragTotalY >= swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeDownAction)
+                                        }
                                     }
                                 }
                             },
@@ -336,9 +351,16 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                                 change.consume()
                             },
                             onDragEnd = {
-                                when {
-                                    dragTotalX <= -swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeLeftAction)
-                                    dragTotalX >= swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeRightAction)
+                                if (currentSettings.touchZoneMode == TouchZoneMode.SMART_GESTURE) {
+                                    when {
+                                        dragTotalX <= -swipeThresholdPx -> viewModel.onSmartSwipeLeft()
+                                        dragTotalX >= swipeThresholdPx -> viewModel.onSmartSwipeRight()
+                                    }
+                                } else {
+                                    when {
+                                        dragTotalX <= -swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeLeftAction)
+                                        dragTotalX >= swipeThresholdPx -> viewModel.performGestureAction(currentSettings.swipeRightAction)
+                                    }
                                 }
                             },
                         )
@@ -368,6 +390,8 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
                     onToc = { showToc = true },
                     onSearch = { showSearch = true },
                     onSettings = { showQuickSettings = true },
+                    touchZoneMode = settings.touchZoneMode,
+                    smartForwardAction = smartForwardAction,
                 )
             }
             // Transient gesture and navigation notice (e.g. chapter jump, previous page, edge warnings)
@@ -496,6 +520,7 @@ fun ReaderScreen(bookId: Long, onBack: () -> Unit) {
  *
  * Plan A fixes Left -> PREVIOUS_PAGE, Center -> SHOW_MENU, Right -> NEXT_PAGE.
  * Plan B divides vertically into 3 equal rows and maps to user-configured gridTouchActions.
+ * Plan C (SMART_GESTURE) maps the top 20% to SHOW_MENU, and the rest to SMART_REPEAT.
  */
 internal fun resolveTapAction(
     x: Float,
@@ -506,18 +531,28 @@ internal fun resolveTapAction(
     gridActions: List<PageGestureAction>,
 ): PageGestureAction {
     if (width <= 0f || height <= 0f) return PageGestureAction.SHOW_MENU
-    val col = when {
-        x < width * 0.4f -> 0
-        x > width * 0.6f -> 2
-        else -> 1
-    }
     return when (mode) {
-        TouchZoneMode.STANDARD_3_COLUMN -> when (col) {
-            0 -> PageGestureAction.PREVIOUS_PAGE
-            2 -> PageGestureAction.NEXT_PAGE
-            else -> PageGestureAction.SHOW_MENU
+        TouchZoneMode.SMART_GESTURE -> {
+            if (y < height * 0.20f) PageGestureAction.SHOW_MENU else PageGestureAction.SMART_REPEAT
+        }
+        TouchZoneMode.STANDARD_3_COLUMN -> {
+            val col = when {
+                x < width * 0.4f -> 0
+                x > width * 0.6f -> 2
+                else -> 1
+            }
+            when (col) {
+                0 -> PageGestureAction.PREVIOUS_PAGE
+                2 -> PageGestureAction.NEXT_PAGE
+                else -> PageGestureAction.SHOW_MENU
+            }
         }
         TouchZoneMode.GRID_3X3 -> {
+            val col = when {
+                x < width * 0.4f -> 0
+                x > width * 0.6f -> 2
+                else -> 1
+            }
             val row = (y / (height / 3f)).toInt().coerceIn(0, 2)
             val index = row * 3 + col
             gridActions.getOrElse(index) { PageGestureAction.NEXT_PAGE }

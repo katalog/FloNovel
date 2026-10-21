@@ -48,12 +48,35 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+
+/**
+ * Tracks the most recent forward action in Smart Navigation mode (Plan C).
+ * Swiping up/down/left updates this, tap repeats it, and swiping right executes its reverse.
+ */
+enum class SmartForwardAction {
+    NEXT_PAGE,
+    NEXT_CHAPTER,
+    NEXT_CHAPTER_JUMP;
+
+    fun reverseAction(): PageGestureAction = when (this) {
+        NEXT_PAGE -> PageGestureAction.PREVIOUS_PAGE
+        NEXT_CHAPTER -> PageGestureAction.PREVIOUS_CHAPTER
+        NEXT_CHAPTER_JUMP -> PageGestureAction.PREVIOUS_CHAPTER_JUMP
+    }
+
+    fun toPageGestureAction(): PageGestureAction = when (this) {
+        NEXT_PAGE -> PageGestureAction.NEXT_PAGE
+        NEXT_CHAPTER -> PageGestureAction.NEXT_CHAPTER
+        NEXT_CHAPTER_JUMP -> PageGestureAction.NEXT_CHAPTER_JUMP
+    }
+}
 
 data class ReaderUiState(
     val isLoading: Boolean = true,
@@ -102,6 +125,9 @@ class ReaderViewModel(
      * the screen shows as a Toast. Not part of [uiState] since these aren't persistent UI state. */
     private val _messages = MutableSharedFlow<Int>(extraBufferCapacity = 4)
     val messages: SharedFlow<Int> = _messages
+
+    private val _smartForwardAction = MutableStateFlow(SmartForwardAction.NEXT_PAGE)
+    val smartForwardAction: StateFlow<SmartForwardAction> = _smartForwardAction.asStateFlow()
 
     /**
      * If the reading position stays put this long (5 minutes) without moving, also leave a checkpoint
@@ -522,6 +548,43 @@ class ReaderViewModel(
             PageGestureAction.NEXT_CHAPTER -> nextChapter()
             PageGestureAction.SHOW_MENU -> _navEvents.tryEmit(ReaderNavEvent.ToggleMenu)
             PageGestureAction.NONE -> {}
+            PageGestureAction.SMART_REPEAT -> onSmartTap()
+        }
+    }
+
+    /** Smart Navigation (Plan C): swipe up advances to next chapter and tracks it as the forward action. */
+    fun onSmartSwipeUp() {
+        _smartForwardAction.value = SmartForwardAction.NEXT_CHAPTER
+        nextChapter()
+    }
+
+    /** Smart Navigation (Plan C): swipe down jumps to next chapter breakpoint and tracks it. */
+    fun onSmartSwipeDown() {
+        _smartForwardAction.value = SmartForwardAction.NEXT_CHAPTER_JUMP
+        nextChapterJump()
+    }
+
+    /** Smart Navigation (Plan C): swipe left turns page normally and tracks it. */
+    fun onSmartSwipeLeft() {
+        _smartForwardAction.value = SmartForwardAction.NEXT_PAGE
+        nextPage()
+    }
+
+    /** Smart Navigation (Plan C): swipe right reverses the last forward action without altering it. */
+    fun onSmartSwipeRight() {
+        when (_smartForwardAction.value) {
+            SmartForwardAction.NEXT_PAGE -> previousPage()
+            SmartForwardAction.NEXT_CHAPTER -> previousChapter()
+            SmartForwardAction.NEXT_CHAPTER_JUMP -> previousChapterJump()
+        }
+    }
+
+    /** Smart Navigation (Plan C): tap repeats the last forward action. */
+    fun onSmartTap() {
+        when (_smartForwardAction.value) {
+            SmartForwardAction.NEXT_PAGE -> nextPage()
+            SmartForwardAction.NEXT_CHAPTER -> nextChapter()
+            SmartForwardAction.NEXT_CHAPTER_JUMP -> nextChapterJump()
         }
     }
 

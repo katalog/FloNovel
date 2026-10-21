@@ -33,7 +33,7 @@ class ReaderSettingsTest {
     }
 
     @Test
-    fun pageGestureAction_containsAll8SupportedActions() {
+    fun pageGestureAction_containsAllSupportedActions() {
         val expectedActions = setOf(
             PageGestureAction.PREVIOUS_PAGE,
             PageGestureAction.NEXT_PAGE,
@@ -43,9 +43,20 @@ class ReaderSettingsTest {
             PageGestureAction.NEXT_CHAPTER,
             PageGestureAction.SHOW_MENU,
             PageGestureAction.NONE,
+            PageGestureAction.SMART_REPEAT,
         )
 
         assertEquals(expectedActions, PageGestureAction.entries.toSet())
+    }
+
+    @Test
+    fun touchZoneMode_containsSmartGesture() {
+        val expectedModes = setOf(
+            TouchZoneMode.STANDARD_3_COLUMN,
+            TouchZoneMode.GRID_3X3,
+            TouchZoneMode.SMART_GESTURE,
+        )
+        assertEquals(expectedModes, TouchZoneMode.entries.toSet())
     }
 
     @Test

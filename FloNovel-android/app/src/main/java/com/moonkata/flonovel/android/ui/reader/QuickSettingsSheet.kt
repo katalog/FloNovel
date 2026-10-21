@@ -351,6 +351,7 @@ private fun ControlsSettingsTab(
             listOf(
                 TouchZoneMode.STANDARD_3_COLUMN to R.string.settings_touch_zone_standard,
                 TouchZoneMode.GRID_3X3 to R.string.settings_touch_zone_grid,
+                TouchZoneMode.SMART_GESTURE to R.string.settings_touch_zone_smart,
             ).forEach { (mode, labelRes) ->
                 FilterChip(
                     selected = settings.touchZoneMode == mode,
@@ -360,35 +361,48 @@ private fun ControlsSettingsTab(
             }
         }
 
-        if (settings.touchZoneMode == TouchZoneMode.STANDARD_3_COLUMN) {
-            Text(
-                stringResource(R.string.settings_touch_zone_standard_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Standard3ColumnDiagram()
-        } else {
-            Text(
-                stringResource(R.string.settings_touch_zone_grid_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Grid3x3Customizer(
-                actions = settings.gridTouchActions,
-                onSelectAction = { index, action -> viewModel.setGridTouchAction(index, action) },
-            )
+        when (settings.touchZoneMode) {
+            TouchZoneMode.STANDARD_3_COLUMN -> {
+                Text(
+                    stringResource(R.string.settings_touch_zone_standard_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Standard3ColumnDiagram()
+            }
+            TouchZoneMode.GRID_3X3 -> {
+                Text(
+                    stringResource(R.string.settings_touch_zone_grid_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Grid3x3Customizer(
+                    actions = settings.gridTouchActions,
+                    onSelectAction = { index, action -> viewModel.setGridTouchAction(index, action) },
+                )
+            }
+            TouchZoneMode.SMART_GESTURE -> {
+                Text(
+                    stringResource(R.string.settings_touch_zone_smart_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SmartGestureDiagram()
+            }
         }
 
-        Spacer(Modifier.height(8.dp))
-        GestureActionRow(stringResource(R.string.settings_swipe_up_detailed), settings.swipeUpAction) { viewModel.setSwipeUpAction(it) }
-        GestureActionRow(stringResource(R.string.settings_swipe_down_detailed), settings.swipeDownAction) { viewModel.setSwipeDownAction(it) }
-        GestureActionRow(stringResource(R.string.settings_swipe_left_detailed), settings.swipeLeftAction) { viewModel.setSwipeLeftAction(it) }
-        GestureActionRow(stringResource(R.string.settings_swipe_right_detailed), settings.swipeRightAction) { viewModel.setSwipeRightAction(it) }
-        Text(
-            stringResource(R.string.settings_swipe_vertical_scroll_mode_note),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (settings.touchZoneMode != TouchZoneMode.SMART_GESTURE) {
+            Spacer(Modifier.height(8.dp))
+            GestureActionRow(stringResource(R.string.settings_swipe_up_detailed), settings.swipeUpAction) { viewModel.setSwipeUpAction(it) }
+            GestureActionRow(stringResource(R.string.settings_swipe_down_detailed), settings.swipeDownAction) { viewModel.setSwipeDownAction(it) }
+            GestureActionRow(stringResource(R.string.settings_swipe_left_detailed), settings.swipeLeftAction) { viewModel.setSwipeLeftAction(it) }
+            GestureActionRow(stringResource(R.string.settings_swipe_right_detailed), settings.swipeRightAction) { viewModel.setSwipeRightAction(it) }
+            Text(
+                stringResource(R.string.settings_swipe_vertical_scroll_mode_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         SectionDivider()
         Text(stringResource(R.string.settings_section_screen), style = MaterialTheme.typography.titleMedium)
@@ -626,6 +640,69 @@ private fun Standard3ColumnDiagram() {
 }
 
 @Composable
+private fun SmartGestureDiagram() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(28.dp)
+                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    stringResource(R.string.reader_smart_guide_top_tap),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant),
+            )
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    .padding(4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        stringResource(R.string.reader_smart_guide_tap),
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(stringResource(R.string.reader_smart_guide_swipe_up), style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.reader_smart_guide_swipe_down), style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.reader_smart_guide_swipe_left), style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.reader_smart_guide_swipe_right), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun Grid3x3Customizer(
     actions: List<PageGestureAction>,
     onSelectAction: (Int, PageGestureAction) -> Unit,
@@ -695,7 +772,7 @@ private fun GestureActionRow(label: String, selected: PageGestureAction, onSelec
                 Icon(Icons.Default.ArrowDropDown, contentDescription = null)
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                PageGestureAction.entries.forEach { action ->
+                PageGestureAction.entries.filter { it != PageGestureAction.SMART_REPEAT }.forEach { action ->
                     DropdownMenuItem(
                         text = { Text(stringResource(gestureActionLabelRes(action))) },
                         onClick = { onSelect(action); expanded = false },
@@ -715,4 +792,5 @@ private fun gestureActionLabelRes(action: PageGestureAction): Int = when (action
     PageGestureAction.NEXT_CHAPTER -> R.string.settings_gesture_next_chapter
     PageGestureAction.SHOW_MENU -> R.string.settings_gesture_show_menu
     PageGestureAction.NONE -> R.string.settings_gesture_none
+    PageGestureAction.SMART_REPEAT -> R.string.settings_gesture_smart_repeat
 }

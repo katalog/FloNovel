@@ -8,7 +8,7 @@ enum class PageTurnMode { HORIZONTAL_PAGE, VERTICAL_SCROLL }
 enum class OrientationLock { AUTO, PORTRAIT, LANDSCAPE }
 enum class AutoAdvanceMode { OFF, TIMER }
 
-enum class TouchZoneMode { STANDARD_3_COLUMN, GRID_3X3 }
+enum class TouchZoneMode { STANDARD_3_COLUMN, GRID_3X3, SMART_GESTURE }
 
 /**
  * What a page-turn gesture (touch zone or swipe direction) does. Each of the six gestures
@@ -23,6 +23,7 @@ enum class PageGestureAction {
     NEXT_CHAPTER,
     SHOW_MENU,
     NONE,
+    SMART_REPEAT,
 }
 
 /** Transition effect when turning a page. NONE: instant switch, SLIDE: both pages slide together, COVER: the new page slides over the top. */

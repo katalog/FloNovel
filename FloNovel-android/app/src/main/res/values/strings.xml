@@ -74,6 +74,8 @@
     <string name="settings_touch_zone_standard_desc">Left: Previous page | Center: Toggle menu | Right: Next page</string>
     <string name="settings_touch_zone_grid">Plan B: 3x3 Custom Grid</string>
     <string name="settings_touch_zone_grid_desc">Tap each grid cell below to configure its action.</string>
+    <string name="settings_touch_zone_smart">Plan C: Smart Navigation</string>
+    <string name="settings_touch_zone_smart_desc">Gestures: Swipe Up (Next chapter) | Down (Chapter jump) | Left (Next page) | Right (Reverse). Tap repeats last forward action. Tap top 20% to open menu.</string>
     <string name="settings_swipe_left">Swipe left</string>
     <string name="settings_swipe_right">Swipe right</string>
     <string name="settings_swipe_up">Swipe up</string>
@@ -91,6 +93,18 @@
     <string name="settings_gesture_next_chapter">Next chapter</string>
     <string name="settings_gesture_show_menu">Toggle menu</string>
     <string name="settings_gesture_none">No action</string>
+    <string name="settings_gesture_smart_repeat">Repeat last forward action</string>
+    <string name="reader_smart_guide_title">Smart Navigation</string>
+    <string name="reader_smart_guide_swipe_up">↑ Next Chapter</string>
+    <string name="reader_smart_guide_swipe_down">↓ Chapter Jump</string>
+    <string name="reader_smart_guide_swipe_left">← Next Page</string>
+    <string name="reader_smart_guide_swipe_right">→ Prev (Reverse)</string>
+    <string name="reader_smart_guide_tap">Tap: Repeat</string>
+    <string name="reader_smart_guide_top_tap">Top 20%: Menu</string>
+    <string name="reader_smart_guide_current_action">Tap: %s</string>
+    <string name="reader_smart_action_next_page">Next Page</string>
+    <string name="reader_smart_action_next_chapter">Next Chapter</string>
+    <string name="reader_smart_action_next_chapter_jump">Chapter Jump</string>
     <string name="reader_notice_next_chapter_jump">Next chapter breakpoint</string>
     <string name="reader_notice_previous_chapter_jump">Previous chapter breakpoint</string>
     <string name="reader_notice_next_chapter">Next chapter</string>
