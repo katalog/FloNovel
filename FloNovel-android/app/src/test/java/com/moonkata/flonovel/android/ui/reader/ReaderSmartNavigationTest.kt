@@ -78,23 +78,23 @@ class ReaderSmartNavigationTest {
     }
 
     @Test
-    fun resolveSmartSwipeZone_dividesHeightIntoThreeEqualVerticalZones() {
-        val height = 900f
+    fun resolveSmartSwipeZone_usesWiderMiddleZone() {
+        val height = 1000f
 
-        // Top 1/3 (y < 300f): Next Chapter
+        // Top 27.5% (y < 275f): Next Chapter
         assertEquals(SmartSwipeZone.TOP, resolveSmartSwipeZone(0f, height))
         assertEquals(SmartSwipeZone.TOP, resolveSmartSwipeZone(150f, height))
-        assertEquals(SmartSwipeZone.TOP, resolveSmartSwipeZone(299.9f, height))
+        assertEquals(SmartSwipeZone.TOP, resolveSmartSwipeZone(274.9f, height))
 
-        // Middle 1/3 (300f <= y < 600f): Next Page
-        assertEquals(SmartSwipeZone.MIDDLE, resolveSmartSwipeZone(300f, height))
+        // Middle 45% (275f <= y < 725f): Next Page
+        assertEquals(SmartSwipeZone.MIDDLE, resolveSmartSwipeZone(275f, height))
         assertEquals(SmartSwipeZone.MIDDLE, resolveSmartSwipeZone(450f, height))
-        assertEquals(SmartSwipeZone.MIDDLE, resolveSmartSwipeZone(599.9f, height))
+        assertEquals(SmartSwipeZone.MIDDLE, resolveSmartSwipeZone(724.9f, height))
 
-        // Bottom 1/3 (y >= 600f): Chapter Jump
-        assertEquals(SmartSwipeZone.BOTTOM, resolveSmartSwipeZone(600f, height))
+        // Bottom 27.5% (y >= 725f): Chapter Jump
+        assertEquals(SmartSwipeZone.BOTTOM, resolveSmartSwipeZone(725f, height))
         assertEquals(SmartSwipeZone.BOTTOM, resolveSmartSwipeZone(750f, height))
-        assertEquals(SmartSwipeZone.BOTTOM, resolveSmartSwipeZone(899.9f, height))
+        assertEquals(SmartSwipeZone.BOTTOM, resolveSmartSwipeZone(999.9f, height))
     }
 
     @Test

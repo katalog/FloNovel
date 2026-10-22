@@ -80,9 +80,9 @@ enum class SmartForwardAction {
 
 /**
  * Vertical zone for swipe-left gestures in Smart Navigation mode:
- * - TOP (upper 1/3): advances to next chapter
- * - MIDDLE (middle 1/3): advances to next page
- * - BOTTOM (lower 1/3): jumps to next chapter breakpoint
+ * - TOP (upper 27.5%): advances to next chapter
+ * - MIDDLE (middle 45%): advances to next page
+ * - BOTTOM (lower 27.5%): jumps to next chapter breakpoint
  */
 enum class SmartSwipeZone {
     TOP,
@@ -565,10 +565,10 @@ class ReaderViewModel(
     }
 
     /**
-     * Smart Navigation: swipe left advances based on the vertical 1/3 zone:
-     * - Top 1/3: Next chapter
-     * - Middle 1/3: Next page
-     * - Bottom 1/3: Chapter breakpoint jump
+     * Smart Navigation: swipe left advances based on the vertical gesture zone:
+     * - Top 27.5%: Next chapter
+     * - Middle 45%: Next page
+     * - Bottom 27.5%: Chapter breakpoint jump
      */
     fun onSmartSwipeLeft(zone: SmartSwipeZone) {
         when (zone) {

@@ -577,24 +577,26 @@ internal fun resolveTapAction(
     }
 }
 
+private const val SMART_SWIPE_TOP_END = 0.275f
+private const val SMART_SWIPE_MIDDLE_END = 0.725f
+
 /**
- * Resolves the vertical 1/3 zone for a swipe-left gesture in Smart Navigation mode:
- * - TOP (0 .. <height/3): next chapter
- * - MIDDLE (height/3 .. <2*height/3): next page
- * - BOTTOM (>= 2*height/3): chapter jump
+ * Resolves the vertical 27.5% / 45% / 27.5% zone for a swipe-left gesture in Smart Navigation mode:
+ * - TOP (0 .. <27.5% height): next chapter
+ * - MIDDLE (27.5% .. <72.5% height): next page
+ * - BOTTOM (>= 72.5% height): chapter jump
  */
 internal fun resolveSmartSwipeZone(y: Float, height: Float): SmartSwipeZone {
     if (height <= 0f) return SmartSwipeZone.MIDDLE
-    val third = height / 3f
     return when {
-        y < third -> SmartSwipeZone.TOP
-        y < third * 2f -> SmartSwipeZone.MIDDLE
+        y < height * SMART_SWIPE_TOP_END -> SmartSwipeZone.TOP
+        y < height * SMART_SWIPE_MIDDLE_END -> SmartSwipeZone.MIDDLE
         else -> SmartSwipeZone.BOTTOM
     }
 }
 
 /**
- * Subtle tick marks on the screen edges (at 1/3 and 2/3 height) indicating the
+ * Subtle tick marks on the screen edges (at 27.5% and 72.5% height) indicating the
  * 3 swipe-left gesture zones without distracting from reading.
  */
 @Composable
@@ -606,8 +608,8 @@ private fun SmartGestureZoneOverlay(
         val tickLength = 5.dp.toPx()
         val strokeWidth = 1.dp.toPx()
         val tickColor = color.copy(alpha = 0.20f)
-        val y1 = size.height / 3f
-        val y2 = size.height * 2f / 3f
+        val y1 = size.height * SMART_SWIPE_TOP_END
+        val y2 = size.height * SMART_SWIPE_MIDDLE_END
 
         // Left edge tick marks
         drawLine(
