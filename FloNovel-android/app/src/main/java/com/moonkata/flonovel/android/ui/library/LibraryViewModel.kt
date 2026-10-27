@@ -65,6 +65,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -152,6 +156,9 @@ class LibraryViewModel(
     // asking about an unchanged set each time would turn the guard into nagging.
     private var skippedMassDeletion: List<String> = emptyList()
     private val secretStore = SecretStore(dropboxClient)
+    private val syncMutex = Mutex()
+    private var pendingSilentSync = false
+    private var deletionSyncJob: Job? = null
 
     private val _dropboxState = MutableStateFlow(DropboxUiState())
     val dropboxState: StateFlow<DropboxUiState> = _dropboxState
@@ -493,10 +500,42 @@ class LibraryViewModel(
         }
         if (_dropboxState.value.isSyncing) return
 
+        deletionSyncJob?.cancel()
+        pendingSilentSync = false
+
+        _dropboxState.update { it.copy(isSyncing = true, errorMessage = null, result = null, progress = null) }
         viewModelScope.launch {
-            _dropboxState.value = DropboxUiState(isSyncing = true)
-            // Picks up a secret the Desktop regenerated since last time. It is one small download,
-            // and the Supabase check behind it is skipped unless the value actually changed.
+            executeSync(rootUri, allowMassDeletion = allowMassDeletion, silent = false)
+        }
+    }
+
+    /**
+     * Debounces consecutive file/folder deletions and synchronizes them to Dropbox silently in the background
+     * without displaying the floating sync badge or blocking further user interactions.
+     */
+    fun scheduleDeletionSync(debounceMs: Long = 1000L) {
+        deletionSyncJob?.cancel()
+        deletionSyncJob = viewModelScope.launch {
+            delay(debounceMs)
+            triggerSilentSync()
+        }
+    }
+
+    private fun triggerSilentSync() {
+        val rootUri = _browseState.value.rootUri ?: return
+        if (!getApplication<Application>().hasPersistedWritePermission(rootUri)) return
+
+        viewModelScope.launch {
+            if (syncMutex.isLocked) {
+                pendingSilentSync = true
+                return@launch
+            }
+            executeSync(rootUri, allowMassDeletion = false, silent = true)
+        }
+    }
+
+    private suspend fun executeSync(rootUri: Uri, allowMassDeletion: Boolean, silent: Boolean) {
+        syncMutex.withLock {
             try {
                 fetchAndVerifySharedSecret()
                 val settings = settingsRepository.settingsFlow.first()
@@ -522,36 +561,66 @@ class LibraryViewModel(
                     },
                 )
                 val result = withContext(Dispatchers.IO) {
-                    sync.sync(allowMassDeletion) { progress -> _dropboxState.update { it.copy(progress = progress) } }
-                }
-                val withheld = result?.withheldDeletions.orEmpty()
-                _dropboxState.update {
-                    if (result != null) {
-                        it.copy(
-                            isSyncing = false,
-                            progress = null,
-                            result = result,
-                            pendingMassDeletion = withheld.takeIf { list -> list.isNotEmpty() && list != skippedMassDeletion },
-                        )
-                    } else {
-                        it.copy(
-                            isSyncing = false,
-                            progress = null,
-                            errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed),
-                        )
+                    sync.sync(allowMassDeletion) { progress ->
+                        if (!silent) {
+                            _dropboxState.update { it.copy(progress = progress) }
+                        }
                     }
                 }
-                // The sync may have added or removed files inside the folder on screen, and the folder
-                // listing is only read when it is entered — without this, new books stay invisible until
-                // the user navigates away and back (the same fix the PC sync needed).
-                if (result != null && result.changed > 0) loadCurrent()
+                val withheld = result?.withheldDeletions.orEmpty()
+                val hasMassDeletion = withheld.isNotEmpty() && withheld != skippedMassDeletion
+
+                if (!silent) {
+                    _dropboxState.update {
+                        if (result != null) {
+                            it.copy(
+                                isSyncing = false,
+                                progress = null,
+                                result = result,
+                                pendingMassDeletion = if (hasMassDeletion) withheld else null,
+                            )
+                        } else {
+                            it.copy(
+                                isSyncing = false,
+                                progress = null,
+                                errorMessage = app.getString(R.string.dropbox_sync_failed),
+                            )
+                        }
+                    }
+                } else {
+                    // For silent sync, do not show floating badge/status result.
+                    // The mass deletion safety guard (AGENTS.md §1) must still prompt the user.
+                    if (hasMassDeletion) {
+                        _dropboxState.update { it.copy(pendingMassDeletion = withheld) }
+                    }
+                }
+
+                // If remote sync brought in or removed files locally, refresh the displayed list.
+                // In silent mode, local deletion was already optimistically reflected in the list,
+                // so avoid an unnecessary full directory scan unless remote actually modified local files.
+                if (result != null) {
+                    val localChanged = result.downloaded + result.deletedLocal + result.conflicts + result.moved
+                    if (localChanged > 0 || (!silent && result.changed > 0)) {
+                        loadCurrent()
+                    }
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _dropboxState.update { it.copy(errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed)) }
+                if (!silent) {
+                    _dropboxState.update { it.copy(errorMessage = getApplication<Application>().getString(R.string.dropbox_sync_failed)) }
+                }
             } finally {
-                _dropboxState.update { it.copy(isSyncing = false, progress = null) }
+                if (!silent) {
+                    _dropboxState.update { it.copy(isSyncing = false, progress = null) }
+                }
             }
+        }
+
+        // If another deletion occurred while this sync was in progress, execute a follow-up silent sync
+        if (pendingSilentSync) {
+            pendingSilentSync = false
+            triggerSilentSync()
         }
     }
 
@@ -582,7 +651,7 @@ class LibraryViewModel(
      */
     fun onLibraryResumed() {
         val now = System.currentTimeMillis()
-        if (!shouldAutoSync(lastAutoSyncAt, now) || _dropboxState.value.isSyncing) return
+        if (!shouldAutoSync(lastAutoSyncAt, now) || _dropboxState.value.isSyncing || syncMutex.isLocked) return
         val rootUri = _browseState.value.rootUri ?: return
         if (!getApplication<Application>().hasPersistedWritePermission(rootUri)) return
         viewModelScope.launch {
@@ -640,9 +709,15 @@ class LibraryViewModel(
             is FolderEntry.TextFile -> (entry.source as? BookSource.PlainTxt)?.uri ?: return
         }
         val app = getApplication<Application>()
-        val deletionRoot = uiState.value.rootUri
-        val deletionFolder = (uiState.value.path.drop(1).map { it.name } + entry.name).joinToString("/")
+        val deletionRoot = _browseState.value.rootUri
+        val deletionFolder = (_browseState.value.path.drop(1).map { it.name } + entry.name).joinToString("/")
         val deletionAccount = uiState.value.settings.dropboxAccountEmail
+
+        // Optimistically remove from list immediately so the UI does not feel laggy
+        _browseState.update { state ->
+            state.copy(entries = state.entries.filterNot { it == entry })
+        }
+
         viewModelScope.launch {
             val deleted = withContext(Dispatchers.IO) {
                 var journal: com.moonkata.flonovel.android.data.sync.FolderDeletionSync? = null
@@ -668,10 +743,10 @@ class LibraryViewModel(
             if (deleted.isFailure) {
                 val reason = deleted.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }.orEmpty()
                 Toast.makeText(app, app.getString(R.string.library_delete_failed_details, entry.name, reason), Toast.LENGTH_LONG).show()
+                loadCurrent()
                 return@launch
             }
-            loadCurrent()
-            if (dropboxClient.isLinked()) syncFromDropbox()
+            if (dropboxClient.isLinked()) scheduleDeletionSync()
         }
     }
 
