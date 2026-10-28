@@ -223,6 +223,31 @@ api.http.json = function(_, url, _, data)
 end
 listed = api:list()
 check("pagination combines complete listing", listed and listed["nested/book.txt"] and page_count == 2)
+api.http.json = function(method, url, headers, data)
+    check("conditional delete uses POST endpoint", method == "POST" and url == "https://api.dropboxapi.com/2/files/delete_v2")
+    check("conditional delete uses app-relative books path", data.path == "/books/nested/book.txt")
+    check("conditional delete includes exact parent_rev", data.parent_rev == "current-rev")
+    check("conditional delete retains Dropbox Bearer", headers.Authorization == "Bearer synthetic-token")
+    return { metadata = {} }
+end
+check("conditional delete API succeeds", api:delete("nested/book.txt", { rev = "current-rev" }) ~= nil)
+local identity = "synthetic-account"
+local authenticated = Dropbox.new({ app_key = "synthetic-app", refresh_token = "token with +", account_id = identity }, {
+    request = function(method, url, headers, body)
+        check("refresh uses token endpoint", method == "POST" and url == "https://api.dropboxapi.com/oauth2/token")
+        check("public refresh has no app secret or Basic authorization", not body:find("client_secret", 1, true) and not headers.Authorization)
+        check("refresh token is form-encoded", body:find("token%%20with%%20%%2b") ~= nil)
+        return { body = json.encode{ access_token = "synthetic-token" } }
+    end,
+    json = function(_, url, headers)
+        check("refresh verifies actual account", url == "https://api.dropboxapi.com/2/users/get_current_account" and headers.Authorization == "Bearer synthetic-token")
+        return { account_id = identity }
+    end,
+})
+check("public client refresh succeeds", authenticated:refresh())
+identity = "different-account"
+local refreshed, refresh_reason = authenticated:refresh()
+check("unexpected account invalidates access token", not refreshed and refresh_reason == "account_changed" and authenticated.token == nil)
 local output = assert(io.open(home .. "/sync-results.json", "wb"))
 output:write(json.encode{ total = total, passed = total - failed, failed = failed, skipped = 0,
     scope = "Product sync engine with synthetic remote and real local filesystem; no live account" })
