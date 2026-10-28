@@ -1,0 +1,27 @@
+{
+  "paths": [
+    "Folder/BOOK.TXT",
+    "Folder\\Nested\\BOOK.TXT",
+    "판타지/소설.TXT",
+    "소설/제１장.TXT",
+    "カナ/ｶﾅ.TXT",
+    "Folder/İ.TXT",
+    "Folder/ΟΣ.TXT",
+    "Folder/ΟΣΑ.TXT",
+    "Folder/ẞß.TXT",
+    "Folder/É.TXT",
+    "Folder/😀.TXT",
+    "Folder/A + B & C # ?.TXT",
+    "Folder/ΟΣ",
+    "Folder/ΟΣ .TXT"
+  ],
+  "files": [
+    "hash_0.bin",
+    "hash_1.bin",
+    "hash_4194303.bin",
+    "hash_4194304.bin",
+    "hash_4194305.bin",
+    "hash_8388625.bin"
+  ],
+  "verifier": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+}

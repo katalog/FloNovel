@@ -1,0 +1,89 @@
+{
+  "manifest_sha256": "c87beea72c879e9453722d45448025f079ada1813595a12f8c21dd833d7dc710",
+  "paths": [
+    {
+      "input": "Folder/BOOK.TXT",
+      "key": "folder/book.txt"
+    },
+    {
+      "input": "Folder\\Nested\\BOOK.TXT",
+      "key": "folder/nested/book.txt"
+    },
+    {
+      "input": "판타지/소설.TXT",
+      "key": "판타지/소설.txt"
+    },
+    {
+      "input": "소설/제１장.TXT",
+      "key": "소설/제１장.txt"
+    },
+    {
+      "input": "カナ/ｶﾅ.TXT",
+      "key": "カナ/ｶﾅ.txt"
+    },
+    {
+      "input": "Folder/İ.TXT",
+      "key": "folder/i̇.txt"
+    },
+    {
+      "input": "Folder/ΟΣ.TXT",
+      "key": "folder/οσ.txt"
+    },
+    {
+      "input": "Folder/ΟΣΑ.TXT",
+      "key": "folder/οσα.txt"
+    },
+    {
+      "input": "Folder/ẞß.TXT",
+      "key": "folder/ßß.txt"
+    },
+    {
+      "input": "Folder/É.TXT",
+      "key": "folder/é.txt"
+    },
+    {
+      "input": "Folder/😀.TXT",
+      "key": "folder/😀.txt"
+    },
+    {
+      "input": "Folder/A + B & C # ?.TXT",
+      "key": "folder/a + b & c # ?.txt"
+    },
+    {
+      "input": "Folder/ΟΣ",
+      "key": "folder/ος"
+    },
+    {
+      "input": "Folder/ΟΣ .TXT",
+      "key": "folder/ος .txt"
+    }
+  ],
+  "java_version": "21.0.12.1",
+  "files": [
+    {
+      "name": "hash_0.bin",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "hash_1.bin",
+      "hash": "67050eeb5f95abf57449d92629dcf69f80c26247e207ad006a862d1e4e6498ff"
+    },
+    {
+      "name": "hash_4194303.bin",
+      "hash": "432976769a936df7fa47e216226250c68b3f611c7968113f032e4a004b142aa1"
+    },
+    {
+      "name": "hash_4194304.bin",
+      "hash": "fa61965210c4e003dc22f916c83942de13e8aad8384507d4699f438c8cf4fcb1"
+    },
+    {
+      "name": "hash_4194305.bin",
+      "hash": "a413a3addcc07e097f79f8cb4d9f48bec1a6d761853ba43f27922f8def4ef04f"
+    },
+    {
+      "name": "hash_8388625.bin",
+      "hash": "0ce524b3c00165e87a46f7c1b5567fa67b7d54b495d0dac073e5d9a075befe67"
+    }
+  ],
+  "pkce": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
+}

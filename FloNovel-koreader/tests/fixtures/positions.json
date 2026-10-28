@@ -1,0 +1,2530 @@
+{
+  "runtime": "v2026.07.1",
+  "fixtures": [
+    {
+      "name": "unicode_lf",
+      "sha256": "a13f6922114aa09eeb8c163fffbef429400dce265e07321e1c714f177a720210",
+      "text": "## Chapter\nAlpha 가😀나\n\nBeta\tGamma\n",
+      "utf16_units": 34,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "A"
+        },
+        {
+          "offset": 12,
+          "character": "l"
+        },
+        {
+          "offset": 13,
+          "character": "p"
+        },
+        {
+          "offset": 14,
+          "character": "h"
+        },
+        {
+          "offset": 15,
+          "character": "a"
+        },
+        {
+          "offset": 16,
+          "character": " "
+        },
+        {
+          "offset": 17,
+          "character": "가"
+        },
+        {
+          "offset": 18,
+          "character": "😀"
+        },
+        {
+          "offset": 20,
+          "character": "나"
+        },
+        {
+          "offset": 23,
+          "character": "B"
+        },
+        {
+          "offset": 24,
+          "character": "e"
+        },
+        {
+          "offset": 25,
+          "character": "t"
+        },
+        {
+          "offset": 26,
+          "character": "a"
+        },
+        {
+          "offset": 27,
+          "character": "\t"
+        },
+        {
+          "offset": 28,
+          "character": "G"
+        },
+        {
+          "offset": 29,
+          "character": "a"
+        },
+        {
+          "offset": 30,
+          "character": "m"
+        },
+        {
+          "offset": 31,
+          "character": "m"
+        },
+        {
+          "offset": 32,
+          "character": "a"
+        }
+      ],
+      "surrogate_interiors": [
+        19
+      ],
+      "hidden_offsets": [
+        10,
+        21,
+        22,
+        33
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "unicode_crlf",
+      "sha256": "b49f602c178dec26c0597df9df31aaa4316b84ebeac8afeaed2e4525d8baa3a5",
+      "text": "## Chapter\r\nAlpha 가😀나\r\n\r\nBeta\tGamma\r\n",
+      "utf16_units": 38,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 12,
+          "character": "A"
+        },
+        {
+          "offset": 13,
+          "character": "l"
+        },
+        {
+          "offset": 14,
+          "character": "p"
+        },
+        {
+          "offset": 15,
+          "character": "h"
+        },
+        {
+          "offset": 16,
+          "character": "a"
+        },
+        {
+          "offset": 17,
+          "character": " "
+        },
+        {
+          "offset": 18,
+          "character": "가"
+        },
+        {
+          "offset": 19,
+          "character": "😀"
+        },
+        {
+          "offset": 21,
+          "character": "나"
+        },
+        {
+          "offset": 26,
+          "character": "B"
+        },
+        {
+          "offset": 27,
+          "character": "e"
+        },
+        {
+          "offset": 28,
+          "character": "t"
+        },
+        {
+          "offset": 29,
+          "character": "a"
+        },
+        {
+          "offset": 30,
+          "character": "\t"
+        },
+        {
+          "offset": 31,
+          "character": "G"
+        },
+        {
+          "offset": 32,
+          "character": "a"
+        },
+        {
+          "offset": 33,
+          "character": "m"
+        },
+        {
+          "offset": 34,
+          "character": "m"
+        },
+        {
+          "offset": 35,
+          "character": "a"
+        }
+      ],
+      "surrogate_interiors": [
+        20
+      ],
+      "hidden_offsets": [
+        10,
+        11,
+        22,
+        23,
+        24,
+        25,
+        36,
+        37
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "unicode_bom",
+      "sha256": "2b2a1ac41368ceb828a6b06c4c68cb68d69db3d30a1004a8928c9e0224823ed8",
+      "text": "## Chapter\nAlpha 가😀나\n",
+      "utf16_units": 22,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "A"
+        },
+        {
+          "offset": 12,
+          "character": "l"
+        },
+        {
+          "offset": 13,
+          "character": "p"
+        },
+        {
+          "offset": 14,
+          "character": "h"
+        },
+        {
+          "offset": 15,
+          "character": "a"
+        },
+        {
+          "offset": 16,
+          "character": " "
+        },
+        {
+          "offset": 17,
+          "character": "가"
+        },
+        {
+          "offset": 18,
+          "character": "😀"
+        },
+        {
+          "offset": 20,
+          "character": "나"
+        }
+      ],
+      "surrogate_interiors": [
+        19
+      ],
+      "hidden_offsets": [
+        10,
+        21
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "whitespace",
+      "sha256": "6686849a3b8679ac5bce1bce8a24af0e0e40cf2d9774846813cfa3385a2f079d",
+      "text": "  Heading  \n \t \n\tIndented　text  \n\nTail",
+      "utf16_units": 38,
+      "samples": [
+        {
+          "offset": 0,
+          "character": " "
+        },
+        {
+          "offset": 1,
+          "character": " "
+        },
+        {
+          "offset": 2,
+          "character": "H"
+        },
+        {
+          "offset": 3,
+          "character": "e"
+        },
+        {
+          "offset": 4,
+          "character": "a"
+        },
+        {
+          "offset": 5,
+          "character": "d"
+        },
+        {
+          "offset": 6,
+          "character": "i"
+        },
+        {
+          "offset": 7,
+          "character": "n"
+        },
+        {
+          "offset": 8,
+          "character": "g"
+        },
+        {
+          "offset": 9,
+          "character": " "
+        },
+        {
+          "offset": 10,
+          "character": " "
+        },
+        {
+          "offset": 16,
+          "character": "\t"
+        },
+        {
+          "offset": 17,
+          "character": "I"
+        },
+        {
+          "offset": 18,
+          "character": "n"
+        },
+        {
+          "offset": 19,
+          "character": "d"
+        },
+        {
+          "offset": 20,
+          "character": "e"
+        },
+        {
+          "offset": 21,
+          "character": "n"
+        },
+        {
+          "offset": 22,
+          "character": "t"
+        },
+        {
+          "offset": 23,
+          "character": "e"
+        },
+        {
+          "offset": 24,
+          "character": "d"
+        },
+        {
+          "offset": 25,
+          "character": "　"
+        },
+        {
+          "offset": 26,
+          "character": "t"
+        },
+        {
+          "offset": 27,
+          "character": "e"
+        },
+        {
+          "offset": 28,
+          "character": "x"
+        },
+        {
+          "offset": 29,
+          "character": "t"
+        },
+        {
+          "offset": 30,
+          "character": " "
+        },
+        {
+          "offset": 31,
+          "character": " "
+        },
+        {
+          "offset": 34,
+          "character": "T"
+        },
+        {
+          "offset": 35,
+          "character": "a"
+        },
+        {
+          "offset": 36,
+          "character": "i"
+        },
+        {
+          "offset": 37,
+          "character": "l"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        32,
+        33
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "repeated",
+      "sha256": "3b27a66afa56e1f62ad51cf304b0ec9bd80052ea42d21747435eaaa29b30349b",
+      "text": "## Chapter\nRepeated line\nRepeated line\n\nRepeated line\n",
+      "utf16_units": 54,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "R"
+        },
+        {
+          "offset": 12,
+          "character": "e"
+        },
+        {
+          "offset": 13,
+          "character": "p"
+        },
+        {
+          "offset": 14,
+          "character": "e"
+        },
+        {
+          "offset": 15,
+          "character": "a"
+        },
+        {
+          "offset": 16,
+          "character": "t"
+        },
+        {
+          "offset": 17,
+          "character": "e"
+        },
+        {
+          "offset": 18,
+          "character": "d"
+        },
+        {
+          "offset": 19,
+          "character": " "
+        },
+        {
+          "offset": 20,
+          "character": "l"
+        },
+        {
+          "offset": 21,
+          "character": "i"
+        },
+        {
+          "offset": 22,
+          "character": "n"
+        },
+        {
+          "offset": 23,
+          "character": "e"
+        },
+        {
+          "offset": 25,
+          "character": "R"
+        },
+        {
+          "offset": 26,
+          "character": "e"
+        },
+        {
+          "offset": 27,
+          "character": "p"
+        },
+        {
+          "offset": 28,
+          "character": "e"
+        },
+        {
+          "offset": 29,
+          "character": "a"
+        },
+        {
+          "offset": 30,
+          "character": "t"
+        },
+        {
+          "offset": 31,
+          "character": "e"
+        },
+        {
+          "offset": 32,
+          "character": "d"
+        },
+        {
+          "offset": 33,
+          "character": " "
+        },
+        {
+          "offset": 34,
+          "character": "l"
+        },
+        {
+          "offset": 35,
+          "character": "i"
+        },
+        {
+          "offset": 36,
+          "character": "n"
+        },
+        {
+          "offset": 37,
+          "character": "e"
+        },
+        {
+          "offset": 40,
+          "character": "R"
+        },
+        {
+          "offset": 41,
+          "character": "e"
+        },
+        {
+          "offset": 42,
+          "character": "p"
+        },
+        {
+          "offset": 43,
+          "character": "e"
+        },
+        {
+          "offset": 44,
+          "character": "a"
+        },
+        {
+          "offset": 45,
+          "character": "t"
+        },
+        {
+          "offset": 46,
+          "character": "e"
+        },
+        {
+          "offset": 47,
+          "character": "d"
+        },
+        {
+          "offset": 48,
+          "character": " "
+        },
+        {
+          "offset": 49,
+          "character": "l"
+        },
+        {
+          "offset": 50,
+          "character": "i"
+        },
+        {
+          "offset": 51,
+          "character": "n"
+        },
+        {
+          "offset": 52,
+          "character": "e"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        10,
+        24,
+        38,
+        39,
+        53
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "separators",
+      "sha256": "26aec325134e0c778c0766e15eb00c03dc72591de2cf59b88a29dda93f4573bc",
+      "text": "## Chapter\nBefore\n-----\n***\n===\nAfter\n",
+      "utf16_units": 38,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "B"
+        },
+        {
+          "offset": 12,
+          "character": "e"
+        },
+        {
+          "offset": 13,
+          "character": "f"
+        },
+        {
+          "offset": 14,
+          "character": "o"
+        },
+        {
+          "offset": 15,
+          "character": "r"
+        },
+        {
+          "offset": 16,
+          "character": "e"
+        },
+        {
+          "offset": 18,
+          "character": "-"
+        },
+        {
+          "offset": 19,
+          "character": "-"
+        },
+        {
+          "offset": 20,
+          "character": "-"
+        },
+        {
+          "offset": 21,
+          "character": "-"
+        },
+        {
+          "offset": 22,
+          "character": "-"
+        },
+        {
+          "offset": 24,
+          "character": "*"
+        },
+        {
+          "offset": 25,
+          "character": "*"
+        },
+        {
+          "offset": 26,
+          "character": "*"
+        },
+        {
+          "offset": 28,
+          "character": "="
+        },
+        {
+          "offset": 29,
+          "character": "="
+        },
+        {
+          "offset": 30,
+          "character": "="
+        },
+        {
+          "offset": 32,
+          "character": "A"
+        },
+        {
+          "offset": 33,
+          "character": "f"
+        },
+        {
+          "offset": 34,
+          "character": "t"
+        },
+        {
+          "offset": 35,
+          "character": "e"
+        },
+        {
+          "offset": 36,
+          "character": "r"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        10,
+        17,
+        23,
+        27,
+        31,
+        37
+      ],
+      "expected_supported": false,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": 32
+    },
+    {
+      "name": "long_line",
+      "sha256": "1620b22ec33f93ff36c6425ce57a512c863cd23f7068e33e02bd7789616911d7",
+      "text": "## Chapter\nabcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd abcd End\nTail\n",
+      "utf16_units": 2270,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "a"
+        },
+        {
+          "offset": 108,
+          "character": "c"
+        },
+        {
+          "offset": 205,
+          "character": " "
+        },
+        {
+          "offset": 302,
+          "character": "b"
+        },
+        {
+          "offset": 399,
+          "character": "d"
+        },
+        {
+          "offset": 496,
+          "character": "a"
+        },
+        {
+          "offset": 593,
+          "character": "c"
+        },
+        {
+          "offset": 690,
+          "character": " "
+        },
+        {
+          "offset": 787,
+          "character": "b"
+        },
+        {
+          "offset": 884,
+          "character": "d"
+        },
+        {
+          "offset": 981,
+          "character": "a"
+        },
+        {
+          "offset": 1078,
+          "character": "c"
+        },
+        {
+          "offset": 1175,
+          "character": " "
+        },
+        {
+          "offset": 1272,
+          "character": "b"
+        },
+        {
+          "offset": 1369,
+          "character": "d"
+        },
+        {
+          "offset": 1466,
+          "character": "a"
+        },
+        {
+          "offset": 1563,
+          "character": "c"
+        },
+        {
+          "offset": 1660,
+          "character": " "
+        },
+        {
+          "offset": 1757,
+          "character": "b"
+        },
+        {
+          "offset": 1854,
+          "character": "d"
+        },
+        {
+          "offset": 1951,
+          "character": "a"
+        },
+        {
+          "offset": 2048,
+          "character": "c"
+        },
+        {
+          "offset": 2145,
+          "character": " "
+        },
+        {
+          "offset": 2242,
+          "character": "b"
+        },
+        {
+          "offset": 2263,
+          "character": "d"
+        },
+        {
+          "offset": 2265,
+          "character": "T"
+        },
+        {
+          "offset": 2266,
+          "character": "a"
+        },
+        {
+          "offset": 2267,
+          "character": "i"
+        },
+        {
+          "offset": 2268,
+          "character": "l"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        10,
+        2264,
+        2269
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "long_cjk",
+      "sha256": "c73e7e8d68826237536562ea16160ae93da6c75259fdc7210091c15b4e5aabb1",
+      "text": "## Chapter\n가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가😀End\nTail\n",
+      "utf16_units": 2222,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "가"
+        },
+        {
+          "offset": 108,
+          "character": "가"
+        },
+        {
+          "offset": 205,
+          "character": "가"
+        },
+        {
+          "offset": 302,
+          "character": "가"
+        },
+        {
+          "offset": 399,
+          "character": "가"
+        },
+        {
+          "offset": 496,
+          "character": "가"
+        },
+        {
+          "offset": 593,
+          "character": "가"
+        },
+        {
+          "offset": 690,
+          "character": "가"
+        },
+        {
+          "offset": 787,
+          "character": "가"
+        },
+        {
+          "offset": 884,
+          "character": "가"
+        },
+        {
+          "offset": 981,
+          "character": "가"
+        },
+        {
+          "offset": 1078,
+          "character": "가"
+        },
+        {
+          "offset": 1175,
+          "character": "가"
+        },
+        {
+          "offset": 1272,
+          "character": "가"
+        },
+        {
+          "offset": 1369,
+          "character": "가"
+        },
+        {
+          "offset": 1466,
+          "character": "가"
+        },
+        {
+          "offset": 1563,
+          "character": "가"
+        },
+        {
+          "offset": 1660,
+          "character": "가"
+        },
+        {
+          "offset": 1757,
+          "character": "가"
+        },
+        {
+          "offset": 1854,
+          "character": "가"
+        },
+        {
+          "offset": 1951,
+          "character": "가"
+        },
+        {
+          "offset": 2048,
+          "character": "가"
+        },
+        {
+          "offset": 2145,
+          "character": "가"
+        },
+        {
+          "offset": 2211,
+          "character": "😀"
+        },
+        {
+          "offset": 2215,
+          "character": "d"
+        },
+        {
+          "offset": 2217,
+          "character": "T"
+        },
+        {
+          "offset": 2218,
+          "character": "a"
+        },
+        {
+          "offset": 2219,
+          "character": "i"
+        },
+        {
+          "offset": 2220,
+          "character": "l"
+        }
+      ],
+      "surrogate_interiors": [
+        2212
+      ],
+      "hidden_offsets": [
+        10,
+        2216,
+        2221
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "entities",
+      "sha256": "49596871607f5e1e700c4ce59c246c4fe6208eab94a8d7d7c954e6833f52a651",
+      "text": "## Chapter\n<tag> &amp; <>& text\nTail",
+      "utf16_units": 36,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "<"
+        },
+        {
+          "offset": 12,
+          "character": "t"
+        },
+        {
+          "offset": 13,
+          "character": "a"
+        },
+        {
+          "offset": 14,
+          "character": "g"
+        },
+        {
+          "offset": 15,
+          "character": ">"
+        },
+        {
+          "offset": 16,
+          "character": " "
+        },
+        {
+          "offset": 17,
+          "character": "&"
+        },
+        {
+          "offset": 18,
+          "character": "a"
+        },
+        {
+          "offset": 19,
+          "character": "m"
+        },
+        {
+          "offset": 20,
+          "character": "p"
+        },
+        {
+          "offset": 21,
+          "character": ";"
+        },
+        {
+          "offset": 22,
+          "character": " "
+        },
+        {
+          "offset": 23,
+          "character": "<"
+        },
+        {
+          "offset": 24,
+          "character": ">"
+        },
+        {
+          "offset": 25,
+          "character": "&"
+        },
+        {
+          "offset": 26,
+          "character": " "
+        },
+        {
+          "offset": 27,
+          "character": "t"
+        },
+        {
+          "offset": 28,
+          "character": "e"
+        },
+        {
+          "offset": 29,
+          "character": "x"
+        },
+        {
+          "offset": 30,
+          "character": "t"
+        },
+        {
+          "offset": 32,
+          "character": "T"
+        },
+        {
+          "offset": 33,
+          "character": "a"
+        },
+        {
+          "offset": 34,
+          "character": "i"
+        },
+        {
+          "offset": 35,
+          "character": "l"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        10,
+        31
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "no_heading",
+      "sha256": "1ca232319a95a769b8abe33100c2b7a5ea1a64995e1c8183896baf727956da54",
+      "text": "Alpha 가😀나\nBeta\n",
+      "utf16_units": 16,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "A"
+        },
+        {
+          "offset": 1,
+          "character": "l"
+        },
+        {
+          "offset": 2,
+          "character": "p"
+        },
+        {
+          "offset": 3,
+          "character": "h"
+        },
+        {
+          "offset": 4,
+          "character": "a"
+        },
+        {
+          "offset": 5,
+          "character": " "
+        },
+        {
+          "offset": 6,
+          "character": "가"
+        },
+        {
+          "offset": 7,
+          "character": "😀"
+        },
+        {
+          "offset": 9,
+          "character": "나"
+        },
+        {
+          "offset": 11,
+          "character": "B"
+        },
+        {
+          "offset": 12,
+          "character": "e"
+        },
+        {
+          "offset": 13,
+          "character": "t"
+        },
+        {
+          "offset": 14,
+          "character": "a"
+        }
+      ],
+      "surrogate_interiors": [
+        8
+      ],
+      "hidden_offsets": [
+        10,
+        15
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "empty",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": "",
+      "utf16_units": 0,
+      "samples": [],
+      "surrogate_interiors": [],
+      "hidden_offsets": [],
+      "expected_supported": false,
+      "expected_rejection": "no_visible_text",
+      "after_offset": null
+    },
+    {
+      "name": "blank",
+      "sha256": "7032a3cab522a777befa889a5137dd0de2fd9d41b78084dc65e708771b4cfbf6",
+      "text": "\n \t\n\n",
+      "utf16_units": 5,
+      "samples": [],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_supported": false,
+      "expected_rejection": "no_visible_text",
+      "after_offset": null
+    },
+    {
+      "name": "controls",
+      "sha256": "8e0f2fdf693cf588312a22c70bf456fc65dd6e4a70ac005097cd0273d5f0418b",
+      "text": "## Chapter\nBefore\u0014Title\u0015\nAfter\n",
+      "utf16_units": 31,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "B"
+        },
+        {
+          "offset": 12,
+          "character": "e"
+        },
+        {
+          "offset": 13,
+          "character": "f"
+        },
+        {
+          "offset": 14,
+          "character": "o"
+        },
+        {
+          "offset": 15,
+          "character": "r"
+        },
+        {
+          "offset": 16,
+          "character": "e"
+        },
+        {
+          "offset": 17,
+          "character": "\u0014"
+        },
+        {
+          "offset": 18,
+          "character": "T"
+        },
+        {
+          "offset": 19,
+          "character": "i"
+        },
+        {
+          "offset": 20,
+          "character": "t"
+        },
+        {
+          "offset": 21,
+          "character": "l"
+        },
+        {
+          "offset": 22,
+          "character": "e"
+        },
+        {
+          "offset": 23,
+          "character": "\u0015"
+        },
+        {
+          "offset": 25,
+          "character": "A"
+        },
+        {
+          "offset": 26,
+          "character": "f"
+        },
+        {
+          "offset": 27,
+          "character": "t"
+        },
+        {
+          "offset": 28,
+          "character": "e"
+        },
+        {
+          "offset": 29,
+          "character": "r"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        10,
+        24,
+        30
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": 25
+    },
+    {
+      "name": "libru_header",
+      "sha256": "f5d16b922e0addeb68c5c4ed17201c9cfbf68429f90c3b9a2812fb5795c7a3a9",
+      "text": "## Chapter\n\u0014Hidden title\u0015\nAfter\n",
+      "utf16_units": 32,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "\u0014"
+        },
+        {
+          "offset": 12,
+          "character": "H"
+        },
+        {
+          "offset": 13,
+          "character": "i"
+        },
+        {
+          "offset": 14,
+          "character": "d"
+        },
+        {
+          "offset": 15,
+          "character": "d"
+        },
+        {
+          "offset": 16,
+          "character": "e"
+        },
+        {
+          "offset": 17,
+          "character": "n"
+        },
+        {
+          "offset": 18,
+          "character": " "
+        },
+        {
+          "offset": 19,
+          "character": "t"
+        },
+        {
+          "offset": 20,
+          "character": "i"
+        },
+        {
+          "offset": 21,
+          "character": "t"
+        },
+        {
+          "offset": 22,
+          "character": "l"
+        },
+        {
+          "offset": 23,
+          "character": "e"
+        },
+        {
+          "offset": 24,
+          "character": "\u0015"
+        },
+        {
+          "offset": 26,
+          "character": "A"
+        },
+        {
+          "offset": 27,
+          "character": "f"
+        },
+        {
+          "offset": 28,
+          "character": "t"
+        },
+        {
+          "offset": 29,
+          "character": "e"
+        },
+        {
+          "offset": 30,
+          "character": "r"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        10,
+        25,
+        31
+      ],
+      "expected_supported": false,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": 26
+    },
+    {
+      "name": "native_separator",
+      "sha256": "d7ea41edb8ace3c266441a411a92b9102b391faa62ab88a9d66efdfb75a1722e",
+      "text": "## Chapter\n* * *\nAfter\n",
+      "utf16_units": 23,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "*"
+        },
+        {
+          "offset": 12,
+          "character": " "
+        },
+        {
+          "offset": 13,
+          "character": "*"
+        },
+        {
+          "offset": 14,
+          "character": " "
+        },
+        {
+          "offset": 15,
+          "character": "*"
+        },
+        {
+          "offset": 17,
+          "character": "A"
+        },
+        {
+          "offset": 18,
+          "character": "f"
+        },
+        {
+          "offset": 19,
+          "character": "t"
+        },
+        {
+          "offset": 20,
+          "character": "e"
+        },
+        {
+          "offset": 21,
+          "character": "r"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        10,
+        16,
+        22
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": 17
+    },
+    {
+      "name": "combining",
+      "sha256": "577323c1b68036b7b40e38f5ca7e8fbe6ebf2436b0530e699cdcddf9cf178530",
+      "text": "## Chapter\nCombining é 가 가\nTail\n",
+      "utf16_units": 34,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "C"
+        },
+        {
+          "offset": 12,
+          "character": "o"
+        },
+        {
+          "offset": 13,
+          "character": "m"
+        },
+        {
+          "offset": 14,
+          "character": "b"
+        },
+        {
+          "offset": 15,
+          "character": "i"
+        },
+        {
+          "offset": 16,
+          "character": "n"
+        },
+        {
+          "offset": 17,
+          "character": "i"
+        },
+        {
+          "offset": 18,
+          "character": "n"
+        },
+        {
+          "offset": 19,
+          "character": "g"
+        },
+        {
+          "offset": 20,
+          "character": " "
+        },
+        {
+          "offset": 21,
+          "character": "e"
+        },
+        {
+          "offset": 22,
+          "character": "́"
+        },
+        {
+          "offset": 23,
+          "character": " "
+        },
+        {
+          "offset": 24,
+          "character": "ᄀ"
+        },
+        {
+          "offset": 25,
+          "character": "ᅡ"
+        },
+        {
+          "offset": 26,
+          "character": " "
+        },
+        {
+          "offset": 27,
+          "character": "가"
+        },
+        {
+          "offset": 29,
+          "character": "T"
+        },
+        {
+          "offset": 30,
+          "character": "a"
+        },
+        {
+          "offset": 31,
+          "character": "i"
+        },
+        {
+          "offset": 32,
+          "character": "l"
+        }
+      ],
+      "surrogate_interiors": [],
+      "hidden_offsets": [
+        10,
+        28,
+        33
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "eof_plain",
+      "sha256": "c9ae2ca05afe178a6ce49c2c429a9f84a534605517a801f3513e7fe8242c3962",
+      "text": "## Chapter\nLast 가😀나",
+      "utf16_units": 20,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "L"
+        },
+        {
+          "offset": 12,
+          "character": "a"
+        },
+        {
+          "offset": 13,
+          "character": "s"
+        },
+        {
+          "offset": 14,
+          "character": "t"
+        },
+        {
+          "offset": 15,
+          "character": " "
+        },
+        {
+          "offset": 16,
+          "character": "가"
+        },
+        {
+          "offset": 17,
+          "character": "😀"
+        },
+        {
+          "offset": 19,
+          "character": "나"
+        }
+      ],
+      "surrogate_interiors": [
+        18
+      ],
+      "hidden_offsets": [
+        10
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "eof_lf",
+      "sha256": "f9e901d3122eaef38e57319a8ab42df9a5f0b2319fab220e62067b9f938f30e4",
+      "text": "## Chapter\nLast 가😀나\n",
+      "utf16_units": 21,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 11,
+          "character": "L"
+        },
+        {
+          "offset": 12,
+          "character": "a"
+        },
+        {
+          "offset": 13,
+          "character": "s"
+        },
+        {
+          "offset": 14,
+          "character": "t"
+        },
+        {
+          "offset": 15,
+          "character": " "
+        },
+        {
+          "offset": 16,
+          "character": "가"
+        },
+        {
+          "offset": 17,
+          "character": "😀"
+        },
+        {
+          "offset": 19,
+          "character": "나"
+        }
+      ],
+      "surrogate_interiors": [
+        18
+      ],
+      "hidden_offsets": [
+        10,
+        20
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "eof_crlf",
+      "sha256": "e8e5dba37bdbd99450737047539bb7c52640c4c4181deed1e4280a4bdf109eeb",
+      "text": "## Chapter\r\nLast 가😀나\r\n",
+      "utf16_units": 23,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 12,
+          "character": "L"
+        },
+        {
+          "offset": 13,
+          "character": "a"
+        },
+        {
+          "offset": 14,
+          "character": "s"
+        },
+        {
+          "offset": 15,
+          "character": "t"
+        },
+        {
+          "offset": 16,
+          "character": " "
+        },
+        {
+          "offset": 17,
+          "character": "가"
+        },
+        {
+          "offset": 18,
+          "character": "😀"
+        },
+        {
+          "offset": 20,
+          "character": "나"
+        }
+      ],
+      "surrogate_interiors": [
+        19
+      ],
+      "hidden_offsets": [
+        10,
+        11,
+        21,
+        22
+      ],
+      "expected_supported": true,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": null
+    },
+    {
+      "name": "separators_unicode",
+      "sha256": "1c89d331b34458265983e3e8bff3e846c3e7995e7350f83ba23a9a9f51815d88",
+      "text": "## Chapter 😀\nBefore 가\n-----\nAfter\n",
+      "utf16_units": 35,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 10,
+          "character": " "
+        },
+        {
+          "offset": 11,
+          "character": "😀"
+        },
+        {
+          "offset": 14,
+          "character": "B"
+        },
+        {
+          "offset": 15,
+          "character": "e"
+        },
+        {
+          "offset": 16,
+          "character": "f"
+        },
+        {
+          "offset": 17,
+          "character": "o"
+        },
+        {
+          "offset": 18,
+          "character": "r"
+        },
+        {
+          "offset": 19,
+          "character": "e"
+        },
+        {
+          "offset": 20,
+          "character": " "
+        },
+        {
+          "offset": 21,
+          "character": "가"
+        },
+        {
+          "offset": 23,
+          "character": "-"
+        },
+        {
+          "offset": 24,
+          "character": "-"
+        },
+        {
+          "offset": 25,
+          "character": "-"
+        },
+        {
+          "offset": 26,
+          "character": "-"
+        },
+        {
+          "offset": 27,
+          "character": "-"
+        },
+        {
+          "offset": 29,
+          "character": "A"
+        },
+        {
+          "offset": 30,
+          "character": "f"
+        },
+        {
+          "offset": 31,
+          "character": "t"
+        },
+        {
+          "offset": 32,
+          "character": "e"
+        },
+        {
+          "offset": 33,
+          "character": "r"
+        }
+      ],
+      "surrogate_interiors": [
+        12
+      ],
+      "hidden_offsets": [
+        13,
+        22,
+        28,
+        34
+      ],
+      "expected_supported": false,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": 29
+    },
+    {
+      "name": "libru_header_unicode",
+      "sha256": "d70e8fd6c702f44e348ca7c0850ceec8fbafdd9a154c02ac358483e66f98a8af",
+      "text": "## Chapter 😀\n \t\u0014숨긴 제목😀\u0015\nAfter\n",
+      "utf16_units": 32,
+      "samples": [
+        {
+          "offset": 0,
+          "character": "#"
+        },
+        {
+          "offset": 1,
+          "character": "#"
+        },
+        {
+          "offset": 2,
+          "character": " "
+        },
+        {
+          "offset": 3,
+          "character": "C"
+        },
+        {
+          "offset": 4,
+          "character": "h"
+        },
+        {
+          "offset": 5,
+          "character": "a"
+        },
+        {
+          "offset": 6,
+          "character": "p"
+        },
+        {
+          "offset": 7,
+          "character": "t"
+        },
+        {
+          "offset": 8,
+          "character": "e"
+        },
+        {
+          "offset": 9,
+          "character": "r"
+        },
+        {
+          "offset": 10,
+          "character": " "
+        },
+        {
+          "offset": 11,
+          "character": "😀"
+        },
+        {
+          "offset": 14,
+          "character": " "
+        },
+        {
+          "offset": 15,
+          "character": "\t"
+        },
+        {
+          "offset": 16,
+          "character": "\u0014"
+        },
+        {
+          "offset": 17,
+          "character": "숨"
+        },
+        {
+          "offset": 18,
+          "character": "긴"
+        },
+        {
+          "offset": 19,
+          "character": " "
+        },
+        {
+          "offset": 20,
+          "character": "제"
+        },
+        {
+          "offset": 21,
+          "character": "목"
+        },
+        {
+          "offset": 22,
+          "character": "😀"
+        },
+        {
+          "offset": 24,
+          "character": "\u0015"
+        },
+        {
+          "offset": 26,
+          "character": "A"
+        },
+        {
+          "offset": 27,
+          "character": "f"
+        },
+        {
+          "offset": 28,
+          "character": "t"
+        },
+        {
+          "offset": 29,
+          "character": "e"
+        },
+        {
+          "offset": 30,
+          "character": "r"
+        }
+      ],
+      "surrogate_interiors": [
+        12,
+        23
+      ],
+      "hidden_offsets": [
+        13,
+        25,
+        31
+      ],
+      "expected_supported": false,
+      "expected_rejection": "parser_changed_text",
+      "after_offset": 26
+    }
+  ],
+  "reader_text": "## Chapter 1\nParagraph 001: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 002: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 003: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 004: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 005: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 006: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 007: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 008: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 009: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 010: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 011: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 012: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 013: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 014: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 015: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 016: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 017: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 018: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 019: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 020: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 021: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 022: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 023: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 024: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 025: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 026: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 027: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 028: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 029: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 030: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 031: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 032: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 033: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 034: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 035: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 036: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 037: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 038: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 039: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 040: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 041: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 042: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 043: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 044: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 045: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 046: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 047: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 048: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 049: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 050: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 051: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 052: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 053: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 054: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 055: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 056: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 057: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 058: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 059: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 060: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 061: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 062: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 063: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 064: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 065: The reader position must follow the source text. The reader position must follow the source text. \n## Chapter 2\nParagraph 001: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 002: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 003: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 004: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 005: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 006: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 007: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 008: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 009: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 010: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 011: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 012: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 013: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 014: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 015: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 016: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 017: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 018: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 019: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 020: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 021: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 022: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 023: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 024: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 025: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 026: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 027: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 028: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 029: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 030: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 031: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 032: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 033: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 034: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 035: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 036: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 037: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 038: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 039: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 040: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 041: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 042: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 043: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 044: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 045: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 046: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 047: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 048: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 049: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 050: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 051: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 052: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 053: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 054: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 055: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 056: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 057: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 058: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 059: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 060: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 061: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 062: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 063: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 064: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 065: The reader position must follow the source text. The reader position must follow the source text. \n## Chapter 3\nParagraph 001: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 002: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 003: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 004: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 005: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 006: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 007: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 008: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 009: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 010: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 011: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 012: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 013: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 014: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 015: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 016: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 017: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 018: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 019: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 020: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 021: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 022: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 023: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 024: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 025: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 026: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 027: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 028: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 029: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 030: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 031: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 032: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 033: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 034: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 035: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 036: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 037: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 038: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 039: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 040: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 041: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 042: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 043: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 044: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 045: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 046: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 047: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 048: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 049: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 050: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 051: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 052: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 053: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 054: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 055: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 056: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 057: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 058: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 059: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 060: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 061: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 062: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 063: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 064: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 065: The reader position must follow the source text. The reader position must follow the source text. \n## Chapter 4\nParagraph 001: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 002: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 003: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 004: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 005: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 006: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 007: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 008: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 009: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 010: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 011: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 012: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 013: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 014: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 015: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 016: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 017: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 018: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 019: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 020: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 021: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 022: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 023: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 024: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 025: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 026: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 027: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 028: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 029: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 030: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 031: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 032: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 033: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 034: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 035: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 036: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 037: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 038: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 039: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 040: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 041: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 042: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 043: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 044: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 045: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 046: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 047: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 048: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 049: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 050: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 051: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 052: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 053: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 054: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 055: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 056: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 057: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 058: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 059: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 060: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 061: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 062: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 063: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 064: The reader position must follow the source text. The reader position must follow the source text. \nParagraph 065: The reader position must follow the source text. The reader position must follow the source text. ",
+  "tiny_text": "## Tiny\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\n## Last\nTail",
+  "jump_cases": {
+    "twenty_lines": "## First\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\n## Last\nTail",
+    "twenty_one_lines": "## First\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\n## Last\nTail",
+    "no_chapters": "No chapter markers\nPlain text",
+    "surrogate_division": "## Emoji\n😀😀😀😀😀😀"
+  }
+}
