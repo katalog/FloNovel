@@ -73,7 +73,8 @@ python tools/connect.py --app-key PUBLIC_APP_KEY --library-root /mnt/us/document
 
 ## 현재 제한과 제거
 
-- 위치 매핑/다운로드 상한은 파일당 16 MiB입니다. 그보다 큰 책도 KOReader 자체로 읽을 수 있습니다.
+- 다운로드는 디스크에 스트리밍하며 16 MiB 제한을 적용하지 않습니다. 저장 공간/파일시스템 오류와 해시 검증은 유지합니다.
+- 챕터 이동·위치 공유에 쓰는 위치 매핑 상한은 현재 파일당 16 MiB입니다. 그보다 큰 책도 다운로드하고 KOReader 자체로 읽을 수 있으며, 매핑 메모리 지원 확대는 별도 개선 대상입니다.
 - UTF-8 TXT와 검증된 preformatted DOM만 지원합니다. 다른 인코딩·엔진 변환은 추측하지 않습니다.
 - 경로는 JVM 21의 비문맥 lowercase 표와 NFC를 사용합니다. 문맥에 따라 바뀌는 대문자 Greek Sigma와
   해당 JDK에서 정의되지 않은 Unicode 경로는 보류합니다. NFKC casefold를 쓰지 않습니다.

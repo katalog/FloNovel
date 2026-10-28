@@ -81,20 +81,24 @@ end
 function Dropbox:download(relative, metadata, temporary)
     local file = io.open(temporary, "wb")
     if not file then return nil, "download_temp_unwritable" end
-    local count = 0
+    local sink_failure
     local response, reason = self.http.request("POST", "https://content.dropboxapi.com/2/files/download",
         { Authorization = "Bearer " .. self.token, ["Dropbox-API-Arg"] = json.encode{ path = "rev:" .. metadata.rev } },
         nil, function(chunk)
             if chunk then
-                count = count + #chunk
-                if count > 16 * 1024 * 1024 then return nil, "book_too_large" end
-                if not file:write(chunk) then return nil, "download_write_failed" end
+                -- Downloads stream to disk. The reader's mapping-memory limit
+                -- must not exclude otherwise valid Dropbox files.
+                if not file:write(chunk) then
+                    sink_failure = "download_write_failed"
+                    return nil, sink_failure
+                end
             end
             return 1
         end)
     local flushed = file:flush()
     local synced = flushed and require("ffi/util").fsyncOpenedFile(file, true)
     local closed = file:close()
+    if sink_failure then return nil, sink_failure end
     if not response then return nil, reason end
     if not synced or not closed then return nil, "download_flush_failed" end
     local hash = Hash.file(temporary)

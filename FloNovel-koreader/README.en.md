@@ -74,7 +74,8 @@ from the menu. Reset preserves books and clears previously unsent position reque
 
 ## Current limits and removal
 
-- Mapping and downloads are capped at 16 MiB per file. Larger books remain readable through KOReader itself.
+- Downloads stream to disk without a 16 MiB cap. Storage/filesystem errors and content-hash verification still apply.
+- Mapping for chapter navigation and position sharing is currently capped at 16 MiB per file. Larger books can be downloaded and read with KOReader itself; expanding mapping-memory support is a separate improvement.
 - Only UTF-8 TXT and the verified preformatted DOM grammar are supported. Other encodings or engine transformations are not guessed.
 - Keys use NFC and a JDK 21 non-contextual lowercase table. Context-sensitive capital Greek Sigma and
   Unicode characters undefined in that JDK are deferred. NFKC casefold is never used.

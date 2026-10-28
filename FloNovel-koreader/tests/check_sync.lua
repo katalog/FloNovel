@@ -248,6 +248,32 @@ check("public client refresh succeeds", authenticated:refresh())
 identity = "different-account"
 local refreshed, refresh_reason = authenticated:refresh()
 check("unexpected account invalidates access token", not refreshed and refresh_reason == "account_changed" and authenticated.token == nil)
+-- Match the reported size without using a personal book or allocating its body.
+local large_size = 16985696
+local large_chunk = ("0123456789abcdef"):rep(4096)
+local full_digest = sha.hex_to_bin(sha.sha256(large_chunk:rep(64)))
+local tail = large_chunk:rep(4):sub(1, large_size - 16 * 1024 * 1024)
+local large_hash = sha.sha256(full_digest:rep(4) .. sha.hex_to_bin(sha.sha256(tail)))
+client, root, path = fixture()
+client.remote = { ["large.txt"] = { rev = "large-rev", hash = large_hash } }
+client.download = nil
+client.token = "synthetic-token"
+client.http = { request = function(_, _, _, _, sink)
+    local remaining = large_size
+    while remaining > 0 do
+        local chunk = remaining >= #large_chunk and large_chunk or large_chunk:sub(1, remaining)
+        local ok = sink(chunk)
+        if not ok then return nil, "network_or_tls_failed" end
+        remaining = remaining - #chunk
+    end
+    sink(nil)
+    return { status = 200 }
+end }
+report = client:sync(path, root)
+check("download exceeding 16 MiB completes instead of deferring", report and report.downloaded == 1 and #report.deferred == 0)
+local actual_hash, actual_size = Hash.file(root .. "/large.txt")
+check("large streamed download preserves every byte", actual_hash == large_hash and actual_size == large_size)
+check("large download commits SYNCED base only after verification", State.read(path).files["large.txt"].status == "SYNCED")
 local output = assert(io.open(home .. "/sync-results.json", "wb"))
 output:write(json.encode{ total = total, passed = total - failed, failed = failed, skipped = 0,
     scope = "Product sync engine with synthetic remote and real local filesystem; no live account" })
