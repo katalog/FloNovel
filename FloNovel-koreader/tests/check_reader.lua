@@ -127,6 +127,23 @@ for _, case in ipairs(native_cases) do
         check(case.name .. "/blank source anchor/" .. index, actual == expected)
         local restored = actual and native_map:to_exact_boundary(actual)
         check(case.name .. "/blank exact roundtrip/" .. index, restored and native_map:from_xpointer(restored) == expected)
+        local Fast = require("flonovel.fast_position")
+        local rolling = { getLastProgress = function() return xp end }
+        local captured, reason = Fast.capture{ document = ui.document, rolling = rolling, typeset = ui.typeset }
+        local located, failure
+        if captured then located, failure = Fast.locate(ui.document.file, captured) end
+        check(case.name .. "/fast blank source anchor/" .. index .. ":" .. tostring(reason or failure),
+            located and located.offset == expected)
+        if index == 1 and captured then
+            captured.empty = captured.empty + 1
+            check(case.name .. "/fast blank rejects wrong native child", Fast.locate(ui.document.file, captured) == nil)
+            captured.empty = captured.empty - 1
+            local document = captured.document
+            captured.document = setmetatable({ getTextFromXPointer = function() return "wrong source" end }, { __index = document })
+            if case.name ~= "native-leading-trailing" then
+                check(case.name .. "/fast blank rejects mismatched adjacent text", Fast.locate(ui.document.file, captured) == nil)
+            end
+        end
     end
     for _, size in ipairs{ 18, 32 } do
         ui:handleEvent(Event:new("SetFontSize", size))

@@ -92,8 +92,9 @@ This option is off by default; fast_position_enabled in the connection configura
 An installation can explicitly enable the option.
 
 The source-body hash is bound asynchronously. Native capture, search, enqueue and transmission run
-in the worker, preserving body/account/library guards and exact offsets. Repeated paragraphs, blank
-anchors, long lines, transformed layouts and invalid Unicode are held. Chapter actions still use the
+in the worker, preserving body/account/library guards and exact offsets. Blank anchors resolve to exact
+source-line starts after checking native parent boundaries and preceding paragraph text. Unverified EOF,
+repeated paragraphs, long lines, transformed layouts and invalid Unicode are held. Chapter actions still use the
 original mapper on demand, and close checkpoints retain a synchronous path. This does not guarantee
 a one-second bound or support for every book. Disable the option to restore the original position path.
 

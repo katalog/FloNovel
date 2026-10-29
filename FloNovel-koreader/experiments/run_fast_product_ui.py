@@ -21,6 +21,10 @@ for i,line in enumerate(lines):
   if i in selected:cases.append(dict(xp=f'/FictionBook/body/pre[{pre}]/text().5',offset=units+len(raw[:5].encode('utf-16-le'))//2))
  units+=len(line.encode('utf-16-le'))//2
 (h/'expected.json').write_text(json.dumps(cases))
+blank_source='\r\n \t\r\n## Blank start\r\n' + ''.join(
+    f'Unique paragraph {i:04d}: 한글😀 reading position.\r\n\r\n' for i in range(100))
+(library/'blank-start.txt').write_bytes(('\ufeff'+blank_source).encode('utf-8'))
+(h/'blank-target.json').write_text(json.dumps(len(blank_source[:blank_source.index('Unique paragraph 0030')].encode('utf-16-le'))//2))
 transport=bootstrap.read_text().rsplit('dofile("reader.lua")',1)[0]
 prefix=(p/'tests/check_reader.lua').read_text().split('local ui = open("book.txt")',1)[0]
 prefix=prefix.replace('local path = project .. "/flonovel.koplugin"','local path = home .. "/plugins/flonovel.koplugin"')
@@ -74,6 +78,40 @@ manager:run()
 local maximum=0;for _,n in ipairs(heartbeats)do maximum=math.max(maximum,n)end
 check("event loop heartbeat continues during background conversion",maximum<1)
 check("no-index loop kept full map absent",plugin.map==nil)
+ui:onClose()
+ui=open("library/blank-start.txt")
+plugin=assert(ui.flonovel);plugin.options.position=true
+plugin.ensureMap=function() error("blank recovery must not build a full map") end
+plugin.runNetwork=function(_,kind,task,callback)
+ local value,reason=task();assert(value,reason);callback(value,plugin.generation)
+end
+config=assert(plugin:loadConnection())
+local blank_xp="/FictionBook/body/empty-line[1].0"
+ui:handleEvent(Event:new("GotoXPointer",blank_xp))
+local blank_capture=assert(probe.capture(ui))
+local blank_value=assert(probe.locate(ui.document.file,blank_capture))
+check("leading blank has exact zero UTF16 offset",blank_value.offset==0)
+local client=require("flonovel.reading_position").new(config)
+local target_file=assert(io.open(home.."/blank-target.json","rb"))
+local remote_target=json.decode(target_file:read("*a"));target_file:close()
+assert(client:push("blank-start.txt",remote_target))
+local confirmation
+local show=manager.show
+manager.show=function(self,widget,...)
+ if widget.ok_callback then confirmation=widget;return end
+ return show(self,widget,...)
+end
+plugin:fetchPosition()
+manager.show=show
+check("remote position prompts from a leading blank",confirmation~=nil)
+if confirmation then confirmation.ok_callback() end
+local moved=assert(probe.locate(ui.document.file,assert(probe.capture(ui))))
+check("confirmed remote jump preserves exact UTF16 offset",moved.offset==remote_target)
+ui:handleEvent(Event:new("GotoXPointer",blank_xp))
+plugin:checkpointPosition(true,false)
+local retained=assert(client:fetch("blank-start.txt"))
+check("blank checkpoint uploads without lowering server maximum",retained.char_offset==remote_target)
+check("blank recovery never builds full map",plugin.map==nil)
 ui:onClose()
 local result={total=total,passed=total-failed,failed=failed,skipped=0,timings=timings,max_heartbeat_lateness_seconds=maximum,scope="Actual product fast-position module; synthetic8MiB, CPU5%, no live services or Kindle"}
 local out=assert(io.open(home.."/no-index-results.json","wb"));out:write(json.encode(result));out:close()

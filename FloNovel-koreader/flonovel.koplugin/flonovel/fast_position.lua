@@ -70,6 +70,11 @@ function Fast.capture(ui)
     local canonical = xp and (xp:match("^/FictionBook/body/pre%[%d+%]/text%(%)%.%d+$")
         or xp:match("^/FictionBook/body/pre/text%(%)%.%d+$"))
     local normalized = canonical and xp or ui.document:getNormalizedXPointer(xp)
+    local empty = normalized and normalized:match("^/FictionBook/body/empty%-line%[(%d+)%]%.0$")
+    if normalized == "/FictionBook/body/empty-line.0" then empty = 1 end
+    if empty then
+        return { xp = xp, empty = tonumber(empty), document = ui.document, normalized = normalized }
+    end
     local path, point
     if normalized then path, point = normalized:match("^(.-/text%(%))%.(%d+)$") end
     if not path then return nil, "fast_non_text_anchor_held" end
@@ -90,6 +95,40 @@ function Fast.locate(path, captured)
     local text, reason = source(path)
     if not text then return nil, reason end
     local decoded = text:sub(1, 3) == "\239\187\191" and text:sub(4) or text
+    if captured.empty then
+        local cursor, pre, empty, child, previous = 1, 0, 0, 0, nil
+        while cursor <= #decoded do
+            local delimiter = decoded:find("[\r\n]", cursor)
+            local ending = delimiter and delimiter - 1 or #decoded
+            local line = decoded:sub(cursor, ending)
+            if #line > 1024 then return nil, "fast_layout_unsupported" end
+            child = child + 1
+            if line:find("[^ \t]") then
+                pre = pre + 1
+                previous = line
+            else empty = empty + 1 end
+            if empty == captured.empty then
+                -- Counts only select a candidate. Native parent boundaries must
+                -- enclose that exact empty child, with matching preceding text.
+                local doc = captured.document
+                if doc:compareXPointers("/FictionBook/body." .. (child - 1), captured.normalized) ~= 1
+                    or doc:compareXPointers("/FictionBook/body." .. child, captured.normalized) ~= -1 then
+                    return nil, "fast_layout_unsupported"
+                end
+                if pre > 0 then
+                    if doc:getTextFromXPointer("/FictionBook/body/pre[" .. pre .. "]/text()") ~= previous then
+                        return nil, "fast_native_target_mismatch"
+                    end
+                end
+                local prefix = decoded:sub(1, cursor - 1)
+                return { offset = units(prefix), hash = Hash.text(text) }
+            end
+            if not delimiter then break end
+            local a, b = decoded:sub(delimiter, delimiter), decoded:sub(delimiter + 1, delimiter + 1)
+            cursor = delimiter + (((b == "\r" or b == "\n") and a ~= b) and 2 or 1)
+        end
+        return nil, "fast_eof_held"
+    end
     local cursor, found = 1, nil
     while true do
         local first, last = decoded:find(captured.text, cursor, true)
