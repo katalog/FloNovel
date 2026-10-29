@@ -38,12 +38,25 @@ for _, row in ipairs(contract.paths) do
     local key, reason = Paths.key(row.input)
     check("JVM key or explicit unsupported: " .. row.input, key == row.key or (key == nil and reason == "unsupported_unicode_key"))
 end
+local ffi = require("ffi")
+local loadlib = ffi.loadlib
+ffi.loadlib = function(name, ...)
+    if name == "crypto" then error("synthetic_missing_crypto") end
+    return loadlib(name, ...)
+end
+local FallbackHash = dofile(project .. "/flonovel.koplugin/flonovel/content_hash.lua")
+ffi.loadlib = loadlib
 for _, row in ipairs(contract.files) do
     local size = tonumber(row.name:match("hash_(%d+)%.bin"))
     local text = ("0123456789abcdef"):rep(math.ceil(size / 16)):sub(1, size)
     local file = assert(io.open(home .. "/hash.bin", "wb")); file:write(text); file:close()
+    -- Library handles must remain alive across the collections triggered while
+    -- opening large books; a detached FFI function pointer is insufficient.
+    collectgarbage("collect")
     check("Dropbox hash file/JVM/" .. size, Hash.file(home .. "/hash.bin") == row.hash)
     check("Dropbox hash memory/JVM/" .. size, Hash.text(text) == row.hash)
+    check("Dropbox hash without crypto file/JVM/" .. size, FallbackHash.file(home .. "/hash.bin") == row.hash)
+    check("Dropbox hash without crypto memory/JVM/" .. size, FallbackHash.text(text) == row.hash)
 end
 local cre = require("libs/libkoreader-cre")
 cre.initCache(home .. "/engine-cache", 8 * 1024 * 1024)

@@ -51,6 +51,15 @@ function FloNovel:ensureMap()
     if self.ui.typeset and self.ui.typeset.txt_preformatted ~= 1 then
         return nil, tr("preformatted")
     end
+    local logger, clock = require("logger"), require("socket").gettime
+    local started, previous, previous_cpu = clock(), clock(), os.clock()
+    local function phase(name)
+        local now, cpu = clock(), os.clock()
+        logger.info(string.format("FloNovel preparation %s wall=%.3fs cpu=%.3fs", name, now - previous, cpu - previous_cpu))
+        previous, previous_cpu = now, cpu
+    end
+    local hash = require("flonovel.content_hash")
+    logger.info("FloNovel preparation start; hash=" .. hash.backend)
     local file = io.open(doc.file, "rb")
     if not file then return nil, "source_unreadable" end
     -- Bound allocation on memory-constrained Kindles; never truncate a mapped book.
@@ -58,13 +67,19 @@ function FloNovel:ensureMap()
     file:close()
     source = source or ""
     if #source > 16 * 1024 * 1024 then return nil, tr("too_large") end
+    phase("read")
     local ok, map, reason = pcall(Map.build, doc, source, { known_line_changes = true })
     if not ok then return nil, "mapping_failed" end
     if not map then return nil, reason end
+    phase("map")
     local points, chapters = Chapters.breakpoints(source, self.options.divisions)
     if not points then return nil, chapters end
-    map.source_hash = require("flonovel.content_hash").text(source)
-    if require("flonovel.content_hash").file(doc.file) ~= map.source_hash then return nil, "source_changed_during_mapping" end
+    phase("chapters")
+    map.source_hash = hash.text(source)
+    phase("hash_memory")
+    if hash.file(doc.file) ~= map.source_hash then return nil, "source_changed_during_mapping" end
+    phase("hash_file")
+    logger.info(string.format("FloNovel preparation complete wall=%.3fs", clock() - started))
     self.map, self.points, self.chapter_list = map, points, chapters
     return map
 end
@@ -272,14 +287,15 @@ function FloNovel:fetchPosition()
     if not config or not config.position_verified then return end
     local identity = self:bookIdentity(config)
     if not identity then return end
-    local map = self:ensureMap()
-    if not map then return end
-    local current = map:from_xpointer(self.ui.rolling:getLastProgress())
-    if not current then return end
+    -- Most newly downloaded books have no remote position. Do not scan and
+    -- hash the whole book before an absent/offline lookup can be dismissed.
     self:runNetwork("position", function() return Position.new(config):fetch(identity.key) end,
         function(remote, generation)
-            if generation ~= self.generation or remote.absent or remote.char_offset - current <= 500
-                or not self:connectionMatches(config)
+            if generation ~= self.generation or remote.absent or not self:connectionMatches(config) then return end
+            local map = self:ensureMap()
+            if not map then return end
+            local current = map:from_xpointer(self.ui.rolling:getLastProgress())
+            if not current or remote.char_offset - current <= 500
                 or require("flonovel.content_hash").file(identity.physical) ~= map.source_hash then return end
             local xp = map:to_exact_boundary(remote.char_offset)
             if not xp then self.sync_error = "remote_position_not_representable"; return end

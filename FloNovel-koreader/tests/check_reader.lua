@@ -85,6 +85,10 @@ local generation = plugin.generation
 plugin:invalidate()
 pending_callback({ char_offset = second + 1000 }, generation)
 check("late fetch cannot navigate after invalidation", ui.rolling:getLastProgress() ~= nil and plugin.map == nil)
+plugin:fetchPosition()
+check("lookup does not map book before response", plugin.map == nil)
+pending_callback({ absent = true }, plugin.generation)
+check("absent remote position does not map whole book", plugin.map == nil)
 check("position map still available with chapters disabled", plugin:ensureMap() ~= nil)
 plugin.options.chapters = true
 plugin.options.position = false

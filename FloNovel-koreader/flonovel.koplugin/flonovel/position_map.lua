@@ -32,10 +32,11 @@ end
 
 Map.utf16_length = scan
 
-local function build_reference(doc, source, options)
+local function build_reference(doc, source, options, validated_length)
     options = options or {}
     if source:sub(1, 3) == "\239\187\191" then source = source:sub(4) end
-    local length, err = scan(source)
+    local length, err = validated_length
+    if not length then length, err = scan(source) end
     if not length then return nil, err end
     local self = setmetatable({ nodes = {}, empty_starts = {}, layout = {}, length = length, doc = doc }, Map)
     local cursor, source_units, node_index = 1, 0, 1
@@ -221,7 +222,8 @@ function Map.build(doc, source, options)
         local index = path:match("^/FictionBook/body/pre%[(%d+)%]/text%(%)$")
         return index and nodes[tonumber(index)] or nil
     end }
-    local map, failure = build_reference(facade, source, options)
+    local length = valid - (source:sub(1, 3) == "\239\187\191" and 1 or 0)
+    local map, failure = build_reference(facade, source, options, length)
     if not map then return nil, failure end
     map.doc = doc
     -- A native page may begin on an empty-line element. Map its source-line

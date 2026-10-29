@@ -72,6 +72,12 @@ retried on subsequent sends. Requests with a changed body hash, account, app, li
 are withheld. Supabase requests omit Authorization and user_key. Push never performs a preceding GET
 for conflict resolution; server max-wins remains authoritative.
 
+Opening a book checks the remote row before building a source map, so absent or offline lookups do
+not trigger full-book mapping. Chapter analysis uses one Unicode pass, and content hashing uses
+the bundled native crypto library when available, with a Lua fallback. Source-hash checks remain
+mandatory; PC timing improvements still require separate validation on the Kindle.
+Preparation phase timings and the hash backend are logged without book paths or credentials.
+
 Changing account or library blocks state reuse. Verify the new connection, then explicitly reset state
 from the menu. Reset preserves books and clears previously unsent position requests.
 
