@@ -82,6 +82,21 @@ Preparation phase timings and the hash backend are logged without book paths or 
 Changing account or library blocks state reuse. Verify the new connection, then explicitly reset state
 from the menu. Reset preserves books and clears previously unsent position requests.
 
+
+## Experimental fast position sharing
+
+Enable **Fast position sharing (experimental)** to match the current native text against the source
+instead of building a full DOM position table. The bundled utf8proc counts UTF-16 units and tests
+ASCII, Hangul, and emoji vectors on startup. Results are written to settings/flonovel/fast-backend.json.
+This option is off by default; fast_position_enabled in the connection configuration preserves it.
+An installation can explicitly enable the option.
+
+The source-body hash is bound asynchronously. Native capture, search, enqueue and transmission run
+in the worker, preserving body/account/library guards and exact offsets. Repeated paragraphs, blank
+anchors, long lines, transformed layouts and invalid Unicode are held. Chapter actions still use the
+original mapper on demand, and close checkpoints retain a synchronous path. This does not guarantee
+a one-second bound or support for every book. Disable the option to restore the original position path.
+
 ## Current limits and removal
 
 - Downloads stream to disk without a 16 MiB cap. Storage/filesystem errors and content-hash verification still apply.
@@ -107,7 +122,7 @@ For an interactive Windows/WSL2 session with WSLg, run:
 The launcher expects the official Linux v2026.07.1 runtime at
 `.work/runtime/lib/koreader`. It opens the actual SDL GUI with isolated settings, caches,
 and synthetic 128 KiB/2 MiB/8 MiB books under `.work/emulator/desktop`. Each launch refreshes
-the 13 plugin files while preserving that profile's settings and reading state. Close the
+the 14 plugin files while preserving that profile's settings and reading state. Close the
 window before relaunching. Use `-Profile another-name` for an independent profile and `-Jit`
 for normal JIT execution; the default interpreter mode stresses Lua work on the host.
 The default CPU quota is 5% of one core, enforced by a systemd user scope with a 100 ms
@@ -138,4 +153,4 @@ python3 tools/package.py --results /private/path/results/SESSION/summary.json --
 
 Tests use synthetic books, actual ReaderUI/crengine, captured Kotlin oracles, and a local HTTPS server.
 They do not write to a Kindle or live account. Packaging verifies the passing source hashes and an
-explicit 13-file product allowlist. Research, personal books, tokens, runtimes, and work.md are excluded.
+explicit 14-file product allowlist. Research, personal books, tokens, runtimes, and work.md are excluded.

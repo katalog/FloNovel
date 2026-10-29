@@ -10,6 +10,7 @@ local State = require("flonovel.state")
 local Paths = require("flonovel.paths")
 local Position = require("flonovel.reading_position")
 local Dropbox = require("flonovel.dropbox")
+local FastPosition = require("flonovel.fast_position")
 
 local FloNovel = WidgetContainer:extend{ name = "flonovel" }
 
@@ -31,6 +32,12 @@ function FloNovel:init()
         })
     end
     self.ui.menu:registerToMainMenu(self)
+    local config, directory = self:loadConnection()
+    if config and config.fast_position_enabled then
+        State.write(directory .. "/fast-backend.json", {
+            version = 1, backend = "utf8proc", supported = FastPosition.supported,
+        })
+    end
 end
 
 function FloNovel:notice(reason)
@@ -351,6 +358,19 @@ function FloNovel:addToMainMenu(items)
                 if self.options.position then UIManager:scheduleIn(1, self.initial_fetch) end
             end }
     end
+    entries[#entries + 1] = { text = tr("fast_position"), checked_func = function()
+        local config = self:loadConnection()
+        return config and config.fast_position_enabled == true
+    end, callback = function()
+        local config, directory = self:loadConnection()
+        if not config then self:message(tr("setup")); return end
+        config.fast_position_enabled = not config.fast_position_enabled
+        local ok, reason = State.write(directory .. "/config.json", config)
+        if not ok then self:message(tr("network_failed", reason)); return end
+        self:invalidate()
+        if config.fast_position_enabled and not FastPosition.supported then self:notice("fast_native_unavailable") end
+        if config.fast_position_enabled and self.options.position then UIManager:scheduleIn(1, self.initial_fetch) end
+    end }
     entries[#entries + 1] = { text = tr("connect"), callback = function() self:checkConnection() end }
     entries[#entries + 1] = { text = tr("sync_files"), enabled_func = function() return self.options.files == true end,
         callback = function() self:syncFiles() end }
@@ -406,4 +426,5 @@ function FloNovel:onResume()
     if self.options.position then UIManager:scheduleIn(1, self.initial_fetch) end
 end
 
+FastPosition.install(FloNovel)
 return FloNovel

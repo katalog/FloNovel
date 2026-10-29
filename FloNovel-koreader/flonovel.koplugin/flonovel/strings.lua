@@ -1,4 +1,5 @@
 local en = {
+    fast_position = "Fast position sharing (experimental)",
     chapters = "Chapter navigation", list = "Chapters", next_chapter = "Next chapter",
     previous_chapter = "Previous chapter", next_part = "Next chapter subdivision",
     previous_part = "Previous chapter subdivision", divisions = "Subdivisions per chapter",
@@ -22,6 +23,7 @@ local en = {
     status = "Synchronization status", status_ok = "No synchronization error has been recorded in this session.",
 }
 local ko = {
+    fast_position = "빠른 위치 공유 (실험)",
     chapters = "챕터 이동", list = "챕터 목록", next_chapter = "다음 챕터",
     previous_chapter = "이전 챕터", next_part = "다음 챕터 분할점",
     previous_part = "이전 챕터 분할점", divisions = "챕터당 분할 수",

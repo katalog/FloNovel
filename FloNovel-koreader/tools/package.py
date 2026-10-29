@@ -8,7 +8,8 @@ import zipfile
 FILES = ('main.lua', '_meta.lua', 'flonovel/position_map.lua', 'flonovel/chapters.lua',
          'flonovel/strings.lua', 'flonovel/case_table.lua', 'flonovel/paths.lua',
          'flonovel/state.lua', 'flonovel/content_hash.lua', 'flonovel/http.lua',
-         'flonovel/tls.lua', 'flonovel/dropbox.lua', 'flonovel/reading_position.lua')
+         'flonovel/tls.lua', 'flonovel/dropbox.lua', 'flonovel/reading_position.lua',
+         'flonovel/fast_position.lua')
 
 
 def main():

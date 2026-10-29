@@ -77,6 +77,28 @@ config.shared_secret = "synthetic-secret"
 local broken = home .. "/position-broken.json"
 file = assert(io.open(broken, "wb")); file:write("not JSON"); file:close()
 check("queue corruption never becomes empty queue", client:flush(broken) == nil)
+local Fast = require("flonovel.fast_position")
+check("bundled Unicode backend accepts scalar/surrogate vectors", Fast.supported)
+local fast_file = home .. "/fast-position.txt"
+local function fast_source(text)
+    local source = assert(io.open(fast_file, "wb")); source:write(text); source:close()
+end
+fast_source("\239\187\191## A\r\n\r\n한글😀 unique\r\n")
+local located = Fast.locate(fast_file, { text = "한글😀 unique", ordinal = 2, local_units = 2 })
+check("fast search preserves BOM/CRLF/Hangul UTF16 offset", located and located.offset == 10)
+local reversed = Fast.reverse(fast_file, 10)
+check("fast remote offset resolves native scalar point", reversed and reversed.xp == "/FictionBook/body/pre[2]/text().2")
+check("fast reverse rejects surrogate interior", Fast.reverse(fast_file, 11) == nil)
+check("fast reverse rejects CRLF interior", Fast.reverse(fast_file, 7) == nil)
+check("fast search checks source ordinal", Fast.locate(fast_file, { text = "한글😀 unique", ordinal = 1, local_units = 0 }) == nil)
+fast_source("same\nsame\n")
+check("fast search holds duplicate lines", Fast.locate(fast_file, { text = "same", ordinal = 1, local_units = 0 }) == nil)
+fast_source(string.rep("x", 1100) .. "\nunique\n")
+check("fast search holds unsupported preceding long lines", Fast.locate(fast_file, { text = "unique", ordinal = 2, local_units = 0 }) == nil)
+fast_source("unique\n\255")
+check("fast search validates UTF8 beyond the target", Fast.locate(fast_file, { text = "unique", ordinal = 1, local_units = 0 }) == nil)
+fast_source("unique\n\0")
+check("fast search rejects NUL", Fast.locate(fast_file, { text = "unique", ordinal = 1, local_units = 0 }) == nil)
 local output = assert(io.open(home .. "/position-results.json", "wb"))
 output:write(json.encode{ total = total, passed = total - failed, failed = failed, skipped = 0,
     scope = "Synthetic transport; actual Supabase source/trigger acceptance remains unverified" })
