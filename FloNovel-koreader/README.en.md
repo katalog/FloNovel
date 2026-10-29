@@ -21,6 +21,9 @@ Chapters are detected from the original `##` prefix on opening, using the confir
 Trusted headings have no 60-character limit. Unicode trimming, UTF-16 subdivision arithmetic, and the
 short-chapter exception of at most 20 LF characters match the existing apps. An unrepresentable target,
 including hidden whitespace or a surrogate interior, is deferred with a reason. Ordinary reading continues.
+Native page anchors on blank lines map to their exact source-line starts after full DOM order validation.
+LF, CRLF, a UTF-8 BOM, and leading/trailing blank lines are covered by ReaderUI regression tests;
+a verified terminal empty element maps to logical EOF.
 
 ## Dropbox connection
 

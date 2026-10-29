@@ -37,7 +37,7 @@ local function build_reference(doc, source, options)
     if source:sub(1, 3) == "\239\187\191" then source = source:sub(4) end
     local length, err = scan(source)
     if not length then return nil, err end
-    local self = setmetatable({ nodes = {}, length = length, doc = doc }, Map)
+    local self = setmetatable({ nodes = {}, empty_starts = {}, layout = {}, length = length, doc = doc }, Map)
     local cursor, source_units, node_index = 1, 0, 1
     while cursor <= #source do
         local delimiter = source:find("[\r\n]", cursor)
@@ -77,9 +77,13 @@ local function build_reference(doc, source, options)
                     path = path, text = parsed, start = start, blocked = blocked,
                     length = blocked and line_units or parsed_units, index = node_index,
                 }
+                self.layout[#self.layout + 1] = node_index
                 consumed, consumed_units = consumed + advance_bytes, consumed_units + advance_units
                 node_index = node_index + 1
             until consumed == #line
+        else
+            self.empty_starts[#self.empty_starts + 1] = source_units
+            self.layout[#self.layout + 1] = 0
         end
         source_units = source_units + line_units
         if not delimiter then break end
@@ -118,6 +122,12 @@ function Map:to_exact_boundary(offset)
     local xp, reason = self:to_xpointer(offset)
     if xp then return xp end
     if reason ~= "unrepresented_boundary" then return nil, reason end
+    for index, start in ipairs(self.empty_starts or {}) do
+        if offset == start then
+            local empty = "/FictionBook/body/empty-line[" .. index .. "].0"
+            if self.doc:isXPointerInDocument(empty) and self:from_xpointer(empty) == offset then return empty end
+        end
+    end
     for _, node in ipairs(self.nodes) do
         if not node.blocked and offset == node.start + node.length then
             local points
@@ -136,6 +146,12 @@ function Map:from_xpointer(xp)
     local normalized = self.doc:getNormalizedXPointer(xp)
     if self.eof_normalized and normalized == self.eof_normalized then return self.length end
     if not normalized then return nil, "invalid_xpointer" end
+    local empty = normalized:match("^/FictionBook/body/empty%-line%[(%d+)%]%.0$")
+    if not empty and normalized == "/FictionBook/body/empty-line.0" then empty = 1 end
+    if empty and self.empty_starts then
+        local start = self.empty_starts[tonumber(empty)]
+        if start ~= nil then return start end
+    end
     local index, point = normalized:match("^/FictionBook/body/pre%[(%d+)%]/text%(%)%.(%d+)$")
     -- Normalized paths omit [1] when only one matching sibling exists.
     if not index then
@@ -171,7 +187,7 @@ local function extract(xml)
     if type(xml) ~= "string" or xml:sub(1,6) ~= "<body>" or xml:sub(-7) ~= "</body>" then
         return nil, "unsupported_serialized_body"
     end
-    local nodes, cursor, limit = {}, 7, #xml - 7
+    local nodes, layout, cursor, limit = {}, {}, 7, #xml - 7
     while cursor <= limit do
         if xml:sub(cursor,cursor+4) == "<pre>" then
             local ending = xml:find("</pre>",cursor+5,true)
@@ -181,15 +197,17 @@ local function extract(xml)
             local text, reason = decode(encoded)
             if not text then return nil,reason end
             nodes[#nodes+1] = text
+            layout[#layout+1] = #nodes
             cursor = ending+6
         elseif xml:sub(cursor,cursor+12) == "<empty-line/>" then
+            layout[#layout+1] = 0
             cursor = cursor+13
         else
             return nil,"unsupported_serialized_element"
         end
     end
     if cursor ~= limit+1 then return nil,"invalid_serialized_extent" end
-    return nodes
+    return nodes, nil, layout
 end
 
 
@@ -197,7 +215,7 @@ function Map.build(doc, source, options)
     local valid, invalid = scan(source)
     if not valid then return nil, invalid end
     local xml = doc:getHTMLFromXPointer("/FictionBook/body")
-    local nodes, reason = extract(xml)
+    local nodes, reason, layout = extract(xml)
     if not nodes then return nil, reason end
     local facade = { getTextFromXPointer = function(_, path)
         local index = path:match("^/FictionBook/body/pre%[(%d+)%]/text%(%)$")
@@ -206,6 +224,23 @@ function Map.build(doc, source, options)
     local map, failure = build_reference(facade, source, options)
     if not map then return nil, failure end
     map.doc = doc
+    -- A native page may begin on an empty-line element. Map its source-line
+    -- start only after verifying every body child in order; never snap it to
+    -- adjacent text or infer blank-line positions from counts alone.
+    -- ReadLine can emit one final empty element after a terminal newline
+    -- (observed with CRLF). Its only exact source boundary is logical EOF.
+    if #layout == #map.layout + 1 and layout[#layout] == 0 and source:find("[\r\n]$") then
+        map.layout[#map.layout + 1] = 0
+        map.empty_starts[#map.empty_starts + 1] = map.length
+    end
+    local same_layout = #layout == #map.layout
+    if same_layout then
+        for index, node in ipairs(layout) do
+            if node ~= map.layout[index] then same_layout = false; break end
+        end
+    end
+    if not same_layout then map.empty_starts = nil end
+    map.layout = nil
     local _, pre = xml:gsub("<pre>", "")
     local _, empty = xml:gsub("<empty%-line/>", "")
     local ending = "/FictionBook/body." .. (pre + empty)

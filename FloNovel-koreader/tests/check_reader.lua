@@ -101,6 +101,46 @@ check("rejected jump preserves canonical anchor", ui.rolling:getLastProgress() =
 require("ui/uimanager"):forceRePaint()
 check("ordinary rendering continues after rejected jump", true)
 ui:onClose()
+local native_file = assert(io.open(home .. "/native-anchors.json", "rb"))
+local native_cases = require("json").decode(native_file:read("*a"))
+native_file:close()
+for _, case in ipairs(native_cases) do
+    ui = open(case.name .. ".txt")
+    require("ui/uimanager"):show(ui)
+    plugin = ui.flonovel
+    local native_map = assert(plugin:ensureMap())
+    if case.name == "native-crlf" then
+        local terminal = "/FictionBook/body/empty-line[" .. (#case.empties + 1) .. "].0"
+        check("CRLF native terminal empty line is exact EOF", native_map:from_xpointer(terminal) == case.length)
+    end
+    for index, expected in ipairs(case.empties) do
+        local xp = "/FictionBook/body/empty-line[" .. index .. "].0"
+        local actual = native_map:from_xpointer(xp)
+        check(case.name .. "/blank source anchor/" .. index, actual == expected)
+        local restored = actual and native_map:to_exact_boundary(actual)
+        check(case.name .. "/blank exact roundtrip/" .. index, restored and native_map:from_xpointer(restored) == expected)
+    end
+    for _, size in ipairs{ 18, 32 } do
+        ui:handleEvent(Event:new("SetFontSize", size))
+        plugin:gotoOffset(0)
+        for step, direction in ipairs{ 1, 1, 1, 1, 1, 1, -1, -1, 1 } do
+            ui:handleEvent(Event:new("GotoViewRel", direction))
+            local xp = ui.rolling:getLastProgress()
+            local normalized = ui.document:getNormalizedXPointer(xp)
+            local actual = native_map:from_xpointer(xp)
+            local index = normalized:match("/empty%-line%[(%d+)%]%.0$")
+            local expected
+            if index then expected = case.empties[tonumber(index)]
+            else
+                local pre, point = normalized:match("/pre%[(%d+)%]/text%(%)%.(%d+)$")
+                if pre then expected = case.pres[tonumber(pre)][tonumber(point) + 1] end
+                if normalized == native_map.eof_normalized then expected = case.length end
+            end
+            check(case.name .. "/native page/" .. size .. "/" .. step, actual ~= nil and actual == expected)
+        end
+    end
+    ui:onClose()
+end
 local fm = require("apps/filemanager/filemanager"):new{ root_path = home, dimen = Device.screen:getSize() }
 check("plugin loaded in FileManager without a book", fm.flonovel ~= nil and fm.document == nil)
 local fm_items = {}

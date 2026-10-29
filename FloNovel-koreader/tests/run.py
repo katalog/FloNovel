@@ -8,6 +8,7 @@ import json
 import https_fixture
 import unittest
 import hashlib
+import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--runtime', type=Path, required=True)
@@ -22,6 +23,35 @@ text = '## Chapter A\n' + ('abcdefghijklmnopqrstuvwxyz\n' * 40)
 text += '## ' + ('Long chapter title ' * 8) + '\n' + ('More text\n' * 40)
 (session / 'book.txt').write_text(text, encoding='utf-8')
 (session / 'second.txt').write_text('## Emoji\n😀😀😀😀\nEnd', encoding='utf-8')
+native_lines = ['## Native page anchors', '']
+for index in range(1, 151):
+    native_lines.extend([f'Sample {index:03d}: 정확한 원문 위치 😀 remains stable while turning pages.', ['', ' \t', '  '][index % 3]])
+native_source = '\n'.join(native_lines) + '\n'
+native_cases = []
+for name, source in [('native-lf', native_source),
+                     ('native-crlf', '\ufeff' + native_source.replace('\n', '\r\n')),
+                     ('native-leading-trailing', '\n\n' + native_source + '\n\n')]:
+    (session / (name + '.txt')).write_bytes(source.encode('utf-8'))
+    decoded = source.removeprefix('\ufeff')
+    cursor, units, pres, empties = 0, 0, [], []
+    while cursor < len(decoded):
+        delimiter = re.search(r'\r\n|\n\r|[\r\n]', decoded[cursor:])
+        ending = cursor + delimiter.start() if delimiter else len(decoded)
+        line = decoded[cursor:ending]
+        if line.strip(' \t'):
+            offsets = [units]
+            for char in line:
+                offsets.append(offsets[-1] + len(char.encode('utf-16-le')) // 2)
+            pres.append(offsets)
+        else:
+            empties.append(units)
+        units += len(line.encode('utf-16-le')) // 2
+        if not delimiter:
+            break
+        units += len(delimiter.group())
+        cursor = ending + len(delimiter.group())
+    native_cases.append(dict(name=name, pres=pres, empties=empties, length=units))
+(session / 'native-anchors.json').write_text(json.dumps(native_cases, ensure_ascii=False), encoding='utf-8')
 env = dict(os.environ, KO_HOME=str(session), FLONOVEL_PROJECT=str(project),
            SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')
 subprocess.run([str(args.runtime.resolve() / 'luajit'), str(project / 'tests/check_reader.lua')],
