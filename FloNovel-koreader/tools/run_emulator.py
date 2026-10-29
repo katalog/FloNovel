@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 
-def prepare(project, profile):
+def prepare(project, profile, no_index=False):
     if not profile or any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in profile):
         raise ValueError('Profile names may contain lowercase letters, digits and hyphens only')
     home = project / '.work/emulator' / profile
@@ -31,8 +31,28 @@ def prepare(project, profile):
             raise RuntimeError('Linked plugin files are unsupported')
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
+    if no_index:
+        overlay = home / 'no_index_position.lua'
+        shutil.copyfile(project / 'experiments/no_index_position.lua', overlay)
+        main = home / 'plugins/flonovel.koplugin/main.lua'
+        code = main.read_text(encoding='utf-8')
+        assert code.count('return FloNovel') == 1
+        hook = 'dofile(' + json.dumps(str(overlay), ensure_ascii=False) + ').install(FloNovel)\nreturn FloNovel'
+        main.write_text(code.replace('return FloNovel', hook), encoding='utf-8')
     library = home / 'library'
     library.mkdir(exist_ok=True)
+    if no_index:
+        target = library / 'no-index-8MiB.txt'
+        if not target.exists():
+            with target.open('w', encoding='utf-8', newline='') as output:
+                written, number = 0, 0
+                while written < 8 * 1024**2:
+                    line = f'Synthetic paragraph {number:07d}: 정확한 위치 검증과 반응 속도 실험 😀.\n'
+                    if number % 400 == 0:
+                        line = f'## Synthetic chapter {number // 400 + 1}\n\n' + line
+                    output.write(line)
+                    written += len(line.encode())
+                    number += 1
     paragraph = 'Synthetic reading performance sample. 정확한 원문 위치와 챕터를 검증합니다. 😀\n\n'
     for label, size in [('128KiB', 128 * 1024), ('2MiB', 2 * 1024**2), ('8MiB', 8 * 1024**2)]:
         target = library / ('synthetic-' + label + '.txt')
@@ -109,6 +129,11 @@ def main():
     parser.add_argument('--width', type=int, default=600)
     parser.add_argument('--height', type=int, default=800)
     parser.add_argument('--prepare-only', action='store_true')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--no-index', action='store_const', const=True, dest='no_index', default=None,
+                      help='Enable and remember the Linux-only no-index position experiment')
+    mode.add_argument('--full-map', action='store_const', const=False, dest='no_index',
+                      help='Restore and remember the original full-map position path')
     parser.add_argument('--cpu-percent', type=int, default=5,
                         help='CPU quota as a percentage of one core (1-100); 0 disables the limit')
     args = parser.parse_args()
@@ -135,10 +160,22 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             parser.error('This emulator profile is already running')
-        home, library, bootstrap = prepare(project, args.profile)
+        mode_path = profile_root / args.profile / 'emulator-mode.json'
+        no_index = args.no_index
+        if no_index is None:
+            no_index = False
+            if mode_path.exists():
+                saved_mode = json.loads(mode_path.read_text())
+                if type(saved_mode.get('no_index')) is not bool:
+                    parser.error('Invalid emulator mode file')
+                no_index = saved_mode['no_index']
+        home, library, bootstrap = prepare(project, args.profile, no_index)
+        mode_path.write_text(json.dumps(dict(no_index=no_index)) + '\n')
         print('Profile:', home, flush=True)
         print('Transport: local synthetic Supabase; Dropbox covered by the offline product gate', flush=True)
         print('Runtime: real Linux KOReader v2026.07.1; Kindle hardware still requires device validation', flush=True)
+        if no_index:
+            print('Experimental no-index position path enabled; ambiguous/non-text anchors are held', flush=True)
         if args.prepare_only:
             return
         env = dict(os.environ, KO_HOME=str(home), EMULATE_READER_W=str(args.width),

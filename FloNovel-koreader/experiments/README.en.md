@@ -223,3 +223,31 @@ explicitly held. Changed rendering invalidates this conservative prototype. The 
 body-hash guard is still required before enqueue/transmission; bounded queries do not rehash
 the whole file each time. No approximate offsets are sent, and no second reading anchor or
 chapter list is persisted. The plugin has not been switched to this experiment.
+
+## Interactive no-index position experiment
+
+```powershell
+.\FloNovel-koreader\tools\start_emulator.ps1 -NoIndex
+```
+
+The launcher patches only its synthetic emulator copy using `no_index_position.lua`.
+Open `no-index-8MiB.txt`. Position capture searches a unique native text element in the
+source and uses Linux libc iconv to count the preceding UTF-16 units without an index.
+Repeated full-line matches and non-text/unsupported anchors are held rather than guessed.
+The normal 10-second idle checkpoint performs search, body verification, enqueue and flush
+in the existing cancellable subprocess. Reader close can still perform a synchronous checkpoint.
+The initial remote fetch does no full mapping; nonzero targets are resolved in a worker and
+checked against the native text before a jump is offered. Chapter navigation still uses the
+original full mapper on demand. This overlay is restricted to the synthetic emulator account
+and library, and is not loaded by the Kindle plugin or deployment allowlist.
+
+To reproduce the actual ReaderUI test with a 5% CPU quota:
+
+```sh
+python3 experiments/run_no_index_ui.py
+```
+
+The test replaces `ensureMap` with a failure, checks native capture and both position directions,
+uses the local mock server, and measures event-loop heartbeats during a background checkpoint.
+Reports are stored in `.work/emulator/no-index-smoke/`. It does not establish Kindle iconv
+availability, a universal one-second bound, or support for ambiguous and blank-line anchors.

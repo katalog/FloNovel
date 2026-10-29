@@ -70,6 +70,20 @@ class EmulatorTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 emulator.prepare(self.project, name)
 
+    def test_no_index_mode_only_changes_emulator_copy(self):
+        main = self.project / 'flonovel.koplugin/main.lua'
+        main.write_text('return FloNovel\n')
+        experiments = self.project / 'experiments'
+        experiments.mkdir()
+        shutil.copyfile(PROJECT / 'experiments/no_index_position.lua', experiments / 'no_index_position.lua')
+        home, library, _ = emulator.prepare(self.project, 'test', no_index=True)
+        self.assertEqual(main.read_text(), 'return FloNovel\n')
+        self.assertIn('.install(FloNovel)', (home / 'plugins/flonovel.koplugin/main.lua').read_text())
+        self.assertTrue((home / 'no_index_position.lua').is_file())
+        self.assertTrue((library / 'no-index-8MiB.txt').is_file())
+        emulator.prepare(self.project, 'test', no_index=False)
+        self.assertEqual((home / 'plugins/flonovel.koplugin/main.lua').read_text(), main.read_text())
+
     def test_invalid_cpu_quota_rejected_before_profile_setup(self):
         runtime = self.project / 'runtime'
         runtime.mkdir()

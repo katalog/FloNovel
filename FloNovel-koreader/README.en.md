@@ -114,6 +114,14 @@ period. It also covers forked workers and leaves other WSL applications unaffect
 `-CpuPercent 2` for a slower run or `-CpuPercent 0` for an unlimited run. CPU limiting
 requires a working systemd user manager; an unavailable limit is not silently ignored.
 
+Use `-NoIndex` to try the Linux-only, synthetic no-index position overlay. The selected mode
+is remembered per profile; `-FullMap` restores the original implementation. Only the emulator
+copy is patched. The generated `no-index-8MiB.txt` has distinguishable paragraphs for testing.
+Normal position updates avoid full-map/chapter preparation, and search/enqueue/flush run in a
+cancellable subprocess. Remote targets are checked against native text before offering a jump.
+Chapter actions still prepare the original map on demand. Ambiguous repeated paragraphs and
+non-text anchors are held explicitly. This experimental mode is not a Kindle release.
+
 The GUI profile enables chapter and position features. FloNovel position requests use a
 local synthetic transport and JSON max-wins state, with no real account or network requests.
 Dropbox behavior is covered separately by the offline product gate. The mock does not validate
