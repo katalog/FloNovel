@@ -1,11 +1,8 @@
 local en = {
     fast_position = "Fast position sharing (experimental)",
-    chapters = "Chapter navigation", list = "Chapters", next_chapter = "Next chapter",
-    previous_chapter = "Previous chapter", next_part = "Next chapter subdivision",
-    previous_part = "Previous chapter subdivision", divisions = "Subdivisions per chapter",
+    chapters = "Use ## markers in KOReader's table of contents",
     unavailable = "FloNovel could not map this position exactly: %1",
-    no_chapters = "No ## chapter markers found.", disabled = "Chapter navigation is disabled.",
-    not_txt = "Open a UTF-8 TXT book to use FloNovel chapter navigation.",
+    not_txt = "Open a UTF-8 TXT book to share its reading position.",
     too_large = "This book exceeds the 16 MiB mapping limit.",
     files = "Dropbox file synchronization", position = "Reading position sharing",
     sync_files = "Synchronize Dropbox files now", sync_position = "Share reading position now",
@@ -24,12 +21,9 @@ local en = {
 }
 local ko = {
     fast_position = "빠른 위치 공유 (실험)",
-    chapters = "챕터 이동", list = "챕터 목록", next_chapter = "다음 챕터",
-    previous_chapter = "이전 챕터", next_part = "다음 챕터 분할점",
-    previous_part = "이전 챕터 분할점", divisions = "챕터당 분할 수",
+    chapters = "## 마커를 KOReader 기본 목차에 사용",
     unavailable = "FloNovel에서 이 위치를 정확히 대응할 수 없습니다: %1",
-    no_chapters = "## 챕터 마커를 찾지 못했습니다.", disabled = "챕터 이동이 꺼져 있습니다.",
-    not_txt = "FloNovel 챕터 이동을 사용하려면 UTF-8 TXT 책을 여세요.",
+    not_txt = "읽은 위치를 공유하려면 UTF-8 TXT 책을 여세요.",
     too_large = "이 책은 위치 변환의 16 MiB 제한을 초과합니다.",
     files = "Dropbox 파일 동기화", position = "읽은 위치 공유",
     sync_files = "지금 Dropbox 파일 동기화", sync_position = "지금 읽은 위치 공유",

@@ -35,22 +35,35 @@ local plugin = ui.flonovel
 check("product plugin loaded", plugin ~= nil)
 local map, reason = plugin:ensureMap()
 check("product mapper built: " .. tostring(reason), map ~= nil)
-check("detected two chapters", #plugin.chapter_list == 2)
-check("trusted long title", #plugin.chapter_list[2].title > 60)
+local function prepare_toc(plugin, after)
+    local Trapper = require("ui/trapper")
+    local wrap, run = Trapper.wrap, Trapper.dismissableRunInSubprocess
+    Trapper.wrap = function(_, fn) fn() end
+    Trapper.dismissableRunInSubprocess = function(_, fn)
+        local result, reason = fn()
+        if after then after() end
+        return true, result, reason
+    end
+    plugin:buildNativeToc()
+    Trapper.wrap, Trapper.dismissableRunInSubprocess = wrap, run
+end
+prepare_toc(plugin)
+ui.toc:fillToc()
+check("native ToC detects two chapters", #ui.toc.toc == 2)
+check("native ToC retains trusted long title", #ui.toc.toc[2].title > 60)
+check("native ToC does not store handmade entries", #ui.handmade.toc == 0)
 check("no global TXT setting mutation", not G_reader_settings:has("txt_preformatted"))
 for _, offset in ipairs{ 0, 1, 3, 12, map.length } do
     local xp = map:to_exact_boundary(offset)
     check("exact roundtrip " .. offset, xp and map:from_xpointer(xp) == offset)
 end
 plugin:gotoOffset(0)
-ui:handleEvent(Event:new("FloNovelNextChapter"))
-local second = plugin.chapter_list[2].offset
-check("next chapter via ReaderUI", map:from_xpointer(ui.rolling:getLastProgress()) == second)
-ui:handleEvent(Event:new("FloNovelPreviousChapter"))
-check("previous chapter via ReaderUI", map:from_xpointer(ui.rolling:getLastProgress()) == 0)
+local second = map:from_xpointer(ui.toc.toc[2].xpointer)
+require("dispatcher"):execute{ next_chapter = true }
+check("native dispatcher advances chapter", ui.rolling.current_page == ui.toc.toc[2].page)
+require("dispatcher"):execute{ prev_chapter = true }
+check("native dispatcher returns previous chapter", ui.rolling.current_page == ui.toc.toc[1].page)
 plugin:gotoOffset(0)
-ui:handleEvent(Event:new("FloNovelNextPart"))
-check("subdivision uses exact target", map:from_xpointer(ui.rolling:getLastProgress()) == plugin.points[1])
 local expected = map:from_xpointer(ui.rolling:getLastProgress())
 ui:handleEvent(Event:new("SetFontSize", 28))
 check("font change retains canonical anchor", map:from_xpointer(ui.rolling:getLastProgress()) == expected)
@@ -62,11 +75,26 @@ local sorted_menu = require("ui/menusorter"):sort({ ["KOMenu:menu_buttons"] = {}
 local tools_menu = require("ui/menusorter"):findById(sorted_menu, "tools")
 check("reader tools tab opens FloNovel directly as its first item", tools_menu and (tools_menu.sub_item_table or tools_menu)[1].text == "FloNovel")
 items.flonovel.sub_item_table[1].callback()
-check("disable clears cache", not plugin.map and not plugin.options.chapters)
+check("disable restores original ToC provider", plugin.toc_provider == nil and not plugin.options.chapters)
 items.flonovel.sub_item_table[1].callback()
-check("re-enable rebuilds", plugin:ensureMap() ~= nil)
-require("dispatcher"):execute{ flonovel_next_chapter = true }
-check("gesture dispatcher routes", plugin.map:from_xpointer(ui.rolling:getLastProgress()) == second)
+prepare_toc(plugin)
+check("re-enable supplies native ToC", plugin.toc_provider ~= nil)
+check("legacy navigation handlers removed", plugin.onFloNovelNextChapter == nil and plugin.onFloNovelNextPart == nil)
+local manual_provider = function() return {} end
+ui.document.getToc = manual_provider
+plugin:clearNativeToc()
+check("clearing marker ToC preserves a newer manual provider", ui.document.getToc == manual_provider)
+ui.document.getToc = nil
+prepare_toc(plugin, function() plugin:clearNativeToc(); plugin.options.chapters = false end)
+check("disabled feature rejects late worker result", plugin.toc_provider == nil and rawget(ui.document, "getToc") == nil)
+plugin.options.chapters = true
+ui.handmade.toc_enabled = true
+prepare_toc(plugin)
+check("handmade ToC takes precedence", plugin.toc_provider == nil)
+ui.handmade.toc_enabled = false
+prepare_toc(plugin)
+check("marker ToC can rebuild after lifecycle invalidation", plugin.toc_provider ~= nil)
+plugin:gotoOffset(second)
 local old_map = plugin.map
 ui:onClose()
 check("close releases document cache", plugin.map == nil)
@@ -101,7 +129,7 @@ ui = open("second.txt")
 plugin = ui.flonovel
 require("ui/uimanager"):show(ui)
 local second_map = plugin:ensureMap()
-check("different book builds its own source map", second_map and second_map ~= old_map and #plugin.chapter_list == 1)
+check("different book builds its own source map", second_map and second_map ~= old_map )
 local before_rejected = ui.rolling:getLastProgress()
 plugin:gotoOffset(10)
 check("surrogate interior rejected without rounding", plugin.last_error == "inside_surrogate_pair")
@@ -170,7 +198,7 @@ local fm = require("apps/filemanager/filemanager"):new{ root_path = home, dimen 
 check("plugin loaded in FileManager without a book", fm.flonovel ~= nil and fm.document == nil)
 local fm_items = {}
 fm.flonovel:addToMainMenu(fm_items)
-check("FileManager has independent sync controls", fm_items.flonovel and #fm_items.flonovel.sub_item_table >= 12)
+check("FileManager has independent sync controls", fm_items.flonovel and #fm_items.flonovel.sub_item_table == 9)
 local fm_sorted = require("ui/menusorter"):sort({ ["KOMenu:menu_buttons"] = {}, tools = { text = "Tools" }, flonovel = fm_items.flonovel },
     { ["KOMenu:menu_buttons"] = { "tools" }, tools = require("ui/elements/filemanager_menu_order").tools })
 local fm_tools = require("ui/menusorter"):findById(fm_sorted, "tools")
@@ -183,11 +211,18 @@ local Chapters = require("flonovel.chapters")
 check("invalid UTF8 rejected", Map.utf16_length("\192\128") == nil)
 check("NUL rejected", Map.utf16_length("a\0b") == nil)
 check("supplementary UTF16", Map.utf16_length("a😀b") == 4)
-check("invalid division count rejected", Chapters.breakpoints("## A", 0) == nil)
-check("no markers produce no targets", #Chapters.breakpoints("normal\ntext", 4) == 0)
-check("strict next", Chapters.target({ 0, 3, 6 }, 3, true) == 6)
-check("strict previous", Chapters.target({ 0, 3, 6 }, 3, false) == 0)
-check("no target stays absent", Chapters.target({ 0, 3, 6 }, 6, true) == nil)
+local scan_file = home .. "/marker-scan.txt"
+local function scan(text)
+    local out = assert(io.open(scan_file, "wb")); out:write(text); out:close()
+    return assert(Chapters.scan(scan_file))
+end
+check("ordinary text has no marker ToC", #scan("normal\ntext") == 0)
+check("markers must start at beginning of line", #scan(" ## Indented\nbody ## Inline\n## Actual") == 1)
+local marks = scan("\239\187\191\r\n## One\r\n \t\r\n## Two\n")
+check("BOM CRLF and blank source ordinals", #marks == 2 and marks[1].pre == 1 and marks[1].child == 2 and marks[2].pre == 2 and marks[2].child == 4)
+marks = scan(string.rep("x",65535) .. "\r\n## Across chunk\r\n## End")
+check("CRLF across streaming chunk boundary", #marks == 2 and marks[1].pre == 2 and marks[2].pre == 3)
+check("trusted title has no length cap", #scan("## " .. string.rep("한",2000))[1].title > 6000)
 local json = require("json")
 local file = assert(io.open(home .. "/results.json", "wb"))
 file:write(json.encode{ total = total, passed = total - failed, failed = failed, skipped = 0,

@@ -1,5 +1,4 @@
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
-local Dispatcher = require("dispatcher")
 local Event = require("ui/event")
 local UIManager = require("ui/uimanager")
 local InfoMessage = require("ui/widget/infomessage")
@@ -15,22 +14,13 @@ local FastPosition = require("flonovel.fast_position")
 local FloNovel = WidgetContainer:extend{ name = "flonovel" }
 
 function FloNovel:init()
-    self.options = G_reader_settings:readSetting("flonovel") or { chapters = true, divisions = 4 }
-    self.options.divisions = self.options.divisions or 4
+    self.options = G_reader_settings:readSetting("flonovel") or { chapters = true }
+    self.options.divisions = nil
     self.generation = 0
     self.checkpoint = function() self:checkpointPosition(true) end
     self.initial_fetch = function() self:fetchPosition() end
     self.close_flush = function() self:flushPending(false) end
-    local actions = {
-        FloNovelNextChapter = "next_chapter", FloNovelPreviousChapter = "previous_chapter",
-        FloNovelNextPart = "next_part", FloNovelPreviousPart = "previous_part",
-        FloNovelChapters = "list",
-    }
-    for event, key in pairs(actions) do
-        Dispatcher:registerAction("flonovel_" .. key, {
-            category = "none", event = event, title = "FloNovel: " .. tr(key), reader = true,
-        })
-    end
+    self.prepare_toc = function() self:buildNativeToc() end
     self.ui.menu:registerToMainMenu(self)
     local config, directory = self:loadConnection()
     if config and config.fast_position_enabled then
@@ -47,7 +37,7 @@ end
 
 function FloNovel:invalidate()
     self.generation = self.generation + 1
-    self.map, self.points, self.chapter_list = nil, nil, nil
+    self.map = nil
 end
 
 function FloNovel:ensureMap()
@@ -79,15 +69,12 @@ function FloNovel:ensureMap()
     if not ok then return nil, "mapping_failed" end
     if not map then return nil, reason end
     phase("map")
-    local points, chapters = Chapters.breakpoints(source, self.options.divisions)
-    if not points then return nil, chapters end
-    phase("chapters")
     map.source_hash = hash.text(source)
     phase("hash_memory")
     if hash.file(doc.file) ~= map.source_hash then return nil, "source_changed_during_mapping" end
     phase("hash_file")
     logger.info(string.format("FloNovel preparation complete wall=%.3fs", clock() - started))
-    self.map, self.points, self.chapter_list = map, points, chapters
+    self.map = map
     return map
 end
 
@@ -101,45 +88,59 @@ function FloNovel:gotoOffset(offset)
     return true
 end
 
-function FloNovel:navigate(forward, subdivisions)
-    if not self.options.chapters then self:notice(tr("disabled")); return true end
-    local map, reason = self:ensureMap()
-    if not map then self:notice(reason); return true end
-    local current, failure = map:from_xpointer(self.ui.rolling:getLastProgress())
-    if not current then self:notice(failure); return true end
-    local points = self.points
-    if not subdivisions then
-        points = {}
-        for _, chapter in ipairs(self.chapter_list) do points[#points + 1] = chapter.offset end
+function FloNovel:clearNativeToc()
+    self.chapter_generation = (self.chapter_generation or 0) + 1
+    UIManager:unschedule(self.prepare_toc)
+    local task = self.chapter_task
+    if task and task.dismiss_callback then task.dismiss_callback() end
+    if self.toc_document and self.toc_document.getToc == self.toc_provider then
+        self.toc_document.getToc = self.original_toc_provider
+        self.ui:handleEvent(Event:new("UpdateToc"))
     end
-    local target, missing = Chapters.target(points, current, forward)
-    if not target then self:notice(missing); return true end
-    return self:gotoOffset(target)
+    self.toc_document, self.toc_provider, self.original_toc_provider = nil, nil, nil
 end
 
-function FloNovel:onFloNovelNextChapter() return self:navigate(true, false) end
-function FloNovel:onFloNovelPreviousChapter() return self:navigate(false, false) end
-function FloNovel:onFloNovelNextPart() return self:navigate(true, true) end
-function FloNovel:onFloNovelPreviousPart() return self:navigate(false, true) end
+function FloNovel:queueNativeToc()
+    self:clearNativeToc()
+    if self.options.chapters then UIManager:scheduleIn(0.2, self.prepare_toc) end
+end
 
-function FloNovel:onFloNovelChapters()
-    if not self.options.chapters then self:notice(tr("disabled")); return true end
-    local map, reason = self:ensureMap()
-    if not map then self:notice(reason); return true end
-    if #self.chapter_list == 0 then self:notice(tr("no_chapters")); return true end
-    local items, generation = {}, self.generation
-    local menu
-    for _, chapter in ipairs(self.chapter_list) do
-        local offset = chapter.offset
-        items[#items + 1] = { text = chapter.title, callback = function()
-            UIManager:close(menu)
-            if generation == self.generation and self.options.chapters then self:gotoOffset(offset) end
-        end }
-    end
-    menu = require("ui/widget/menu"):new{ title = tr("list"), item_table = items,
-        width = require("device").screen:getWidth() }
-    UIManager:show(menu)
-    return true
+function FloNovel:buildNativeToc()
+    local doc = self.ui.document
+    if not self.options.chapters or not doc or not self.ui.rolling
+        or not doc.file:lower():match("%.txt$") or self.ui.typeset.txt_preformatted ~= 1
+        or (self.ui.handmade and self.ui.handmade.toc_enabled) then return end
+    local generation, original = self.chapter_generation, rawget(doc, "getToc")
+    local Trapper = require("ui/trapper")
+    -- A default invisible trap cancels on the first page tap. Keep its explicit
+    -- cancellation handle off the input stack so reading can continue instead.
+    local control = {}
+    self.chapter_task = control
+    Trapper:wrap(function()
+        local complete, entries, reason = Trapper:dismissableRunInSubprocess(function()
+            local ok, result, failure = pcall(Chapters.build, doc, doc.file)
+            if not ok then return nil, "chapter_preparation_failed" end
+            return result, failure
+        end, control)
+        control.dismiss_callback = nil
+        if self.chapter_task == control then self.chapter_task = nil end
+        if generation ~= self.chapter_generation or self.ui.document ~= doc or not self.options.chapters
+            or (self.ui.handmade and self.ui.handmade.toc_enabled) or rawget(doc, "getToc") ~= original then return end
+        if not complete or not entries then
+            self.chapter_error = reason or "chapter_preparation_cancelled"
+            if complete then self:notice(self.chapter_error) end
+            return
+        end
+        self.chapter_error = nil
+        if #entries == 0 then return end
+        self.original_toc_provider, self.toc_document = original, doc
+        self.toc_provider = function() return require("util").tableDeepCopy(entries) end
+        doc.getToc = self.toc_provider
+        self.ui:handleEvent(Event:new("UpdateToc"))
+        self.ui.toc:fillToc()
+        self.ui.view.footer:maybeUpdateFooter()
+        require("logger").info("FloNovel native ToC ready; entries=" .. #entries)
+    end)
 end
 
 function FloNovel:saveOptions()
@@ -340,14 +341,9 @@ function FloNovel:addToMainMenu(items)
         { text = tr("chapters"), checked_func = function() return self.options.chapters end,
           callback = function()
               self.options.chapters = not self.options.chapters
-              self:invalidate()
+              self:queueNativeToc()
               self:saveOptions()
           end },
-        { text = tr("list"), callback = function() self:onFloNovelChapters() end },
-        { text = tr("next_chapter"), callback = function() self:onFloNovelNextChapter() end },
-        { text = tr("previous_chapter"), callback = function() self:onFloNovelPreviousChapter() end },
-        { text = tr("next_part"), callback = function() self:onFloNovelNextPart() end },
-        { text = tr("previous_part"), callback = function() self:onFloNovelPreviousPart() end },
     }
     for _, kind in ipairs{ "files", "position" } do
         entries[#entries + 1] = { text = tr(kind), checked_func = function() return self.options[kind] == true end,
@@ -378,19 +374,9 @@ function FloNovel:addToMainMenu(items)
         callback = function() self:checkpointPosition(true, true) end }
     entries[#entries + 1] = { text = tr("reset_scope"), callback = function() self:resetScope() end }
     entries[#entries + 1] = { text = tr("status"), callback = function()
-        self:message(self.sync_error and tr("network_failed", self.sync_error) or tr("status_ok"))
+        local reason = self.sync_error or self.chapter_error
+        self:message(reason and tr("unavailable", reason) or tr("status_ok"))
     end }
-    local divisions = {}
-    for _, count in ipairs{ 1, 2, 4, 8, 16, 32 } do
-        divisions[#divisions + 1] = { text = tostring(count),
-            checked_func = function() return self.options.divisions == count end,
-            callback = function()
-                self.options.divisions = count
-                self:invalidate()
-                self:saveOptions()
-            end }
-    end
-    entries[#entries + 1] = { text = tr("divisions"), sub_item_table = divisions }
     -- Orphan hints append to the end of a tab, which can hide this behind a
     -- second page. Put the entry first in the standard reader/file-manager order.
     local order = require(self.ui.document and "ui/elements/reader_menu_order"
@@ -405,16 +391,21 @@ end
 
 function FloNovel:onReaderReady()
     self:invalidate()
+    self:queueNativeToc()
     if self.options.position then UIManager:scheduleIn(1, self.initial_fetch) end
 end
 function FloNovel:onCloseDocument()
+    self:clearNativeToc()
     UIManager:unschedule(self.checkpoint)
     UIManager:unschedule(self.initial_fetch)
     self:checkpointPosition(false)
     self:invalidate()
     if self.options.position then UIManager:scheduleIn(0, self.close_flush) end
 end
-function FloNovel:onDocumentRerendered() self:invalidate() end
+function FloNovel:onDocumentRerendered()
+    self:invalidate()
+    self:queueNativeToc()
+end
 function FloNovel:onPageUpdate()
     if self.options.position then
         UIManager:unschedule(self.checkpoint)

@@ -5,8 +5,8 @@
 A single plugin for KOReader on a jailbroken Kindle. This is a development version tested with
 KOReader v2026.07.1 on a PC. Kindle execution and live Dropbox/Supabase integration require separate validation.
 
-The installation unit is `flonovel.koplugin`. Chapter navigation, Dropbox files, and reading position
-sharing have independent switches. Only chapter navigation is enabled by default.
+The installation unit is `flonovel.koplugin`. Native ToC integration, Dropbox files, and reading position
+sharing have independent switches. Only native ToC integration is enabled by default.
 FloNovel is the first item directly in the Tools tab, in both the reader and file manager.
 
 ## Installation and reading
@@ -14,14 +14,18 @@ FloNovel is the first item directly in the Tools tab, in both the reader and fil
 1. Exit KOReader and connect USB. Copy `flonovel.koplugin` from the development package into
    the Kindle's `koreader/plugins/` directory.
 2. Disconnect USB and launch KOReader through its usual book-list entry.
-3. Open a UTF-8 TXT book and use **FloNovel** for the chapter list, previous/next chapter, and
-   subdivision jumps. TXT layout must be preformatted (as-is); the plugin does not change global layout settings.
-4. Choose 1/2/4/8/16/32 subdivisions per chapter. Assign `FloNovel:` actions in KOReader's gesture settings.
+3. Open a UTF-8 TXT book and enable **FloNovel → Use ## markers in KOReader's table of contents**.
+   TXT layout must be preformatted (as-is); global layout settings are not changed.
+4. Use KOReader's **Table of contents**, **Previous chapter**, and **Next chapter** actions,
+   including in gesture settings. FloNovel's separate navigation, subdivisions and division settings
+   have been removed.
 
-Chapters are detected from the original `##` prefix on opening, using the confirmed `^##` format.
-Trusted headings have no 60-character limit. Unicode trimming, UTF-16 subdivision arithmetic, and the
-short-chapter exception of at most 20 LF characters match the existing apps. An unrepresentable target,
-including hidden whitespace or a surrogate interior, is deferred with a reason. Ordinary reading continues.
+Only original lines starting with `^##` are selected; indented markers are not selected. Trusted
+titles have no 60-character cap. Candidates are checked against native text and child boundaries.
+Preparation streams the source in a subprocess without building a whole-book source map, leaving
+reading responsive. Entries are rebuilt on opening and after font/layout changes, and are never saved
+to the source or handmade ToC settings. An enabled handmade ToC takes precedence. Unsupported layouts
+retain the existing ToC and report a reason.
 Native page anchors on blank lines map to their exact source-line starts after full DOM order validation.
 LF, CRLF, a UTF-8 BOM, and leading/trailing blank lines are covered by ReaderUI regression tests;
 a verified terminal empty element maps to logical EOF.
@@ -74,7 +78,7 @@ are withheld. Supabase requests omit Authorization and user_key. Push never perf
 for conflict resolution; server max-wins remains authoritative.
 
 Opening a book checks the remote row before building a source map, so absent or offline lookups do
-not trigger full-book mapping. Chapter analysis uses one Unicode pass, and content hashing uses
+not trigger full-book mapping. Marker ToC preparation uses a separate streaming scan, and content hashing uses
 the bundled native crypto library when available, with a Lua fallback. Source-hash checks remain
 mandatory; PC timing improvements still require separate validation on the Kindle.
 Preparation phase timings and the hash backend are logged without book paths or credentials.
@@ -94,14 +98,13 @@ An installation can explicitly enable the option.
 The source-body hash is bound asynchronously. Native capture, search, enqueue and transmission run
 in the worker, preserving body/account/library guards and exact offsets. Blank anchors resolve to exact
 source-line starts after checking native parent boundaries and preceding paragraph text. Unverified EOF,
-repeated paragraphs, long lines, transformed layouts and invalid Unicode are held. Chapter actions still use the
-original mapper on demand, and close checkpoints retain a synchronous path. This does not guarantee
+repeated paragraphs, long lines, transformed layouts and invalid Unicode are held. Chapters use KOReader's native ToC; close checkpoints retain a synchronous path. This does not guarantee
 a one-second bound or support for every book. Disable the option to restore the original position path.
 
 ## Current limits and removal
 
 - Downloads stream to disk without a 16 MiB cap. Storage/filesystem errors and content-hash verification still apply.
-- Mapping for chapter navigation and position sharing is currently capped at 16 MiB per file. Larger books can be downloaded and read with KOReader itself; expanding mapping-memory support is a separate improvement.
+- Mapping for position sharing is currently capped at 16 MiB per file. Larger books can be downloaded and read with KOReader itself; expanding mapping-memory support is a separate improvement.
 - Only UTF-8 TXT and the verified preformatted DOM grammar are supported. Other encodings or engine transformations are not guessed.
 - Keys use NFC and a JDK 21 non-contextual lowercase table. Context-sensitive capital Greek Sigma and
   Unicode characters undefined in that JDK are deferred. NFKC casefold is never used.
@@ -136,7 +139,7 @@ is remembered per profile; `-FullMap` restores the original implementation. Only
 copy is patched. The generated `no-index-8MiB.txt` has distinguishable paragraphs for testing.
 Normal position updates avoid full-map/chapter preparation, and search/enqueue/flush run in a
 cancellable subprocess. Remote targets are checked against native text before offering a jump.
-Chapter actions still prepare the original map on demand. Ambiguous repeated paragraphs and
+Chapter actions use the product native ToC bridge. Ambiguous repeated paragraphs and
 non-text anchors are held explicitly. This experimental mode is not a Kindle release.
 
 The GUI profile enables chapter and position features. FloNovel position requests use a
