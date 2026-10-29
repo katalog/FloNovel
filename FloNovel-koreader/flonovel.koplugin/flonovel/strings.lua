@@ -1,5 +1,10 @@
 local en = {
     fast_position = "Fast position sharing (experimental)",
+    check_position = "Check other devices' reading position",
+    remote_absent = "No saved reading position was found for this book.",
+    remote_current = "No later reading position was found on another device.",
+    remote_changed = "The page changed during the check. The check will retry after you stop turning pages.",
+    remote_pending = "The remote reading position check has not completed yet.",
     chapters = "Use ## markers in KOReader's table of contents",
     unavailable = "FloNovel could not map this position exactly: %1",
     not_txt = "Open a UTF-8 TXT book to share its reading position.",
@@ -21,6 +26,11 @@ local en = {
 }
 local ko = {
     fast_position = "빠른 위치 공유 (실험)",
+    check_position = "다른 기기의 읽은 위치 확인",
+    remote_absent = "이 책의 서버 읽은 위치가 없습니다.",
+    remote_current = "다른 기기에 더 뒤의 읽은 위치가 없습니다.",
+    remote_changed = "확인 중 페이지가 바뀌었습니다. 페이지 넘김을 멈추면 다시 확인합니다.",
+    remote_pending = "서버 읽은 위치 확인이 아직 완료되지 않았습니다.",
     chapters = "## 마커를 KOReader 기본 목차에 사용",
     unavailable = "FloNovel에서 이 위치를 정확히 대응할 수 없습니다: %1",
     not_txt = "읽은 위치를 공유하려면 UTF-8 TXT 책을 여세요.",

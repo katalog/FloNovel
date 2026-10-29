@@ -37,6 +37,9 @@ end
 
 function FloNovel:invalidate()
     self.generation = self.generation + 1
+    local control = self.position_fetch_control
+    if control and control.dismiss_callback then control.dismiss_callback() end
+    self.remote_lookup_completed, self.position_lookup_retry = false, nil
     self.map = nil
 end
 
@@ -161,10 +164,16 @@ function FloNovel:message(text)
     UIManager:show(InfoMessage:new{ text = text, timeout = 6 })
 end
 
-function FloNovel:runNetwork(kind, task, callback, interactive)
+function FloNovel:runNetwork(kind, task, callback, interactive, control)
     if self.network_busy then if interactive then self:message(tr("busy")) end; return end
     if kind and not self.options[kind] then return end
-    if not interactive and not require("ui/network/manager"):isConnected() then return end
+    if not interactive and not require("ui/network/manager"):isConnected() then
+        if control then
+            self.position_fetch_control = nil
+            require("logger").info("FloNovel position lookup skipped: offline")
+        end
+        return
+    end
     self.network_busy = true
     local generation = self.generation
     local Trapper = require("ui/trapper")
@@ -173,13 +182,16 @@ function FloNovel:runNetwork(kind, task, callback, interactive)
             local ok, value, failure = pcall(task)
             if not ok then return nil, "synchronization_failed" end
             return value, failure
-        end, interactive and tr("syncing") or nil)
+        end, control or (interactive and tr("syncing") or nil))
+        if control then control.dismiss_callback = nil end
+        if self.position_fetch_control == control then self.position_fetch_control = nil end
         self.network_busy = nil
         if kind and not self.options[kind] then return end
         if kind == "position" and generation ~= self.generation then return end
         if not complete then if interactive then self:message(tr("cancelled")) end; return end
         if not result then
             self.sync_error = reason
+            if control then require("logger").info("FloNovel position lookup deferred:", reason) end
             if interactive then self:message(tr("network_failed", reason)) end
             return
         end
@@ -289,7 +301,7 @@ function FloNovel:flushPending(interactive)
         end, interactive)
 end
 
-function FloNovel:fetchPosition()
+function FloNovel:fetchPosition(interactive)
     if not self.options.position then return end
     local config = self:loadConnection()
     if not config or not config.position_verified then return end
@@ -299,14 +311,41 @@ function FloNovel:fetchPosition()
     -- hash the whole book before an absent/offline lookup can be dismissed.
     self:runNetwork("position", function() return Position.new(config):fetch(identity.key) end,
         function(remote, generation)
-            if generation ~= self.generation or remote.absent or not self:connectionMatches(config) then return end
-            local map = self:ensureMap()
-            if not map then return end
+            if generation ~= self.generation or not self:connectionMatches(config) then return end
+            if remote.absent then
+                self.remote_lookup_completed = true
+                if interactive then self:message(tr("remote_absent")) end
+                return
+            end
+            local map, reason = self:ensureMap()
+            if not map then
+                self.sync_error = reason
+                if interactive then self:notice(reason) end
+                return
+            end
             local current = map:from_xpointer(self.ui.rolling:getLastProgress())
-            if not current or remote.char_offset - current <= 500
-                or require("flonovel.content_hash").file(identity.physical) ~= map.source_hash then return end
+            if not current then
+                self.sync_error = "current_position_not_representable"
+                if interactive then self:notice(self.sync_error) end
+                return
+            end
+            if remote.char_offset - current <= 500 then
+                self.remote_lookup_completed = true
+                if interactive then self:message(tr("remote_current")) end
+                return
+            end
+            if require("flonovel.content_hash").file(identity.physical) ~= map.source_hash then
+                self.sync_error = "position_body_changed"
+                if interactive then self:notice(self.sync_error) end
+                return
+            end
             local xp = map:to_exact_boundary(remote.char_offset)
-            if not xp then self.sync_error = "remote_position_not_representable"; return end
+            if not xp then
+                self.sync_error = "remote_position_not_representable"
+                if interactive then self:notice(self.sync_error) end
+                return
+            end
+            self.remote_lookup_completed = true
             UIManager:show(require("ui/widget/confirmbox"):new{
                 text = tr("remote_position", remote.char_offset),
                 ok_callback = function()
@@ -317,7 +356,7 @@ function FloNovel:fetchPosition()
                     end
                 end,
             })
-        end, false)
+        end, interactive)
 end
 
 function FloNovel:resetScope()
@@ -372,10 +411,14 @@ function FloNovel:addToMainMenu(items)
         callback = function() self:syncFiles() end }
     entries[#entries + 1] = { text = tr("sync_position"), enabled_func = function() return self.options.position == true end,
         callback = function() self:checkpointPosition(true, true) end }
+    entries[#entries + 1] = { text = tr("check_position"), enabled_func = function()
+        return self.options.position == true and self.ui.document ~= nil
+    end, callback = function() self:fetchPosition(true) end }
     entries[#entries + 1] = { text = tr("reset_scope"), callback = function() self:resetScope() end }
     entries[#entries + 1] = { text = tr("status"), callback = function()
         local reason = self.sync_error or self.chapter_error
-        self:message(reason and tr("unavailable", reason) or tr("status_ok"))
+        local pending = self.ui.document and self.options.position and not self.remote_lookup_completed
+        self:message(reason and tr("unavailable", reason) or tr(pending and "remote_pending" or "status_ok"))
     end }
     -- Orphan hints append to the end of a tab, which can hide this behind a
     -- second page. Put the entry first in the standard reader/file-manager order.
@@ -405,11 +448,22 @@ end
 function FloNovel:onDocumentRerendered()
     self:invalidate()
     self:queueNativeToc()
+    if self.options.position then UIManager:scheduleIn(1, self.initial_fetch) end
 end
 function FloNovel:onPageUpdate()
     if self.options.position then
+        if self.position_lookup_retry then
+            UIManager:unschedule(self.initial_fetch)
+            UIManager:scheduleIn(5, self.initial_fetch)
+        end
         UIManager:unschedule(self.checkpoint)
         UIManager:scheduleIn(10, self.checkpoint)
+    end
+end
+function FloNovel:onNetworkConnected()
+    if self.options.position and self.ui.document then
+        UIManager:unschedule(self.initial_fetch)
+        UIManager:scheduleIn(1, self.initial_fetch)
     end
 end
 function FloNovel:onSuspend() self:checkpointPosition(false) end

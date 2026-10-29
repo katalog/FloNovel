@@ -32,6 +32,9 @@ body='''
 local ui=open("library/no-index-8MiB.txt")
 local manager=require("ui/uimanager");manager:show(ui);manager:forceRePaint()
 local plugin=assert(ui.flonovel);plugin.options.position=true
+-- The marker-ToC worker has its own CPU-5% experiment. Isolate the position
+-- worker here so its heartbeat threshold measures the feature named by this probe.
+plugin.options.chapters=false;plugin:clearNativeToc()
 plugin.ensureMap=function() error("full mapping must not run during experimental position sharing") end
 local probe=require("flonovel.fast_position")
 check("portable Unicode backend available",probe.supported)
@@ -112,6 +115,39 @@ plugin:checkpointPosition(true,false)
 local retained=assert(client:fetch("blank-start.txt"))
 check("blank checkpoint uploads without lowering server maximum",retained.char_offset==remote_target)
 check("blank recovery never builds full map",plugin.map==nil)
+local synchronous=plugin.runNetwork
+local handles={}
+plugin.runNetwork=function(self,kind,task,callback,interactive,control)
+ handles[#handles+1]={interactive=interactive,nonmodal=type(control)=="table"}
+ return synchronous(self,kind,task,callback)
+end
+confirmation=nil
+manager.show=function(self,widget,...)
+ if widget.ok_callback then confirmation=widget;return end
+ return show(self,widget,...)
+end
+plugin:fetchPosition(false)
+manager.show=show
+check("both automatic lookup stages are nonmodal",#handles==2 and handles[1].nonmodal and handles[2].nonmodal)
+check("automatic check offers remote jump",confirmation~=nil and plugin.remote_lookup_completed)
+local target_xp=assert(probe.reverse(ui.document.file,remote_target)).xp
+ui:handleEvent(Event:new("GotoXPointer",target_xp))
+local message
+plugin.message=function(_,text)message=text end
+handles={}
+plugin:fetchPosition(true)
+check("manual lookup is interactive in both stages",#handles==2 and handles[1].interactive and handles[2].interactive and not handles[1].nonmodal)
+check("manual no-later-position result is explicit",message==require("flonovel.strings")("remote_current"))
+ui:handleEvent(Event:new("GotoXPointer",blank_xp))
+local calls=0
+plugin.runNetwork=function(self,kind,task,callback)
+ calls=calls+1
+ local value,reason=task();assert(value,reason)
+ if calls==2 then ui:handleEvent(Event:new("GotoXPointer",target_xp)) end
+ callback(value,plugin.generation)
+end
+plugin:fetchPosition(false)
+check("changed page defers and retries lookup instead of losing it",plugin.position_lookup_retry==true and not plugin.remote_lookup_completed)
 ui:onClose()
 local result={total=total,passed=total-failed,failed=failed,skipped=0,timings=timings,max_heartbeat_lateness_seconds=maximum,scope="Actual product fast-position module; synthetic8MiB, CPU5%, no live services or Kindle"}
 local out=assert(io.open(home.."/no-index-results.json","wb"));out:write(json.encode(result));out:close()

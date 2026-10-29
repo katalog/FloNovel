@@ -256,16 +256,34 @@ function Fast.install(FloNovel)
             if not ok then self.sync_error = reason end
         end
     end
-    function FloNovel:fetchPosition()
+    function FloNovel:fetchPosition(interactive)
         local selected = self:loadConnection()
-        if not selected or not selected.fast_position_enabled then return previous_fetch(self) end
+        if not selected or not selected.fast_position_enabled then return previous_fetch(self, interactive) end
         if not self.options.position then return end
         local config = self:loadConnection()
         if not allowed(self, config) then return end
         local identity = self:bookIdentity(config)
         if not identity then return end
         if not supported then self.sync_error = "fast_native_unavailable"; return end
-        self:runNetwork("position", function()
+        if self.network_busy then
+            if interactive then self:message(tr("busy"))
+            else
+                self.position_lookup_retry = true
+                UIManager:unschedule(self.initial_fetch)
+                UIManager:scheduleIn(5, self.initial_fetch)
+            end
+            return
+        end
+        self.position_lookup_retry, self.remote_lookup_completed = nil, false
+        local function lookup(task, callback)
+            -- The default invisible trap aborts a fetch on any reading tap.
+            -- Automatic checks instead use a lifecycle cancellation handle.
+            local control = not interactive and {} or nil
+            self.position_fetch_control = control
+            self:runNetwork("position", task, callback, interactive, control)
+        end
+        require("logger").info("FloNovel position lookup started")
+        lookup(function()
             local hash, failure = Hash.file(identity.physical)
             if not hash then return nil, failure end
             local remote, reason = Position.new(config):fetch(identity.key)
@@ -273,15 +291,23 @@ function Fast.install(FloNovel)
             return { remote = remote, hash = hash }
         end,
             function(response, generation)
+                if not self:connectionMatches(config) then return end
                 self.fast_source_hash = response.hash
                 local remote = response.remote
-                if remote.absent or remote.char_offset == 0 then return end
+                require("logger").info("FloNovel position lookup received; absent=", remote.absent == true,
+                    "offset=", remote.char_offset or 0)
+                if remote.absent or remote.char_offset == 0 then
+                    self.remote_lookup_completed = true
+                    if interactive then self:message(tr(remote.absent and "remote_absent" or "remote_current")) end
+                    return
+                end
                 local reader, original_xp = snapshot(self)
-                self:runNetwork("position", function()
+                lookup(function()
                     local captured, failure = Fast.capture(reader)
                     if not captured then return nil, failure end
                     local current, reason = Fast.locate(identity.physical, captured)
                     if not current then return nil, reason end
+                    require("logger").info("FloNovel position lookup current offset=", current.offset)
                     if current.hash ~= response.hash then return nil, "position_body_changed" end
                     if remote.char_offset - current.offset <= 500 then return { absent = true } end
                     local target, error = Fast.reverse(identity.physical, remote.char_offset)
@@ -292,8 +318,20 @@ function Fast.install(FloNovel)
                     if not reader.document:isXPointerInDocument(target.xp) then return nil, "fast_invalid_target" end
                     return target
                 end, function(target)
-                    if target.absent or generation ~= self.generation or not self:connectionMatches(config)
-                        or self.ui.rolling:getLastProgress() ~= original_xp then return end
+                    if generation ~= self.generation or not self:connectionMatches(config) then return end
+                    if self.ui.rolling:getLastProgress() ~= original_xp then
+                        self.position_lookup_retry = true
+                        UIManager:unschedule(self.initial_fetch)
+                        UIManager:scheduleIn(5, self.initial_fetch)
+                        if interactive then self:message(tr("remote_changed")) end
+                        return
+                    end
+                    self.remote_lookup_completed = true
+                    if target.absent then
+                        if interactive then self:message(tr("remote_current")) end
+                        return
+                    end
+                    require("logger").info("FloNovel position lookup offering remote jump")
                     UIManager:show(require("ui/widget/confirmbox"):new{
                         text = tr("remote_position", remote.char_offset),
                         ok_callback = function()
@@ -303,8 +341,8 @@ function Fast.install(FloNovel)
                             end
                         end,
                     })
-                end, false)
-            end, false)
+                end)
+            end)
     end
 end
 

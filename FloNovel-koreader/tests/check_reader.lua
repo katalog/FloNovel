@@ -70,6 +70,12 @@ check("font change retains canonical anchor", map:from_xpointer(ui.rolling:getLa
 local items = {}
 plugin:addToMainMenu(items)
 check("product menu registered", items.flonovel ~= nil)
+local fetch_position = plugin.fetchPosition
+local manual_lookup = false
+plugin.fetchPosition = function(_, interactive) manual_lookup = interactive == true end
+items.flonovel.sub_item_table[8].callback()
+check("explicit remote check menu requests interactive lookup", manual_lookup)
+plugin.fetchPosition = fetch_position
 local sorted_menu = require("ui/menusorter"):sort({ ["KOMenu:menu_buttons"] = {}, tools = { text = "Tools" }, flonovel = items.flonovel },
     { ["KOMenu:menu_buttons"] = { "tools" }, tools = require("ui/elements/reader_menu_order").tools })
 local tools_menu = require("ui/menusorter"):findById(sorted_menu, "tools")
@@ -110,6 +116,22 @@ assert(State.write(config_dir .. "/config.json", { version = 1, account_id = "sy
 plugin.options.position, plugin.options.files, plugin.options.chapters = true, false, false
 plugin:checkpointPosition(false)
 check("position sharing independent of chapter and file toggles", State.read(config_dir .. "/positions.json").jobs["book.txt"].offset == second)
+local Trapper, Network = require("ui/trapper"), require("ui/network/manager")
+local wrap, run, connected = Trapper.wrap, Trapper.dismissableRunInSubprocess, Network.isConnected
+local control, passed_control, delivered = {}, nil, false
+Trapper.wrap = function(_, fn) fn() end
+Trapper.dismissableRunInSubprocess = function(_, fn, handle) passed_control = handle; return true, fn() end
+Network.isConnected = function() return true end
+plugin.position_fetch_control = control
+plugin:runNetwork("position", function() return true end, function() delivered = true end, false, control)
+check("automatic lookup passes explicit nonmodal cancellation handle", passed_control == control and delivered)
+check("completed lookup releases lifecycle handle", plugin.position_fetch_control == nil)
+local cancelled = false
+plugin.position_fetch_control = { dismiss_callback = function() cancelled = true end }
+plugin:invalidate()
+check("invalidation cancels automatic lookup", cancelled and not plugin.remote_lookup_completed)
+plugin.position_fetch_control = nil
+Trapper.wrap, Trapper.dismissableRunInSubprocess, Network.isConnected = wrap, run, connected
 local pending_callback
 plugin.runNetwork = function(_, _, _, callback) pending_callback = callback end
 plugin:fetchPosition()
@@ -198,7 +220,7 @@ local fm = require("apps/filemanager/filemanager"):new{ root_path = home, dimen 
 check("plugin loaded in FileManager without a book", fm.flonovel ~= nil and fm.document == nil)
 local fm_items = {}
 fm.flonovel:addToMainMenu(fm_items)
-check("FileManager has independent sync controls", fm_items.flonovel and #fm_items.flonovel.sub_item_table == 9)
+check("FileManager has independent sync controls", fm_items.flonovel and #fm_items.flonovel.sub_item_table == 10)
 local fm_sorted = require("ui/menusorter"):sort({ ["KOMenu:menu_buttons"] = {}, tools = { text = "Tools" }, flonovel = fm_items.flonovel },
     { ["KOMenu:menu_buttons"] = { "tools" }, tools = require("ui/elements/filemanager_menu_order").tools })
 local fm_tools = require("ui/menusorter"):findById(fm_sorted, "tools")

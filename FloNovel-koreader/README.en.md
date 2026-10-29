@@ -95,6 +95,12 @@ ASCII, Hangul, and emoji vectors on startup. Results are written to settings/flo
 This option is off by default; fast_position_enabled in the connection configuration preserves it.
 An installation can explicitly enable the option.
 
+Automatic remote checks in this mode do not cancel on reading taps. If the page changes during a
+check, it retries after five seconds without page turns; Wi-Fi connection also triggers a check.
+Closing the book or changing settings cancels active checks and rejects late responses.
+**Check other devices' reading position** explicitly reports a jump offer, no server row, no later
+position, or a conversion deferral. Status distinguishes an incomplete check from a completed one.
+
 The source-body hash is bound asynchronously. Native capture, search, enqueue and transmission run
 in the worker, preserving body/account/library guards and exact offsets. Blank anchors resolve to exact
 source-line starts after checking native parent boundaries and preceding paragraph text. Unverified EOF,
