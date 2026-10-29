@@ -96,6 +96,24 @@ KOReader 플러그인 관리에서 FloNovel을 끈 후 재시작하면 비활성
 
 ## 개발 검증
 
+Windows의 WSL2·WSLg에서 화면을 직접 조작하려면 다음을 실행합니다.
+
+```powershell
+.\FloNovel-koreader\tools\start_emulator.ps1
+```
+
+공식 Linux v2026.07.1 런타임이 `.work/runtime/lib/koreader`에 있어야 합니다.
+실제 SDL GUI를 열고 `.work/emulator/desktop`에 별도 설정·캐시와 합성 책
+128 KiB/2 MiB/8 MiB를 만듭니다. 매 실행에서 제품13파일을 갱신하며 해당 프로필의
+설정과 읽기 상태는 보존합니다. 창을 닫은 후 다시 실행하세요. `-Profile 다른이름`으로
+프로필을 나눌 수 있으며 이름은 영문 소문자·숫자·하이픈만 사용합니다. 기본값은 Lua 부하를
+더 드러내는 인터프리터 실행이고 `-Jit`으로 일반 JIT 실행을 사용할 수 있습니다.
+
+GUI 프로필은 챕터와 위치 공유를 켜며 FloNovel 위치 요청은 실제 계정·외부 통신 없이
+로컬 모의 전송과 JSON max-wins 상태로 처리합니다. Dropbox 동작은 별도 오프라인 제품
+검사에서 확인합니다. 이 모의 서버는 실서버나 TLS를 검증하지 않습니다. CPU 구조·메모리
+한계·절전·전자잉크 동작은 Kindle 확인이 필요하며 PC 시간을 Kindle 시간으로 표시하지 않습니다.
+
 Linux/WSL에서 압축을 푼 공식 KOReader v2026.07.1과 Python 3, OpenSSL이 필요합니다.
 
 ```text

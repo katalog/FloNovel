@@ -97,6 +97,25 @@ Dropbox authorization. Do not run KOReader while USB storage is connected.
 
 ## Development verification
 
+For an interactive Windows/WSL2 session with WSLg, run:
+
+```powershell
+.\FloNovel-koreader\tools\start_emulator.ps1
+```
+
+The launcher expects the official Linux v2026.07.1 runtime at
+`.work/runtime/lib/koreader`. It opens the actual SDL GUI with isolated settings, caches,
+and synthetic 128 KiB/2 MiB/8 MiB books under `.work/emulator/desktop`. Each launch refreshes
+the 13 plugin files while preserving that profile's settings and reading state. Close the
+window before relaunching. Use `-Profile another-name` for an independent profile and `-Jit`
+for normal JIT execution; the default interpreter mode stresses Lua work on the host.
+
+The GUI profile enables chapter and position features. FloNovel position requests use a
+local synthetic transport and JSON max-wins state, with no real account or network requests.
+Dropbox behavior is covered separately by the offline product gate. The mock does not validate
+the live server or TLS. CPU architecture, memory limits, suspend, and e-ink behavior still need
+Kindle verification. Host timings must not be reported as Kindle timings.
+
 Use an extracted official Linux KOReader v2026.07.1 runtime, Python 3, and OpenSSL on Linux/WSL.
 
 ```text
