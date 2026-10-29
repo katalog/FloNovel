@@ -192,3 +192,34 @@ observations: neither the bundled default casefold nor simple lowercase is assum
 to match JVM full lowercase. This uses no account credentials or remote requests.
 Results are under `.work/results/finish/`. The loopback TLS and logical-EOF sketches
 in private research results are feasibility probes, not shipped product clients.
+
+## Prepared sparse position index
+
+```sh
+python3 experiments/run_sparse_probe.py --cpu-percent 5
+```
+
+This separate experiment uses the pinned Linux runtime, synthetic inputs, an interpreter,
+and a systemd user CPU quota. It never contacts services or updates the product plugin.
+Reports and input/code SHA-256 manifests are written under `.work/results/sparse-probe/`.
+
+The prototype validates the complete source/DOM correspondence once with the current mapper,
+then saves source byte/UTF-16/node-count checkpoints roughly every 4 KiB. Reloading checks the
+index digest, whole-source content hash, and rendering binding. A prepared conversion reads at
+most 6,148 source bytes; reverse conversion may read that window twice. Canonical paths reuse
+the validated correspondence instead of traversing all preceding DOM siblings on each query.
+
+In the 5% CPU run, the 8 MiB index was 59,223 bytes. Among 84 distributed source conversions,
+the maximum was 94.99 ms; reverse conversion maximum was 91.45 ms. Twelve native page anchors
+had a maximum of 97.07 ms. All 746 checks passed with zero UTF-16 or UTF-8-byte error on the
+supported inputs. These are measured PC samples with a potentially warm OS cache, not a
+Kindle latency guarantee or a proof for every input and scheduler condition.
+
+Preparation still took 43.32 seconds, and index reload plus full source verification took
+0.40 seconds for 8 MiB. Preparation includes the old full mapper and must not block reading
+in any future integration. Source-only indexing during download has not been established as
+a replacement for full DOM validation. Lines over 1,024 bytes and transformed/split nodes are
+explicitly held. Changed rendering invalidates this conservative prototype. The existing
+body-hash guard is still required before enqueue/transmission; bounded queries do not rehash
+the whole file each time. No approximate offsets are sent, and no second reading anchor or
+chapter list is persisted. The plugin has not been switched to this experiment.
