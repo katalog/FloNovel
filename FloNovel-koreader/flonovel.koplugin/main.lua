@@ -371,7 +371,16 @@ function FloNovel:addToMainMenu(items)
             end }
     end
     entries[#entries + 1] = { text = tr("divisions"), sub_item_table = divisions }
-    items.flonovel = { text = "FloNovel", sorting_hint = "more_tools", sub_item_table = entries }
+    -- Orphan hints append to the end of a tab, which can hide this behind a
+    -- second page. Put the entry first in the standard reader/file-manager order.
+    local order = require(self.ui.document and "ui/elements/reader_menu_order"
+        or "ui/elements/filemanager_menu_order")
+    if order.tools then
+        local found = false
+        for _, id in ipairs(order.tools) do if id == "flonovel" then found = true; break end end
+        if not found then table.insert(order.tools, 1, "flonovel") end
+    end
+    items.flonovel = { text = "FloNovel", sorting_hint = "tools", sub_item_table = entries }
 end
 
 function FloNovel:onReaderReady()

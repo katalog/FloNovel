@@ -57,6 +57,10 @@ check("font change retains canonical anchor", map:from_xpointer(ui.rolling:getLa
 local items = {}
 plugin:addToMainMenu(items)
 check("product menu registered", items.flonovel ~= nil)
+local sorted_menu = require("ui/menusorter"):sort({ ["KOMenu:menu_buttons"] = {}, tools = { text = "Tools" }, flonovel = items.flonovel },
+    { ["KOMenu:menu_buttons"] = { "tools" }, tools = require("ui/elements/reader_menu_order").tools })
+local tools_menu = require("ui/menusorter"):findById(sorted_menu, "tools")
+check("reader tools tab opens FloNovel directly as its first item", tools_menu and (tools_menu.sub_item_table or tools_menu)[1].text == "FloNovel")
 items.flonovel.sub_item_table[1].callback()
 check("disable clears cache", not plugin.map and not plugin.options.chapters)
 items.flonovel.sub_item_table[1].callback()
@@ -150,6 +154,10 @@ check("plugin loaded in FileManager without a book", fm.flonovel ~= nil and fm.d
 local fm_items = {}
 fm.flonovel:addToMainMenu(fm_items)
 check("FileManager has independent sync controls", fm_items.flonovel and #fm_items.flonovel.sub_item_table >= 12)
+local fm_sorted = require("ui/menusorter"):sort({ ["KOMenu:menu_buttons"] = {}, tools = { text = "Tools" }, flonovel = fm_items.flonovel },
+    { ["KOMenu:menu_buttons"] = { "tools" }, tools = require("ui/elements/filemanager_menu_order").tools })
+local fm_tools = require("ui/menusorter"):findById(fm_sorted, "tools")
+check("file manager tools tab opens FloNovel directly as its first item", fm_tools and (fm_tools.sub_item_table or fm_tools)[1].text == "FloNovel")
 check("reader mapping unavailable in FileManager", fm.flonovel:ensureMap() == nil)
 fm:onClose()
 

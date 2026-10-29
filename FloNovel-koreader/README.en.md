@@ -7,6 +7,7 @@ KOReader v2026.07.1 on a PC. Kindle execution and live Dropbox/Supabase integrat
 
 The installation unit is `flonovel.koplugin`. Chapter navigation, Dropbox files, and reading position
 sharing have independent switches. Only chapter navigation is enabled by default.
+FloNovel is the first item directly in the Tools tab, in both the reader and file manager.
 
 ## Installation and reading
 
