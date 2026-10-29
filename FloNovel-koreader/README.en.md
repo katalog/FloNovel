@@ -109,9 +109,9 @@ and synthetic 128 KiB/2 MiB/8 MiB books under `.work/emulator/desktop`. Each lau
 the 13 plugin files while preserving that profile's settings and reading state. Close the
 window before relaunching. Use `-Profile another-name` for an independent profile and `-Jit`
 for normal JIT execution; the default interpreter mode stresses Lua work on the host.
-The default CPU quota is 10% of one core, enforced by a systemd user scope with a 100 ms
+The default CPU quota is 5% of one core, enforced by a systemd user scope with a 100 ms
 period. It also covers forked workers and leaves other WSL applications unaffected. Use
-`-CpuPercent 5` for a slower run or `-CpuPercent 0` for an unlimited run. CPU limiting
+`-CpuPercent 2` for a slower run or `-CpuPercent 0` for an unlimited run. CPU limiting
 requires a working systemd user manager; an unavailable limit is not silently ignored.
 
 The GUI profile enables chapter and position features. FloNovel position requests use a

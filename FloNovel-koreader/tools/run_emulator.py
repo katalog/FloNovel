@@ -109,7 +109,7 @@ def main():
     parser.add_argument('--width', type=int, default=600)
     parser.add_argument('--height', type=int, default=800)
     parser.add_argument('--prepare-only', action='store_true')
-    parser.add_argument('--cpu-percent', type=int, default=10,
+    parser.add_argument('--cpu-percent', type=int, default=5,
                         help='CPU quota as a percentage of one core (1-100); 0 disables the limit')
     args = parser.parse_args()
     if sys.platform != 'linux':

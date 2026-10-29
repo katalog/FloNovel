@@ -1,4 +1,4 @@
-param([switch]$Jit, [string]$Profile = 'desktop', [ValidateRange(0, 100)][int]$CpuPercent = 10)
+param([switch]$Jit, [string]$Profile = 'desktop', [ValidateRange(0, 100)][int]$CpuPercent = 5)
 $ErrorActionPreference = 'Stop'
 $scriptPath = Join-Path $PSScriptRoot 'run_emulator.py'
 $linuxPath = & wsl.exe --exec wslpath -u $scriptPath
