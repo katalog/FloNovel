@@ -1,10 +1,13 @@
 """Check isolation and repeatable setup of the synthetic GUI profile."""
 import importlib.util
+import contextlib
+import io
 import json
 from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 PROJECT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('flonovel_emulator', PROJECT / 'tools/run_emulator.py')
@@ -66,3 +69,16 @@ class EmulatorTest(unittest.TestCase):
         for name in ['../outside', '/outside', 'nested/path', '']:
             with self.assertRaises(ValueError):
                 emulator.prepare(self.project, name)
+
+    def test_invalid_cpu_quota_rejected_before_profile_setup(self):
+        runtime = self.project / 'runtime'
+        runtime.mkdir()
+        (runtime / 'git-rev').write_text('v2026.07.1')
+        for percentage in ['-1', '101']:
+            arguments = ['run_emulator.py', '--runtime', str(runtime), '--cpu-percent', percentage]
+            errors = io.StringIO()
+            with mock.patch.object(emulator.sys, 'platform', 'linux'), mock.patch.object(emulator.sys, 'argv', arguments):
+                with contextlib.redirect_stderr(errors), self.assertRaises(SystemExit):
+                    emulator.main()
+            self.assertIn('CPU percentage must be between 0 and 100', errors.getvalue())
+        self.assertFalse((self.project / '.work').exists())

@@ -109,6 +109,8 @@ def main():
     parser.add_argument('--width', type=int, default=600)
     parser.add_argument('--height', type=int, default=800)
     parser.add_argument('--prepare-only', action='store_true')
+    parser.add_argument('--cpu-percent', type=int, default=10,
+                        help='CPU quota as a percentage of one core (1-100); 0 disables the limit')
     args = parser.parse_args()
     if sys.platform != 'linux':
         parser.error('Run through WSL/Linux; Windows users can use start_emulator.ps1')
@@ -118,6 +120,10 @@ def main():
         parser.error('Use the official Linux KOReader v2026.07.1 runtime')
     if not (320 <= args.width <= 2400 and 480 <= args.height <= 3200):
         parser.error('Invalid emulator dimensions')
+    if not 0 <= args.cpu_percent <= 100:
+        parser.error('CPU percentage must be between 0 and 100')
+    if args.cpu_percent and not shutil.which('systemd-run'):
+        parser.error('CPU limiting requires a running systemd user manager; use --cpu-percent 0 to disable it')
     import fcntl
     profile_root = project / '.work/emulator'
     profile_root.mkdir(parents=True, exist_ok=True)
@@ -142,6 +148,14 @@ def main():
         if not args.jit:
             command.append('-joff')
         command.extend([str(bootstrap), str(library)])
+        if args.cpu_percent:
+            # A kernel quota includes forked workers without blocking idle input
+            # handling with an artificial stop/resume timer.
+            command = ['systemd-run', '--user', '--scope', '--quiet',
+                       '--unit=flonovel-emulator-' + args.profile + '.scope',
+                       '--property=CPUQuota=' + str(args.cpu_percent) + '%',
+                       '--property=CPUQuotaPeriodSec=100ms', '--', *command]
+        print('CPU quota:', str(args.cpu_percent) + '% of one core' if args.cpu_percent else 'unlimited', flush=True)
         log = home / 'emulator.log'
         print('GUI log:', log, flush=True)
         with log.open('a') as output:
