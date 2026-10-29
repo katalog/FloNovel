@@ -21,7 +21,7 @@ for i,line in enumerate(lines):
   if i in selected:cases.append(dict(xp=f'/FictionBook/body/pre[{pre}]/text().5',offset=units+len(raw[:5].encode('utf-16-le'))//2))
  units+=len(line.encode('utf-16-le'))//2
 (h/'expected.json').write_text(json.dumps(cases))
-blank_source='\r\n \t\r\n## Blank start\r\n' + ''.join(
+blank_source='\r\n \t\r\n## Blank start\r\n' + '한'*600 + '😀 long paragraph\r\n\r\n' + '가'*2500 + 'q\r\n\r\n' + ''.join(
     f'Unique paragraph {i:04d}: 한글😀 reading position.\r\n\r\n' for i in range(100))
 (library/'blank-start.txt').write_bytes(('\ufeff'+blank_source).encode('utf-8'))
 (h/'blank-target.json').write_text(json.dumps(len(blank_source[:blank_source.index('Unique paragraph 0030')].encode('utf-16-le'))//2))

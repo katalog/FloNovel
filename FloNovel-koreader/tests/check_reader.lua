@@ -195,6 +195,22 @@ for _, case in ipairs(native_cases) do
             end
         end
     end
+    if case.name == "native-long-lines" then
+        local Fast = require("flonovel.fast_position")
+        for index, offsets in ipairs(case.pres) do
+            local xp = "/FictionBook/body/pre[" .. index .. "]/text().0"
+            local reader = { document = ui.document, typeset = ui.typeset,
+                rolling = { getLastProgress = function() return xp end } }
+            local captured, reason = Fast.capture(reader)
+            local value, failure
+            if captured then value, failure = Fast.locate(ui.document.file, captured) end
+            check("long native paragraph exact capture/" .. index .. ":" .. tostring(reason or failure),
+                value and value.offset == offsets[1])
+            local target = Fast.reverse(ui.document.file, offsets[1])
+            check("long native paragraph exact reverse/" .. index, target
+                and ui.document:getNormalizedXPointer(target.xp) == ui.document:getNormalizedXPointer(xp))
+        end
+    end
     for _, size in ipairs{ 18, 32 } do
         ui:handleEvent(Event:new("SetFontSize", size))
         plugin:gotoOffset(0)
@@ -227,6 +243,14 @@ local fm_tools = require("ui/menusorter"):findById(fm_sorted, "tools")
 check("file manager tools tab opens FloNovel directly as its first item", fm_tools and (fm_tools.sub_item_table or fm_tools)[1].text == "FloNovel")
 check("reader mapping unavailable in FileManager", fm.flonovel:ensureMap() == nil)
 fm:onClose()
+
+ui = open("native-split-line.txt")
+local Fast = require("flonovel.fast_position")
+local first_native = ui.document:getTextFromXPointer("/FictionBook/body/pre[1]/text()")
+check("native engine actually splits after the scalar threshold", first_native == string.rep("한",2100) .. " ")
+local _, split_reason = Fast.reverse(ui.document.file, 2108)
+check("fast reverse holds actual split native layout", split_reason == "fast_split_line_unsupported")
+ui:onClose()
 
 local Map = require("flonovel.position_map")
 local Chapters = require("flonovel.chapters")

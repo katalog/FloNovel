@@ -104,7 +104,11 @@ position, or a conversion deferral. Status distinguishes an incomplete check fro
 The source-body hash is bound asynchronously. Native capture, search, enqueue and transmission run
 in the worker, preserving body/account/library guards and exact offsets. Blank anchors resolve to exact
 source-line starts after checking native parent boundaries and preceding paragraph text. Unverified EOF,
-repeated paragraphs, long lines, transformed layouts and invalid Unicode are held. Chapters use KOReader's native ToC; close checkpoints retain a synchronous path. This does not guarantee
+repeated paragraphs, engine-split paragraphs, transformed layouts and invalid Unicode are held. Ordinary
+paragraphs over 1,024 UTF-8 bytes are supported. The native TXT reader splits at an ASCII space/tab after
+at least 2,000 Unicode scalars; such layouts report `fast_split_line_unsupported`. Unsupported controls
+report `fast_control_character_unsupported`. Chapters use KOReader's native ToC; close checkpoints retain
+a synchronous path. This does not guarantee
 a one-second bound or support for every book. Disable the option to restore the original position path.
 
 ## Current limits and removal

@@ -60,8 +60,19 @@ local function source(path)
     if text:find("\0", 1, true) or tonumber(unicode.utf8proc_decompose(text, #text, nil, 0, 0)) < 0 then
         return nil, "invalid_utf8"
     end
-    if ffi.C.strpbrk(text, controls) ~= nil then return nil, "fast_layout_unsupported" end
+    if ffi.C.strpbrk(text, controls) ~= nil then return nil, "fast_control_character_unsupported" end
     return text
+end
+
+local function unchanged_line(line)
+    if #line < 2000 then return true end
+    -- crengine ReadLine(2000) splits only at an ASCII space/tab after at least
+    -- 2000 Unicode scalars, not at 1024 UTF-8 bytes. The old byte guard rejected
+    -- ordinary Korean paragraphs and even short targets after such a paragraph.
+    local last = line:match(".*()[ \t]")
+    if not last then return true end
+    local prefix = line:sub(1, last)
+    return tonumber(unicode.utf8proc_decompose(prefix, #prefix, nil, 0, 0)) < 2000
 end
 
 function Fast.capture(ui)
@@ -82,7 +93,7 @@ function Fast.capture(ui)
     if path == "/FictionBook/body/pre/text()" then ordinal = 1 end
     if not ordinal then return nil, "fast_layout_unsupported" end
     local text = ui.document:getTextFromXPointer(path)
-    if not text or text == "" or #text > 1024 then return nil, "fast_context_unsupported" end
+    if not text or text == "" then return nil, "fast_context_unsupported" end
     local local_units
     local valid = Map.utf16_length(text, function(_, units, points)
         if points == tonumber(point) then local_units = units end
@@ -101,7 +112,7 @@ function Fast.locate(path, captured)
             local delimiter = decoded:find("[\r\n]", cursor)
             local ending = delimiter and delimiter - 1 or #decoded
             local line = decoded:sub(cursor, ending)
-            if #line > 1024 then return nil, "fast_layout_unsupported" end
+            if not unchanged_line(line) then return nil, "fast_split_line_unsupported" end
             child = child + 1
             if line:find("[^ \t]") then
                 pre = pre + 1
@@ -145,7 +156,7 @@ function Fast.locate(path, captured)
     local prefix = decoded:sub(1, found - 1)
     local ordinal = 1
     for line in prefix:gmatch("[^\r\n]+") do
-        if #line > 1024 then return nil, "fast_layout_unsupported" end
+        if not unchanged_line(line) then return nil, "fast_split_line_unsupported" end
         if line:find("[^ \t]") then ordinal = ordinal + 1 end
     end
     if ordinal ~= captured.ordinal then return nil, "fast_context_ordinal_mismatch" end
@@ -167,7 +178,7 @@ function Fast.reverse(path, offset)
         local delimiter = decoded:find("[\r\n]", cursor)
         local ending = delimiter and delimiter - 1 or #decoded
         local line = decoded:sub(cursor, ending)
-        if #line > 1024 then return nil, "fast_layout_unsupported" end
+        if not unchanged_line(line) then return nil, "fast_split_line_unsupported" end
         local visible = line:find("[^ \t]") ~= nil
         if visible then pre = pre + 1 else empty = empty + 1 end
         if target <= ending + 1 then

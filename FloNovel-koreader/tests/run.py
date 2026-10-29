@@ -30,6 +30,8 @@ native_source = '\n'.join(native_lines) + '\n'
 native_cases = []
 for name, source in [('native-lf', native_source),
                      ('native-crlf', '\ufeff' + native_source.replace('\n', '\r\n')),
+                     ('native-long-lines', '## Long paragraphs\n\n' + '한' * 600 + '😀 unique\n\n' +
+                      'x' * 1100 + ' unique\n\n' + '가' * 2500 + 'q\n\nAfter long paragraphs\n'),
                      ('native-leading-trailing', '\n\n' + native_source + '\n\n')]:
     (session / (name + '.txt')).write_bytes(source.encode('utf-8'))
     decoded = source.removeprefix('\ufeff')
@@ -52,6 +54,7 @@ for name, source in [('native-lf', native_source),
         cursor = ending + len(delimiter.group())
     native_cases.append(dict(name=name, pres=pres, empties=empties, length=units))
 (session / 'native-anchors.json').write_text(json.dumps(native_cases, ensure_ascii=False), encoding='utf-8')
+(session / 'native-split-line.txt').write_text('한' * 2100 + ' suffix\nunique\n', encoding='utf-8')
 env = dict(os.environ, KO_HOME=str(session), FLONOVEL_PROJECT=str(project),
            SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')
 subprocess.run([str(args.runtime.resolve() / 'luajit'), str(project / 'tests/check_reader.lua')],
