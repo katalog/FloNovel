@@ -11,11 +11,13 @@ build/
 *.ipr
 *.iws
 out/
+bin/
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
+*.lnk
 
 # Logs
 *.log
