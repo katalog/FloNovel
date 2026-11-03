@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -68,8 +69,6 @@ import com.moonkata.flonovel.android.model.FolderSortOption
 import com.moonkata.flonovel.android.ui.reader.QuickSettingsSheet
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -393,38 +392,49 @@ private fun EntryRow(entry: FolderEntry, progress: Float?, onClick: () -> Unit, 
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
-            Text(entry.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val meta = when (entry) {
-                is FolderEntry.Folder -> null
-                is FolderEntry.ZipArchive -> formatMeta(entry.sizeBytes, entry.lastModified)
-                is FolderEntry.TextFile -> formatMeta(entry.sizeBytes, entry.lastModified)
-            }
-            if (meta != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(meta, style = MaterialTheme.typography.bodySmall)
-            }
-            if (entry is FolderEntry.TextFile) {
-                Spacer(Modifier.height(4.dp))
-                val readStatus = if (progress != null && progress > 0f) {
-                    stringResource(R.string.library_percent_read, progress * 100)
-                } else {
-                    stringResource(R.string.library_unread)
+            Text(entry.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            when (entry) {
+                is FolderEntry.Folder -> {
+                    // Folders have no size or reading progress metadata.
                 }
-                Text(
-                    readStatus,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (progress != null && progress > 0f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                is FolderEntry.ZipArchive -> {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        formatSize(entry.sizeBytes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                is FolderEntry.TextFile -> {
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            formatSize(entry.sizeBytes),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            " · ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        val hasRead = progress != null && progress > 0f
+                        val readStatus = if (hasRead) {
+                            stringResource(R.string.library_percent_read, progress * 100)
+                        } else {
+                            stringResource(R.string.library_unread)
+                        }
+                        Text(
+                            readStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (hasRead) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (hasRead) FontWeight.Medium else FontWeight.Normal,
+                        )
+                    }
+                }
             }
         }
     }
-}
-
-private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-
-private fun formatMeta(sizeBytes: Long, lastModified: Long): String {
-    val size = formatSize(sizeBytes)
-    return if (lastModified > 0) "$size · ${dateFormat.format(lastModified)}" else size
 }
 
 private fun entryKey(entry: FolderEntry): String = when (entry) {
