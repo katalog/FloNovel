@@ -213,6 +213,10 @@
     <string name="reader_remote_sync_desc">다른 기기(%s)에서 더 읽은 위치가 있습니다.\n+%d자 (오프셋: %d)</string>
     <string name="reader_remote_sync_close">닫기 (Esc)</string>
     <string name="reader_remote_sync_jump">이동 (Enter)</string>
+    <string name="reader_progress_intro">도입부</string>
+    <string name="reader_progress_no_chapter">챕터 없음</string>
+    <string name="reader_progress_chapter">, C %1$.1f%%</string>
+    <string name="reader_progress_total">, A %1$.1f%%</string>
 
     <!-- Main & Sync Toast -->
     <string name="sync_toast_uploaded_and_deleted">✓ %d개 업로드, %d개 삭제 동기화 완료</string>
