@@ -52,30 +52,29 @@ func TestRequestedPartCounts(t *testing.T) {
 	for _, item := range []struct {
 		mb    int64
 		parts int
-	}{{7, 2}, {11, 3}, {17, 4}, {21, 5}, {10, 2}, {15, 3}} {
+	}{{4, 2}, {5, 2}, {7, 3}, {10, 4}, {12, 5}} {
 		t.Run(fmt.Sprintf("%dMiB", item.mb), func(t *testing.T) {
 			data := synthetic(item.mb*mib, int(item.mb*64))
 			size, markers, _, err := scan(bytes.NewReader(data))
 			if err != nil {
 				t.Fatal(err)
 			}
-			cuts, err := plan(size, markers)
-			if err != nil || len(cuts)-1 != item.parts {
-				t.Fatalf("Parts: %v, %v", cuts, err)
+			intervals, err := plan(size, markers)
+			if err != nil || len(intervals) != item.parts {
+				t.Fatalf("Parts: %v, %v", intervals, err)
 			}
 			var prevLength int64
-			for i := 0; i < len(cuts)-1; i++ {
-				length := cuts[i+1] - cuts[i]
+			for i := 0; i < len(intervals); i++ {
+				length := intervals[i].Length()
 				if i > 0 && length >= prevLength {
 					t.Fatalf("Parts not strictly decreasing: part %d (%d) >= part %d (%d)", i+1, length, i, prevLength)
 				}
-				prevLength = length
-				avg := size / int64(item.parts)
-				if abs(length-avg) > size/int64(len(markers))*int64(item.parts*2) {
-					t.Fatalf("Unbalanced part: %d vs avg %d", length, avg)
+				if i > 0 && prevLength-length < minStepBytes {
+					t.Fatalf("Parts difference too small: %d - %d = %d < %d", prevLength, length, prevLength-length, minStepBytes)
 				}
-				if i > 0 && !bytes.HasPrefix(data[cuts[i]:], []byte("##")) {
-					t.Fatal("Cut inside a chapter")
+				prevLength = length
+				if intervals[i].Start > 0 && !bytes.HasPrefix(data[intervals[i].Start:], []byte("##")) {
+					t.Fatal("Start cut inside a chapter")
 				}
 			}
 		})
@@ -83,7 +82,7 @@ func TestRequestedPartCounts(t *testing.T) {
 }
 
 func TestSplitPreservesBytesOrderNamesAndBackup(t *testing.T) {
-	data := synthetic(11*mib+1, 750)
+	data := synthetic(7*mib+1, 450)
 	path := writeInput(t, "Novel 한글.TXT", data)
 	result, err := split(path)
 	if err != nil {
@@ -95,8 +94,7 @@ func TestSplitPreservesBytesOrderNamesAndBackup(t *testing.T) {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Fatalf("Original still present: %v", err)
 	}
-	var combined []byte
-	var prevPartLen int
+	var prevPartLen int64
 	for index, file := range result.Files {
 		if filepath.Base(file) != fmt.Sprintf("Novel 한글#%d.txt", index+1) {
 			t.Fatal(file)
@@ -108,17 +106,17 @@ func TestSplitPreservesBytesOrderNamesAndBackup(t *testing.T) {
 		if !utf8.Valid(part) || len(part) == 0 {
 			t.Fatal("Invalid or empty part")
 		}
-		if index > 0 && len(part) >= prevPartLen {
-			t.Fatalf("Part sizes not strictly decreasing: part #%d (%d bytes) >= part #%d (%d bytes)", index+1, len(part), index, prevPartLen)
+		partLen := int64(len(part))
+		if index > 0 && partLen >= prevPartLen {
+			t.Fatalf("Part sizes not strictly decreasing: part #%d (%d bytes) >= part #%d (%d bytes)", index+1, partLen, index, prevPartLen)
 		}
-		prevPartLen = len(part)
-		if index > 0 && !bytes.HasPrefix(part, []byte("##")) {
-			t.Fatal("Missing heading")
+		if index > 0 && prevPartLen-partLen < minStepBytes {
+			t.Fatalf("Part size difference below minStepBytes: %d < %d", prevPartLen-partLen, minStepBytes)
 		}
-		combined = append(combined, part...)
-	}
-	if !bytes.Equal(combined, data) {
-		t.Fatal("Reassembled bytes differ")
+		prevPartLen = partLen
+		if result.Intervals[index].Start > 0 && !bytes.HasPrefix(part, []byte("##")) {
+			t.Fatal("Missing heading at part start")
+		}
 	}
 	backup, err := os.ReadFile(result.Backup)
 	if err != nil || !bytes.Equal(backup, data) {
@@ -130,8 +128,107 @@ func TestSplitPreservesBytesOrderNamesAndBackup(t *testing.T) {
 	}
 }
 
+func TestOverlapWhenNeeded(t *testing.T) {
+	size := int64(7 * mib) // 7168 KiB
+	// Candidates where non-overlapping cuts strictly fail:
+	// - (2400K, 4800K) -> L0=2400K, L1=2400K, L2=2368K (L0 == L1, fails minStepBytes!)
+	// - (2600K, 4800K) -> L0=2600K, L1=2200K, L2=2368K (L1 < L2, fails descending!)
+	// Non-overlapping cuts are mathematically impossible.
+	// With overlap, Part #1 is [0, 2600K) and Part #2 is [2400K, 4800K) (overlapping 200 KiB),
+	// yielding L0=2600K, L1=2400K, L2=2368K, perfectly satisfying L0 > L1 > L2.
+	candidates := []int64{
+		2400 * 1024,
+		2600 * 1024,
+		4800 * 1024,
+	}
+
+	_, err := findDescendingNonOverlapping(size, candidates, 3)
+	if err == nil {
+		t.Fatal("Expected findDescendingNonOverlapping to fail on sparse candidates")
+	}
+
+	intervals, err := findDescendingWithOverlap(size, candidates, 3)
+	if err != nil {
+		t.Fatalf("findDescendingWithOverlap failed: %v", err)
+	}
+	if len(intervals) != 3 {
+		t.Fatalf("Expected 3 intervals, got %d", len(intervals))
+	}
+
+	hasOverlap := false
+	for i := 0; i < len(intervals)-1; i++ {
+		if intervals[i+1].Start < intervals[i].End {
+			hasOverlap = true
+		}
+		if intervals[i+1].Start > intervals[i].End {
+			t.Fatalf("Gap detected between part #%d and #%d", i+1, i+2)
+		}
+		lenPrev := intervals[i].Length()
+		lenNext := intervals[i+1].Length()
+		if lenPrev-lenNext < minStepBytes {
+			t.Fatalf("Decreasing condition not met: %d - %d < %d", lenPrev, lenNext, minStepBytes)
+		}
+	}
+	for i, iv := range intervals {
+		t.Logf("Part #%d: [%d, %d] len=%d", i+1, iv.Start, iv.End, iv.Length())
+	}
+	if !hasOverlap {
+		t.Fatal("Expected overlap in resulting intervals")
+	}
+}
+
+func TestOverlapThreeParts(t *testing.T) {
+	// 7 MiB file with irregular chapter sizes where middle and last parts require overlap
+	var buf bytes.Buffer
+	numChapters := 240
+	for i := 0; i < numChapters; i++ {
+		heading := fmt.Sprintf("## Chapter %d\r\n", i+1)
+		buf.WriteString(heading)
+		size := 20 * 1024
+		if i >= 160 {
+			size = 45 * 1024
+		}
+		buf.Write(bytes.Repeat([]byte("b"), size-len(heading)-2))
+		buf.WriteString("\r\n")
+	}
+	data := buf.Bytes()
+	path := writeInput(t, "SkewedThreeParts.txt", data)
+
+	result, err := split(path)
+	if err != nil {
+		t.Fatalf("Split skewed three parts failed: %v", err)
+	}
+	if len(result.Files) != 3 {
+		t.Fatalf("Expected 3 parts, got %d", len(result.Files))
+	}
+
+	var prevPartLen int64
+	for index, file := range result.Files {
+		part, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		partLen := int64(len(part))
+		if index > 0 && partLen >= prevPartLen {
+			t.Fatalf("Part sizes not strictly decreasing: part #%d (%d) >= part #%d (%d)", index+1, partLen, index, prevPartLen)
+		}
+		if index > 0 && prevPartLen-partLen < minStepBytes {
+			t.Fatalf("Part size difference below minStepBytes: %d < %d", prevPartLen-partLen, minStepBytes)
+		}
+		prevPartLen = partLen
+	}
+
+	for i := 0; i < len(result.Intervals)-1; i++ {
+		cur := result.Intervals[i]
+		next := result.Intervals[i+1]
+		if next.Start > cur.End {
+			t.Fatalf("Gap detected between part #%d and #%d", i+1, i+2)
+		}
+	}
+}
+
 func TestLowMarkerDensityLeavesSourceUntouched(t *testing.T) {
-	data := synthetic(6*mib, 179)
+	data := synthetic(4*mib, 119)
 	path := writeInput(t, "novel.txt", data)
 	if _, err := split(path); err == nil || !strings.Contains(err.Error(), "30 markers") {
 		t.Fatalf("Expected density warning: %v", err)
@@ -140,7 +237,7 @@ func TestLowMarkerDensityLeavesSourceUntouched(t *testing.T) {
 }
 
 func TestDensityAtExactThresholdAccepted(t *testing.T) {
-	data := synthetic(6*mib, 180)
+	data := synthetic(4*mib, 120)
 	size, markers, _, err := scan(bytes.NewReader(data))
 	if err != nil {
 		t.Fatal(err)
@@ -151,7 +248,7 @@ func TestDensityAtExactThresholdAccepted(t *testing.T) {
 }
 
 func TestSmallFilesUntouched(t *testing.T) {
-	for _, size := range []int64{0, 1, partBytes} {
+	for _, size := range []int64{0, 1, minSplitSize} {
 		t.Run(fmt.Sprint(size), func(t *testing.T) {
 			data := bytes.Repeat([]byte("x"), int(size))
 			path := writeInput(t, "small.txt", data)
@@ -164,7 +261,7 @@ func TestSmallFilesUntouched(t *testing.T) {
 }
 
 func TestExistingOutputIsNeverOverwritten(t *testing.T) {
-	data := synthetic(6*mib, 400)
+	data := synthetic(4*mib, 200)
 	path := writeInput(t, "novel.txt", data)
 	existing := filepath.Join(filepath.Dir(path), "novel#2.txt")
 	if err := os.WriteFile(existing, []byte("KEEP"), 0600); err != nil {
@@ -225,22 +322,27 @@ func TestInvalidUTF8AndBinaryRejected(t *testing.T) {
 }
 
 func TestUTF8BOMAndPreambleArePreserved(t *testing.T) {
-	data := append([]byte("\xef\xbb\xbfPreamble\r\n"), synthetic(6*mib, 400)...)
+	data := append([]byte("\xef\xbb\xbfPreamble\r\n"), synthetic(4*mib, 200)...)
 	path := writeInput(t, "bom.txt", data)
 	result, err := split(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	digest, err := hashFiles(result.Files)
-	expected := sha256.Sum256(data)
-	if err != nil || !bytes.Equal(digest, expected[:]) {
-		t.Fatal("BOM or preamble lost")
+	if len(result.Files) != 2 {
+		t.Fatalf("Expected 2 parts, got %d", len(result.Files))
+	}
+	part1, err := os.ReadFile(result.Files[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.HasPrefix(part1, []byte("\xef\xbb\xbfPreamble\r\n")) {
+		t.Fatal("BOM or preamble lost from part #1")
 	}
 }
 
 func TestRejectedFileDoesNotBlockNextFile(t *testing.T) {
-	bad := writeInput(t, "bad.txt", synthetic(6*mib, 2))
-	good := writeInput(t, "good.txt", synthetic(6*mib, 400))
+	bad := writeInput(t, "bad.txt", synthetic(4*mib, 2))
+	good := writeInput(t, "good.txt", synthetic(4*mib, 200))
 	if _, err := split(bad); err == nil {
 		t.Fatal("Expected rejection")
 	}
@@ -293,7 +395,7 @@ func TestNonTextAndDirectoryRejected(t *testing.T) {
 
 func TestLongOutputNameRejectedBeforeWriting(t *testing.T) {
 	// NTFS allows a 255-character component: #1 fits, but #10 cannot be created.
-	data := synthetic(46*mib, 3000)
+	data := synthetic(25*mib, 2000)
 	path := writeInput(t, strings.Repeat("a", 249)+".txt", data)
 	if _, err := split(path); err == nil {
 		t.Fatal("Expected the tenth output name to exceed the component limit")
@@ -308,8 +410,8 @@ func TestLongOutputNameRejectedBeforeWriting(t *testing.T) {
 
 func TestCustomChapterRegexPattern(t *testing.T) {
 	var buf bytes.Buffer
-	numChapters := 200
-	targetSize := int64(6 * mib)
+	numChapters := 160
+	targetSize := int64(4 * mib)
 	chapLen := int(targetSize) / numChapters
 	for i := 0; i < numChapters; i++ {
 		heading := fmt.Sprintf("제 %d 화\r\n본문 텍스트 가나다\r\n", i+1)
@@ -346,11 +448,8 @@ func TestCustomChapterRegexPattern(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(part1) <= len(part2) {
-		t.Fatalf("Part sizes not decreasing: part 1 (%d) <= part 2 (%d)", len(part1), len(part2))
-	}
-	if !bytes.Equal(append(part1, part2...), data) {
-		t.Fatal("Reassembled custom parts do not match original data")
+	if int64(len(part1))-int64(len(part2)) < minStepBytes {
+		t.Fatalf("Part sizes not decreasing by minStep: part 1 (%d) vs part 2 (%d)", len(part1), len(part2))
 	}
 }
 
@@ -372,19 +471,19 @@ func TestFormatFailureSummary(t *testing.T) {
 
 	// Single failure
 	single := []fileFailure{
-		{Path: `C:\Novels\small.txt`, Reason: "5 MiB or smaller; splitting is not needed."},
+		{Path: `C:\Novels\small.txt`, Reason: "3 MiB or smaller; splitting is not needed."},
 	}
 	summary := formatFailureSummary(single)
 	if !strings.Contains(summary, "Skipped / Failed files (1):") {
 		t.Fatalf("Header count missing in summary: %s", summary)
 	}
-	if !strings.Contains(summary, "• small.txt: 5 MiB or smaller; splitting is not needed.") {
+	if !strings.Contains(summary, "• small.txt: 3 MiB or smaller; splitting is not needed.") {
 		t.Fatalf("Item line missing in summary: %s", summary)
 	}
 
 	// Multiple failures with duplicate filenames in different folders
 	multi := []fileFailure{
-		{Path: `C:\FolderA\novel.txt`, Reason: "5 MiB or smaller; splitting is not needed."},
+		{Path: `C:\FolderA\novel.txt`, Reason: "3 MiB or smaller; splitting is not needed."},
 		{Path: `C:\FolderB\novel.txt`, Reason: "Not valid UTF-8; use a preprocessed TXT file."},
 		{Path: `C:\FolderC\other.txt`, Reason: "Output already exists: other#1.txt"},
 	}
@@ -392,7 +491,7 @@ func TestFormatFailureSummary(t *testing.T) {
 	if !strings.Contains(multiSummary, "Skipped / Failed files (3):") {
 		t.Fatalf("Header count (3) missing: %s", multiSummary)
 	}
-	if !strings.Contains(multiSummary, "• novel.txt (FolderA): 5 MiB or smaller; splitting is not needed.") {
+	if !strings.Contains(multiSummary, "• novel.txt (FolderA): 3 MiB or smaller; splitting is not needed.") {
 		t.Fatalf("Disambiguated FolderA missing: %s", multiSummary)
 	}
 	if !strings.Contains(multiSummary, "• novel.txt (FolderB): Not valid UTF-8; use a preprocessed TXT file.") {
@@ -402,5 +501,3 @@ func TestFormatFailureSummary(t *testing.T) {
 		t.Fatalf("Undisambiguated other.txt missing: %s", multiSummary)
 	}
 }
-
-

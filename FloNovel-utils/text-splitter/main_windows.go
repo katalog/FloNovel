@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -169,8 +170,17 @@ func beginBatch() {
 				continue
 			}
 			text := fmt.Sprintf("Done: %d parts\r\n", len(result.Files))
-			for _, output := range result.Files {
-				text += "  " + output + "\r\n"
+			for i, output := range result.Files {
+				sizeStr := ""
+				if info, statErr := os.Stat(output); statErr == nil {
+					sizeStr = fmt.Sprintf(" (%.2f MiB)", float64(info.Size())/float64(mib))
+				}
+				overlapNote := ""
+				if i > 0 && i < len(result.Intervals) && result.Intervals[i].Start < result.Intervals[i-1].End {
+					overlapBytes := result.Intervals[i-1].End - result.Intervals[i].Start
+					overlapNote = fmt.Sprintf(" [overlapped %.1f KiB with #%d]", float64(overlapBytes)/1024.0, i)
+				}
+				text += fmt.Sprintf("  %s%s%s\r\n", output, sizeStr, overlapNote)
 			}
 			text += "Original backup: " + result.Backup + "\r\n"
 			notify(update{text: text})
@@ -267,7 +277,7 @@ func main() {
 		return
 	}
 	control("STATIC", "Drop preprocessed UTF-8 TXT files below, then click Start.", 0, 20, 18, 930, 24, 0)
-	control("STATIC", "5 MiB per part (7 MiB = 2 parts, 11 = 3, 17 = 4, 21 = 5). At least 30 chapter markers per MiB.\r\nChapter order is preserved; part sizes strictly decrease (#1 > #2 > #3...) for size sort.", 0, 20, 48, 930, 44, 0)
+	control("STATIC", "~2.5 MiB per part (4 MiB = 2 parts, 7 = 3, 10 = 4, 12 = 5). At least 30 chapter markers per MiB.\r\nChapter order is preserved; part sizes strictly decrease (#1 > #2 > #3...) with slight overlap if needed.", 0, 20, 48, 930, 44, 0)
 	control("STATIC", "Originals leave this folder only after verification; backups are kept in .text-splitter-backup.\r\nClose the book and pause folder sync while splitting. Reading positions are not migrated.", 0, 20, 102, 930, 44, 0)
 	logWindow = control("EDIT", "", 0x00b008c4, 20, 160, 925, 380, 0)
 	sendMessage.Call(logWindow, 0x00c5, 0x7ffffffe, 0) // EM_SETLIMITTEXT

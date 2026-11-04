@@ -16,17 +16,31 @@ import (
 )
 
 const mib int64 = 1024 * 1024
-const partBytes = 5 * mib
+const minSplitSize int64 = 3 * mib
+const targetPartBytes int64 = 2560 * 1024 // 2.5 MiB
+const minStepBytes int64 = 8 * 1024       // 8 KiB strictly decreasing difference
+const maxOverlapBytes int64 = 512 * 1024  // up to 512 KiB overlap between parts
+const maxOverlapChapters = 5              // up to 5 chapters overlap
 const defaultChapterPattern = "^##"
 
 type splitResult struct {
-	Files  []string
-	Backup string
+	Files     []string
+	Backup    string
+	Intervals []partInterval
 }
 
 type fileFailure struct {
 	Path   string
 	Reason string
+}
+
+type partInterval struct {
+	Start int64
+	End   int64
+}
+
+func (p partInterval) Length() int64 {
+	return p.End - p.Start
 }
 
 func formatFailureSummary(failures []fileFailure) string {
@@ -138,14 +152,17 @@ func scan(input io.Reader, pattern ...string) (size int64, markers []int64, dige
 	return size, markers, hash.Sum(nil), nil
 }
 
-func plan(size int64, markers []int64) ([]int64, error) {
-	if size <= partBytes {
-		return nil, errors.New("5 MiB or smaller; splitting is not needed.")
+func plan(size int64, markers []int64) ([]partInterval, error) {
+	if size <= minSplitSize {
+		return nil, errors.New("3 MiB or smaller; splitting is not needed.")
 	}
 	if float64(len(markers))*float64(mib) < float64(size)*30 {
 		return nil, fmt.Errorf("Only %d chapter markers in %.2f MiB; at least 30 markers per MiB are required.", len(markers), float64(size)/float64(mib))
 	}
-	parts := int((size-1)/partBytes + 1)
+	parts := int((size + targetPartBytes/2) / targetPartBytes)
+	if parts < 2 {
+		parts = 2
+	}
 	candidates := make([]int64, 0, len(markers))
 	for _, marker := range markers {
 		if marker > 0 && marker < size {
@@ -156,26 +173,32 @@ func plan(size int64, markers []int64) ([]int64, error) {
 		return nil, errors.New("Not enough chapter boundaries.")
 	}
 
-	cuts, err := findDescendingCuts(size, candidates, parts)
-	if err != nil {
-		return nil, err
-	}
-	return cuts, nil
+	return planIntervals(size, candidates, parts)
 }
 
-func findDescendingCuts(size int64, candidates []int64, k int) ([]int64, error) {
+func planIntervals(size int64, candidates []int64, k int) ([]partInterval, error) {
+	// First attempt: strictly non-overlapping cuts
+	if nonOverlapping, err := findDescendingNonOverlapping(size, candidates, k); err == nil {
+		return nonOverlapping, nil
+	}
+
+	// Second attempt: overlapping cuts allowing slight chapter repetition
+	return findDescendingWithOverlap(size, candidates, k)
+}
+
+func findDescendingNonOverlapping(size int64, candidates []int64, k int) ([]partInterval, error) {
 	if k == 2 {
-		half := size / 2
+		targetMin := (size + minStepBytes + 1) / 2
 		idx := sort.Search(len(candidates), func(i int) bool {
-			return candidates[i] > half
+			return candidates[i] >= targetMin
 		})
 		if idx < len(candidates) {
 			cut := candidates[idx]
-			if cut > 0 && cut < size && cut > size-cut {
-				return []int64{0, cut, size}, nil
+			if cut > 0 && cut < size && cut-(size-cut) >= minStepBytes {
+				return []partInterval{{0, cut}, {cut, size}}, nil
 			}
 		}
-		return nil, errors.New("Cannot find chapter boundary for descending part sizes (#1 > #2).")
+		return nil, errors.New("Cannot find non-overlapping boundary for k=2")
 	}
 
 	avgChapter := size / int64(len(candidates))
@@ -183,14 +206,14 @@ func findDescendingCuts(size int64, candidates []int64, k int) ([]int64, error) 
 		avgChapter = 1
 	}
 	step := avgChapter * 2
-	if step < 16384 {
-		step = 16384
+	if step < minStepBytes*2 {
+		step = minStepBytes * 2
 	}
 	avgPart := size / int64(k)
 	if avgPart-int64(k-1)*step <= 0 {
 		step = avgPart / int64(k*2)
-		if step < 1024 {
-			step = 1024
+		if step < minStepBytes {
+			step = minStepBytes
 		}
 	}
 
@@ -233,7 +256,7 @@ func findDescendingCuts(size int64, candidates []int64, k int) ([]int64, error) 
 		for j := 1; j < k; j++ {
 			lPrev := cuts[j] - cuts[j-1]
 			lNext := cuts[j+1] - cuts[j]
-			if lPrev <= lNext {
+			if lPrev-lNext < minStepBytes {
 				idx, ok := candMap[cuts[j]]
 				if !ok {
 					continue
@@ -247,13 +270,13 @@ func findDescendingCuts(size int64, candidates []int64, k int) ([]int64, error) 
 					}
 					newLPrev := newC - cuts[j-1]
 					newLNext := nextCut - newC
-					if j > 1 && newLPrev >= cuts[j-1]-cuts[j-2] {
+					if j > 1 && (cuts[j-1]-cuts[j-2])-newLPrev < minStepBytes {
 						break
 					}
 					cuts[j] = newC
 					shifted = true
 					adjusted = true
-					if newLPrev > newLNext {
+					if newLPrev-newLNext >= minStepBytes {
 						break
 					}
 				}
@@ -282,11 +305,160 @@ func findDescendingCuts(size int64, candidates []int64, k int) ([]int64, error) 
 	for i := 1; i < len(cuts)-1; i++ {
 		lPrev := cuts[i] - cuts[i-1]
 		lNext := cuts[i+1] - cuts[i]
-		if lPrev <= lNext {
-			return nil, errors.New("Cannot find chapter boundaries that satisfy descending part sizes (#1 > #2 > ...).")
+		if lPrev-lNext < minStepBytes {
+			return nil, errors.New("Non-overlapping descending conditions not met")
 		}
 	}
-	return cuts, nil
+
+	intervals := make([]partInterval, k)
+	for i := 0; i < k; i++ {
+		intervals[i] = partInterval{Start: cuts[i], End: cuts[i+1]}
+	}
+	return intervals, nil
+}
+
+type searchState struct {
+	bestIntervals []partInterval
+	bestCost      int64
+	visited       int
+}
+
+func findDescendingWithOverlap(size int64, candidates []int64, k int) ([]partInterval, error) {
+	state := &searchState{
+		bestCost: -1,
+	}
+
+	offsetOf := func(idx int) int64 {
+		if idx < 0 {
+			return 0
+		}
+		if idx >= len(candidates) {
+			return size
+		}
+		return candidates[idx]
+	}
+
+	targetPart := size / int64(k)
+	current := make([]partInterval, k)
+
+	var dfs func(partIdx int, startIdx int, prevLen int64)
+	dfs = func(partIdx int, startIdx int, prevLen int64) {
+		if state.visited > 30000 {
+			return
+		}
+		state.visited++
+
+		startOff := offsetOf(startIdx)
+
+		// Base case: Last part
+		if partIdx == k-1 {
+			endOff := size
+			curLen := endOff - startOff
+			if curLen <= 0 {
+				return
+			}
+			if prevLen > 0 && prevLen-curLen < minStepBytes {
+				return
+			}
+			current[partIdx] = partInterval{Start: startOff, End: endOff}
+
+			var totalOverlap int64
+			var variance int64
+			for i := 0; i < k-1; i++ {
+				overlap := current[i].End - current[i+1].Start
+				if overlap < 0 {
+					return
+				}
+				totalOverlap += overlap
+			}
+			for i := 0; i < k; i++ {
+				diff := current[i].Length() - targetPart
+				variance += (diff * diff) / (1024 * 1024)
+			}
+			cost := totalOverlap*1000 + variance
+
+			if state.bestCost < 0 || cost < state.bestCost {
+				state.bestCost = cost
+				state.bestIntervals = append([]partInterval(nil), current...)
+			}
+			return
+		}
+
+		// Intermediate parts: choose End marker
+		idealEndOff := startOff + targetPart + int64(k-1-2*partIdx)*minStepBytes
+		firstCandidateIdx := startIdx + 1
+		if firstCandidateIdx < 0 {
+			firstCandidateIdx = 0
+		}
+		centerIdx := sort.Search(len(candidates), func(i int) bool {
+			return candidates[i] >= idealEndOff
+		})
+		if centerIdx < firstCandidateIdx {
+			centerIdx = firstCandidateIdx
+		}
+
+		var endIndices []int
+		for delta := 0; delta <= 30; delta++ {
+			if delta == 0 {
+				if centerIdx >= firstCandidateIdx && centerIdx < len(candidates)-(k-1-partIdx)+1 {
+					endIndices = append(endIndices, centerIdx)
+				}
+			} else {
+				high := centerIdx + delta
+				if high >= firstCandidateIdx && high < len(candidates)-(k-1-partIdx)+1 {
+					endIndices = append(endIndices, high)
+				}
+				low := centerIdx - delta
+				if low >= firstCandidateIdx && low < len(candidates)-(k-1-partIdx)+1 {
+					endIndices = append(endIndices, low)
+				}
+			}
+		}
+
+		for _, eIdx := range endIndices {
+			endOff := candidates[eIdx]
+			curLen := endOff - startOff
+			if curLen <= 0 {
+				continue
+			}
+			if prevLen > 0 && prevLen-curLen < minStepBytes {
+				continue
+			}
+
+			current[partIdx] = partInterval{Start: startOff, End: endOff}
+
+			// Choose nextStartIdx:
+			// 1) eIdx (no overlap)
+			// 2) eIdx - ov (overlap up to maxOverlapChapters)
+			var nextStartOptions []int
+			nextStartOptions = append(nextStartOptions, eIdx)
+			for ov := 1; ov <= maxOverlapChapters; ov++ {
+				candStart := eIdx - ov
+				if candStart <= startIdx {
+					break
+				}
+				if endOff-candidates[candStart] > maxOverlapBytes {
+					break
+				}
+				nextStartOptions = append(nextStartOptions, candStart)
+			}
+
+			for _, nextStartIdx := range nextStartOptions {
+				dfs(partIdx+1, nextStartIdx, curLen)
+				if state.bestCost >= 0 && state.bestCost < 1000 {
+					return
+				}
+			}
+		}
+	}
+
+	dfs(0, -1, -1)
+
+	if state.bestCost >= 0 && len(state.bestIntervals) == k {
+		return state.bestIntervals, nil
+	}
+
+	return nil, errors.New("Cannot find chapter boundaries that satisfy descending part sizes (#1 > #2 > ...).")
 }
 
 func abs(value int64) int64 {
@@ -320,13 +492,14 @@ func split(path string, pattern ...string) (result splitResult, err error) {
 	if err != nil {
 		return result, err
 	}
-	cuts, err := plan(size, markers)
+	intervals, err := plan(size, markers)
 	if err != nil {
 		return result, err
 	}
+	result.Intervals = intervals
 	stem := strings.TrimSuffix(source, filepath.Ext(source))
-	for index := 1; index < len(cuts); index++ {
-		output := fmt.Sprintf("%s#%d.txt", stem, index)
+	for index := range intervals {
+		output := fmt.Sprintf("%s#%d.txt", stem, index+1)
 		if _, statErr := os.Lstat(output); !os.IsNotExist(statErr) {
 			if statErr != nil {
 				return result, statErr
@@ -381,8 +554,8 @@ func split(path string, pattern ...string) (result splitResult, err error) {
 	for index := range result.Files {
 		temp := filepath.Join(work, fmt.Sprintf("part-%d.tmp", index+1))
 		staged = append(staged, temp)
-		length := cuts[index+1] - cuts[index]
-		if err = writeNew(temp, io.NewSectionReader(file, cuts[index], length), length); err != nil {
+		length := intervals[index].Length()
+		if err = writeNew(temp, io.NewSectionReader(file, intervals[index].Start, length), length); err != nil {
 			return result, err
 		}
 	}
@@ -392,16 +565,39 @@ func split(path string, pattern ...string) (result splitResult, err error) {
 			return result, openErr
 		}
 		// Reserve each destination exclusively: never overwrite existing library files.
-		err = publish(output, stagedFile, cuts[index+1]-cuts[index], &created)
+		err = publish(output, stagedFile, intervals[index].Length(), &created)
 		closeErr := stagedFile.Close()
 		if err != nil || closeErr != nil {
 			return result, errors.Join(err, closeErr)
 		}
 	}
-	outputHash, err := hashFiles(result.Files)
-	if err != nil {
-		return result, err
+
+	// Verify each part's section hash against source file
+	for index, output := range result.Files {
+		partHash, hashErr := hashFiles([]string{output})
+		if hashErr != nil {
+			return result, hashErr
+		}
+		expectedHash, hashErr := hashReader(io.NewSectionReader(file, intervals[index].Start, intervals[index].Length()))
+		if hashErr != nil {
+			return result, hashErr
+		}
+		if !bytes.Equal(partHash, expectedHash) {
+			return result, fmt.Errorf("Output verification failed for %s", filepath.Base(output))
+		}
 	}
+
+	// If strictly non-overlapping, reassembled byte hash must match originalHash
+	if isNonOverlapping(intervals) {
+		outputHash, err := hashFiles(result.Files)
+		if err != nil {
+			return result, err
+		}
+		if !bytes.Equal(originalHash, outputHash) {
+			return result, errors.New("Reassembled output verification failed; source retained.")
+		}
+	}
+
 	currentHash, err := hashFiles([]string{source})
 	if err != nil {
 		return result, err
@@ -410,7 +606,7 @@ func split(path string, pattern ...string) (result splitResult, err error) {
 	if err != nil {
 		return result, err
 	}
-	if !os.SameFile(info, currentInfo) || !bytes.Equal(originalHash, currentHash) || !bytes.Equal(originalHash, outputHash) {
+	if !os.SameFile(info, currentInfo) || !bytes.Equal(originalHash, currentHash) {
 		return result, errors.New("Source changed or output verification failed; source retained.")
 	}
 	if err = file.Close(); err != nil {
@@ -425,6 +621,23 @@ func split(path string, pattern ...string) (result splitResult, err error) {
 		return result, errors.Join(errors.New("Source changed during finalization; check the recovery folder."), err, restoreErr)
 	}
 	return result, nil
+}
+
+func isNonOverlapping(intervals []partInterval) bool {
+	for i := 0; i < len(intervals)-1; i++ {
+		if intervals[i+1].Start != intervals[i].End {
+			return false
+		}
+	}
+	return true
+}
+
+func hashReader(r io.Reader) ([]byte, error) {
+	h := sha256.New()
+	if _, err := io.Copy(h, r); err != nil {
+		return nil, err
+	}
+	return h.Sum(nil), nil
 }
 
 func publish(path string, input io.Reader, size int64, created *[]string) error {

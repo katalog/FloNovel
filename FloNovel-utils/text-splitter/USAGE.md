@@ -18,8 +18,8 @@ is running. This tool does not migrate application reading history or metadata.
 
 ## Splitting rules
 
-- One MiB means 1,048,576 bytes. Part count is `ceil(file bytes / (5 MiB))`:
-  7 MiB → 2, 11 MiB → 3, 17 MiB → 4, 21 MiB → 5. Files at or below 5 MiB are skipped.
+- One MiB means 1,048,576 bytes. Target part size is ~2.5 MiB (4 MiB → 2 parts,
+  7 MiB → 3, 10 MiB → 4, 12 MiB → 5). Files at or below 3 MiB are skipped.
 - By default, markers match literal `##` at the beginning of a line (`^##`),
   without indentation or a heading-length limit. A custom regular expression
   (e.g. `^제\s*\d+\s*[화장]`, `^Chapter\s*\d+`) can be configured in the UI.
@@ -27,8 +27,12 @@ is running. This tool does not migrate application reading history or metadata.
   This is a whole-file density check, not a per-window check.
 - Choose chapter boundaries to strictly maintain descending part sizes
   (`size(#1) > size(#2) > size(#3) > ... > 0`), ensuring natural reading order
-  when sorted descending by file size in Windows Explorer, while minimizing
-  size variance among parts. Chapters and original reading order stay intact.
+  when sorted descending by file size in Windows Explorer, with at least 8 KiB
+  difference between adjacent parts.
+- When irregular chapter sizes prevent strict size descent using clean partition cuts,
+  slight chapter overlap (up to 5 chapters / 512 KiB) is allowed between adjacent parts
+  (e.g., #1 ends at Chapter 99 and #2 starts at Chapter 97) to guarantee descending
+  file sizes without skipping any text or truncating sentences.
 - Output names are `Title#1.txt`, `Title#2.txt`, etc., in the source folder.
 - Keep every source byte unchanged, including line endings, preamble, and BOM.
   Input must be valid UTF-8. A BOM before the first `##` is preserved but is not
@@ -41,9 +45,11 @@ is running. This tool does not migrate application reading history or metadata.
 ## Original files and recovery
 
 Parts are staged and flushed to disk, copied to exclusively created output names,
-flushed again, and checked against the SHA-256 of the source in reading order.
-The source is checked again before being moved. Only after successful verification
-does the original leave its location. The complete original is retained at:
+flushed again, and each part is checked against its corresponding section in the source
+file using SHA-256. For non-overlapping splits, the reassembled output is additionally
+verified against the source SHA-256. The source is checked again before being moved.
+Only after successful verification does the original leave its location.
+The complete original is retained at:
 
 ```text
 <source folder>/.text-splitter-backup/split-<unique ID>/<original name>.txt
