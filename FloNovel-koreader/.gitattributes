@@ -1,0 +1,2 @@
+# Oracle manifests are byte-bound; keep identical bytes on Windows and Linux.
+* text eol=lf
