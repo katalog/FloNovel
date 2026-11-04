@@ -40,6 +40,3 @@ FloNovel-desktop/chapter-marker-ref.bat
 FloNovel-desktop/marker-check.ps1
 FloNovel-desktop/markers-result.txt
 
-# Ignored modules / tools
-FloNovel-koreader/
-FloNovel-utils/
