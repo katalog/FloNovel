@@ -34,6 +34,8 @@ keystore.properties
 # so a new doc is tracked without touching this file.
 /.work/
 /.runs/
+/FloNovel-koreader/
+/FloNovel-utils/
 desk*.bat
 and*.bat
 chapter-marker-ref.bat
