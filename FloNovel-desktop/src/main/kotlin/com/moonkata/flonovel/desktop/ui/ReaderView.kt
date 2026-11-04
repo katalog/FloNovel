@@ -64,6 +64,9 @@ import androidx.compose.ui.text.platform.Typeface
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
+import com.moonkata.flonovel.desktop.reader.chapterProgress
+import com.moonkata.flonovel.desktop.reader.compactChapterTitle
 import com.moonkata.flonovel.desktop.font.FontCatalog
 import com.moonkata.flonovel.desktop.font.FontDownloader
 import com.moonkata.flonovel.desktop.font.FontManager
@@ -892,8 +895,12 @@ fun ReaderView(
             )
         }
 
-        val progressText = remember(currentAnchor, fullText.length) {
-            ProgressFormatter.format(navigator.progress(currentAnchor, fullText.length))
+        val chapter = remember(detectedChapters, currentAnchor, fullText.length) {
+            chapterProgress(detectedChapters ?: emptyList(), currentAnchor, fullText.length)
+        }
+
+        val totalProgress = remember(currentAnchor, fullText.length) {
+            navigator.progress(currentAnchor, fullText.length)
         }
 
         val contentModifier = Modifier
@@ -1124,10 +1131,32 @@ fun ReaderView(
                     Spacer(modifier = Modifier.width(12.dp))
                 }
                 Text(
-                    text = progressText,
+                    text = compactChapterTitle(
+                        chapter?.title ?: stringResource(
+                            if (chapter == null) "reader_progress_no_chapter" else "reader_progress_intro"
+                        )
+                    ),
                     color = colors.progressText,
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Default,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (chapter != null) {
+                    Text(
+                        text = stringResource("reader_progress_chapter", chapter.fraction * 100),
+                        color = colors.progressText,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Default,
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    text = stringResource("reader_progress_total", totalProgress * 100),
+                    color = colors.progressText,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Default,
+                    maxLines = 1,
                 )
             }
         }

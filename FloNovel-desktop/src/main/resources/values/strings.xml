@@ -213,6 +213,10 @@
     <string name="reader_remote_sync_desc">Further reading position found from another device (%s).\n+%d characters (Offset: %d)</string>
     <string name="reader_remote_sync_close">Close (Esc)</string>
     <string name="reader_remote_sync_jump">Jump (Enter)</string>
+    <string name="reader_progress_intro">Introduction</string>
+    <string name="reader_progress_no_chapter">No chapters</string>
+    <string name="reader_progress_chapter">, C %1$.1f%%</string>
+    <string name="reader_progress_total">, A %1$.1f%%</string>
 
     <!-- Main & Sync Toast -->
     <string name="sync_toast_uploaded_and_deleted">✓ %d uploaded, %d deleted synced</string>
