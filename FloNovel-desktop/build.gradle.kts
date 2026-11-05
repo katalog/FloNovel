@@ -115,12 +115,25 @@ tasks.withType<JavaExec> {
 // Input files are never written to.
 tasks.register<JavaExec>("preprocessReport") {
     group = "verification"
-    description = "Lists chapter headings per file, fewest first (./gradlew preprocessReport -PinputDir=...)"
+    description = "Lists chapter headings per file, fewest first (./gradlew preprocessReport -PinputDir=... [-PmaxChaptersPerMb=...])"
     mainClass.set("com.moonkata.flonovel.desktop.preprocess.PreprocessReport")
     classpath = sourceSets["main"].runtimeClasspath
     // Novel titles are Korean; without this the report is unreadable on a CP949 console.
     jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8")
-    args = listOf(project.findProperty("inputDir") as? String ?: "")
+    val inputDir = project.findProperty("inputDir") as? String ?: ""
+    val maxChaptersPerMb = project.findProperty("maxChaptersPerMb") as? String ?: ""
+    args = listOf(inputDir, maxChaptersPerMb)
+}
+
+tasks.register<JavaExec>("preprocessBatch") {
+    group = "verification"
+    description = "Batch preprocesses txt files in numeric subfolders without backup (./gradlew preprocessBatch -PtargetDir=...)"
+    mainClass.set("com.moonkata.flonovel.desktop.preprocess.BatchPreprocess")
+    classpath = sourceSets["main"].runtimeClasspath
+    // Novel titles are Korean; without this the output is unreadable on a CP949 console.
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8")
+    val targetDir = (project.findProperty("targetDir") ?: project.findProperty("inputDir"))?.toString() ?: ""
+    args = listOf(targetDir)
 }
 
 tasks.test {

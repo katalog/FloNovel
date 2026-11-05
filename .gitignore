@@ -38,6 +38,7 @@ keystore.properties
 /FloNovel-utils/
 desk*.bat
 and*.bat
+preprocess*.bat
 chapter-marker-ref.bat
 FloNovel-desktop/chapter-marker-ref.bat
 FloNovel-desktop/marker-check.ps1
