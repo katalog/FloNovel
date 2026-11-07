@@ -193,6 +193,13 @@
     <string name="library_delete_folder_message_synced">The folder and everything in it are deleted from this phone, Dropbox and the PC. The PC keeps them in its Recycle Bin.</string>
     <string name="library_delete_confirm">Delete</string>
     <string name="library_delete_cancel">Cancel</string>
+    <string name="library_selection_count">%1$d selected</string>
+    <string name="library_select_all">Select all</string>
+    <string name="library_deselect_all">Deselect all</string>
+    <string name="library_batch_delete_title">Delete %1$d items?</string>
+    <string name="library_batch_delete_message">Selected %1$d items will be deleted from this phone.</string>
+    <string name="library_batch_delete_message_synced">Selected %1$d items will be deleted from this phone, Dropbox and the PC. The PC keeps them in its Recycle Bin.</string>
+    <string name="library_batch_delete_failed">Could not delete %1$d items: %2$s</string>
     <string name="library_preprocess_failed">Could not prepare \"%1$s\" for syncing; opening it as it is.</string>
     <string name="library_delete_failed">Could not delete \"%1$s\".</string>
     <string name="dropbox_sign_in">Connect Dropbox</string>

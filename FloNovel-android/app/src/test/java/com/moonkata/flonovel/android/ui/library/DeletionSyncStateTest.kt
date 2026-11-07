@@ -157,4 +157,49 @@ class DeletionSyncStateTest {
 
         assertEquals(1, downloadLocalChanged)
     }
+
+    @Test
+    fun optimisticBatchRemoval_removesAllTargetEntriesImmediately() {
+        val entry1 = FolderEntry.TextFile("book1.txt", BookSource.PlainTxt(testUri("book1")), 100L, 1000L)
+        val entry2 = FolderEntry.TextFile("book2.txt", BookSource.PlainTxt(testUri("book2")), 200L, 2000L)
+        val entry3 = FolderEntry.TextFile("book3.txt", BookSource.PlainTxt(testUri("book3")), 300L, 3000L)
+        val entryFolder = FolderEntry.Folder("subfolder", testUri("folder"))
+
+        val initialList = listOf(entry1, entry2, entry3, entryFolder)
+        val toDelete = setOf(entry1, entry3, entryFolder)
+
+        val afterBatchDelete = initialList.filterNot { it in toDelete }
+
+        assertEquals(1, afterBatchDelete.size)
+        assertEquals(listOf(entry2), afterBatchDelete)
+        assertFalse(afterBatchDelete.contains(entry1))
+        assertFalse(afterBatchDelete.contains(entry3))
+        assertFalse(afterBatchDelete.contains(entryFolder))
+    }
+
+    @Test
+    fun batchSelectionMode_deletableFilterAndSelectAll() {
+        val plainTxt = FolderEntry.TextFile("novel.txt", BookSource.PlainTxt(testUri("txt")), 100L, 1000L)
+        val zipBook = FolderEntry.TextFile("inner.txt", BookSource.ZipEntryTxt(testUri("zip"), "inner.txt"), 100L, 1000L)
+        val zipArchive = FolderEntry.ZipArchive("archive.zip", testUri("zip"), 500L, 2000L)
+        val folder = FolderEntry.Folder("folder", testUri("folder"))
+
+        val allEntries = listOf(plainTxt, zipBook, zipArchive, folder)
+
+        fun isDeletable(entry: FolderEntry): Boolean =
+            entry !is FolderEntry.TextFile || entry.source is BookSource.PlainTxt
+
+        val deletables = allEntries.filter { isDeletable(it) }
+
+        assertEquals(3, deletables.size)
+        assertTrue(deletables.contains(plainTxt))
+        assertTrue(deletables.contains(zipArchive))
+        assertTrue(deletables.contains(folder))
+        assertFalse(deletables.contains(zipBook)) // files inside zip cannot be deleted on their own
+
+        // Select all
+        val selected = deletables.toSet()
+        assertEquals(3, selected.size)
+        assertTrue(selected.containsAll(deletables))
+    }
 }

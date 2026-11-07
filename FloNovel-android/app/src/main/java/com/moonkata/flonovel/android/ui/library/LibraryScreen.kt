@@ -21,14 +21,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderZip
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,12 +93,19 @@ fun LibraryScreen(
     var isPullRefreshing by remember { mutableStateOf(false) }
     var showUnlinkedNotice by remember { mutableStateOf(false) }
     var entryToDelete by remember { mutableStateOf<FolderEntry?>(null) }
+    var selectedEntries by remember { mutableStateOf(setOf<FolderEntry>()) }
+    var showBatchDeleteDialog by remember { mutableStateOf(false) }
+    val isSelectionMode = selectedEntries.isNotEmpty()
 
     val isDropboxLinked = uiState.settings.dropboxRefreshToken.isNotBlank()
     val isRefreshing = dropboxState.isSyncing || isPullRefreshing
 
     LaunchedEffect(uiState.isLoading) {
         if (!uiState.isLoading) isPullRefreshing = false
+    }
+
+    LaunchedEffect(uiState.path) {
+        selectedEntries = emptySet()
     }
 
     LaunchedEffect(viewModel) {
@@ -122,44 +134,78 @@ fun LibraryScreen(
         )
     }
 
-    BackHandler(enabled = uiState.path.size > 1) { viewModel.navigateUp() }
+    BackHandler(enabled = isSelectionMode) { selectedEntries = emptySet() }
+    BackHandler(enabled = !isSelectionMode && uiState.path.size > 1) { viewModel.navigateUp() }
 
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(
-                    title = { Text(uiState.path.lastOrNull()?.name ?: stringResource(R.string.library_default_title)) },
-                    navigationIcon = {
-                        if (uiState.path.size > 1) {
-                            IconButton(onClick = { viewModel.navigateUp() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.library_up_folder_desc))
+                if (isSelectionMode) {
+                    TopAppBar(
+                        title = { Text(stringResource(R.string.library_selection_count, selectedEntries.size)) },
+                        navigationIcon = {
+                            IconButton(onClick = { selectedEntries = emptySet() }) {
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.library_delete_cancel))
                             }
-                        }
-                    },
-                    actions = {
-                        if (uiState.rootUri != null) {
-                            IconButton(onClick = { showDropboxSync = true }) {
-                                Icon(Icons.Default.Sync, contentDescription = stringResource(R.string.dropbox_desc))
+                        },
+                        actions = {
+                            val deletableEntries = uiState.entries.filter { isDeletable(it) }
+                            val isAllSelected = deletableEntries.isNotEmpty() && selectedEntries.size == deletableEntries.size
+                            IconButton(onClick = {
+                                selectedEntries = if (isAllSelected) emptySet() else deletableEntries.toSet()
+                            }) {
+                                Icon(
+                                    if (isAllSelected) Icons.Default.Deselect else Icons.Default.SelectAll,
+                                    contentDescription = stringResource(if (isAllSelected) R.string.library_deselect_all else R.string.library_select_all),
+                                )
                             }
-                            Box {
-                                IconButton(onClick = { showSortMenu = true }) {
-                                    Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.library_sort_desc))
+                            IconButton(
+                                onClick = { showBatchDeleteDialog = true },
+                                enabled = selectedEntries.isNotEmpty(),
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.library_delete_confirm),
+                                    tint = if (selectedEntries.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                )
+                            }
+                        },
+                    )
+                } else {
+                    TopAppBar(
+                        title = { Text(uiState.path.lastOrNull()?.name ?: stringResource(R.string.library_default_title)) },
+                        navigationIcon = {
+                            if (uiState.path.size > 1) {
+                                IconButton(onClick = { viewModel.navigateUp() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.library_up_folder_desc))
                                 }
-                                DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
-                                    FolderSortOption.entries.forEach { option ->
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(option.labelRes)) },
-                                            onClick = { viewModel.setSortOption(option); showSortMenu = false },
-                                        )
+                            }
+                        },
+                        actions = {
+                            if (uiState.rootUri != null) {
+                                IconButton(onClick = { showDropboxSync = true }) {
+                                    Icon(Icons.Default.Sync, contentDescription = stringResource(R.string.dropbox_desc))
+                                }
+                                Box {
+                                    IconButton(onClick = { showSortMenu = true }) {
+                                        Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.library_sort_desc))
+                                    }
+                                    DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                                        FolderSortOption.entries.forEach { option ->
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(option.labelRes)) },
+                                                onClick = { viewModel.setSortOption(option); showSortMenu = false },
+                                            )
+                                        }
                                     }
                                 }
+                                IconButton(onClick = { showSettings = true }) {
+                                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.library_settings_desc))
+                                }
                             }
-                            IconButton(onClick = { showSettings = true }) {
-                                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.library_settings_desc))
-                            }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
                 if (uiState.path.size > 1) {
                     Breadcrumbs(path = uiState.path, onClick = viewModel::navigateToBreadcrumb)
                 }
@@ -214,11 +260,32 @@ fun LibraryScreen(
                     } else {
                         LazyColumn(Modifier.fillMaxSize()) {
                             items(uiState.entries, key = { entryKey(it) }) { entry ->
+                                val isDeletableItem = isDeletable(entry)
+                                val isSelected = entry in selectedEntries
                                 EntryRow(
                                     entry = entry,
                                     progress = (entry as? FolderEntry.TextFile)?.let { uiState.progressByStoredUri[it.source.toStoredString()] },
-                                    onClick = { viewModel.navigateInto(entry) },
-                                    onLongClick = { entryToDelete = entry }.takeIf { isDeletable(entry) },
+                                    isSelectionMode = isSelectionMode,
+                                    isSelected = isSelected,
+                                    onSelectChange = { checked ->
+                                        if (isDeletableItem) {
+                                            selectedEntries = if (checked) selectedEntries + entry else selectedEntries - entry
+                                        }
+                                    },
+                                    onClick = {
+                                        if (isSelectionMode) {
+                                            if (isDeletableItem) {
+                                                selectedEntries = if (isSelected) selectedEntries - entry else selectedEntries + entry
+                                            }
+                                        } else {
+                                            viewModel.navigateInto(entry)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (!isSelectionMode && isDeletableItem) {
+                                            selectedEntries = setOf(entry)
+                                        }
+                                    }.takeIf { !isSelectionMode && isDeletableItem },
                                 )
                                 HorizontalDivider()
                             }
@@ -287,6 +354,54 @@ fun LibraryScreen(
             },
             dismissButton = {
                 TextButton(onClick = { entryToDelete = null }) { Text(stringResource(R.string.library_delete_cancel)) }
+            },
+        )
+    }
+
+    if (showBatchDeleteDialog && selectedEntries.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { showBatchDeleteDialog = false },
+            title = {
+                Text(stringResource(R.string.library_batch_delete_title, selectedEntries.size))
+            },
+            text = {
+                Column {
+                    Text(
+                        stringResource(
+                            if (isDropboxLinked) R.string.library_batch_delete_message_synced
+                            else R.string.library_batch_delete_message,
+                            selectedEntries.size,
+                        ),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Column(Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+                        selectedEntries.forEach { entry ->
+                            Text(
+                                (if (entry is FolderEntry.Folder) "📁 " else "📄 ") + entry.name,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(vertical = 2.dp),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val toDelete = selectedEntries
+                    showBatchDeleteDialog = false
+                    selectedEntries = emptySet()
+                    viewModel.deleteEntries(toDelete)
+                }) {
+                    Text(
+                        stringResource(R.string.library_delete_confirm),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatchDeleteDialog = false }) {
+                    Text(stringResource(R.string.library_delete_cancel))
+                }
             },
         )
     }
@@ -379,11 +494,26 @@ private fun isDeletable(entry: FolderEntry): Boolean =
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun EntryRow(entry: FolderEntry, progress: Float?, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
+private fun EntryRow(
+    entry: FolderEntry,
+    progress: Float?,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectChange: ((Boolean) -> Unit)? = null,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (isSelectionMode && isDeletable(entry)) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = onSelectChange,
+                modifier = Modifier.padding(end = 12.dp),
+            )
+        }
         val icon = when (entry) {
             is FolderEntry.Folder -> Icons.Default.Folder
             is FolderEntry.ZipArchive -> Icons.Default.FolderZip

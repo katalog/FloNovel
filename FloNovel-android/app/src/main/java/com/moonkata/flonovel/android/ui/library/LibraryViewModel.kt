@@ -750,6 +750,66 @@ class LibraryViewModel(
         }
     }
 
+    /**
+     * Deletes multiple items (books, zips, or folders) from the library, then syncs so the deletions
+     * reach Dropbox (and from there the PC).
+     */
+    fun deleteEntries(entries: Set<FolderEntry>) {
+        if (entries.isEmpty()) return
+        val app = getApplication<Application>()
+        val deletionRoot = _browseState.value.rootUri
+        val pathPrefix = _browseState.value.path.drop(1).map { it.name }
+        val deletionAccount = uiState.value.settings.dropboxAccountEmail
+
+        // Optimistically remove all from list immediately so the UI does not feel laggy
+        _browseState.update { state ->
+            state.copy(entries = state.entries.filterNot { it in entries })
+        }
+
+        viewModelScope.launch {
+            val failures = withContext(Dispatchers.IO) {
+                val failedItems = mutableListOf<String>()
+                for (entry in entries) {
+                    val uri = when (entry) {
+                        is FolderEntry.Folder -> entry.uri
+                        is FolderEntry.ZipArchive -> entry.uri
+                        is FolderEntry.TextFile -> (entry.source as? BookSource.PlainTxt)?.uri ?: continue
+                    }
+                    val deletionFolder = (pathPrefix + entry.name).joinToString("/")
+                    var journal: com.moonkata.flonovel.android.data.sync.FolderDeletionSync? = null
+                    var intent: String? = null
+                    try {
+                        if (entry is FolderEntry.Folder && dropboxClient.isLinked()) {
+                            val root = deletionRoot ?: error("Library folder is not selected")
+                            val files = SafLibraryFiles(app, root)
+                            journal = folderDeletionSync(app, root, files, dropboxClient, deletionAccount) { false }
+                            intent = journal.prepare(deletionFolder)
+                        }
+                        check(DocumentsContract.deleteDocument(app.contentResolver, uri)) {
+                            app.getString(R.string.library_delete_provider_refused)
+                        }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        if (intent != null) runCatching { journal?.cancel(intent) }
+                        failedItems.add(entry.name)
+                    }
+                }
+                failedItems
+            }
+            if (failures.isNotEmpty()) {
+                Toast.makeText(
+                    app,
+                    app.getString(R.string.library_batch_delete_failed, failures.size, failures.joinToString(", ")),
+                    Toast.LENGTH_LONG,
+                ).show()
+                loadCurrent()
+                return@launch
+            }
+            if (dropboxClient.isLinked()) scheduleDeletionSync()
+        }
+    }
+
     // --- SettingsController implementation — so QuickSettingsSheet can be reused as-is from the
     // library screen too. There's no open book here, so this does nothing beyond persisting values
     // (no side effects like resetting navigation history) — ReaderViewModel reads the saved values
