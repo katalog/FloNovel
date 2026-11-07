@@ -4,6 +4,10 @@
     <string name="app_name">FloNovel</string>
     <string name="common_confirm">확인</string>
     <string name="common_cancel">취소</string>
+    <string name="common_delete">삭제</string>
+    <string name="library_selection_count">%d개 선택됨</string>
+    <string name="library_select_all">전체 선택</string>
+    <string name="library_deselect_all">전체 해제</string>
     <string name="common_close">닫기</string>
     <string name="common_done">완료</string>
     <string name="common_retry">재시도</string>
@@ -308,6 +312,16 @@
     <string name="removal_confirm_folder_title">빈 폴더를 삭제할까요?</string>
     <string name="removal_confirm_folder_message">빈 폴더 "%s"을(를) 삭제합니다.</string>
     <string name="removal_confirm_delete_button">삭제</string>
+    <string name="batch_removal_confirm_trash_title">%d개 항목을 휴지통으로 보낼까요?</string>
+    <string name="batch_removal_confirm_trash_message">선택한 %d개 항목을 휴지통으로 보냅니다. Dropbox와 휴대폰에서도 사라집니다.</string>
+    <string name="batch_removal_confirm_move_title">%d개 항목을 옮길까요?</string>
+    <string name="batch_removal_confirm_move_message">선택한 %d개 항목을 %s 폴더로 옮깁니다. Dropbox와 휴대폰에서도 사라집니다.</string>
+    <string name="batch_removal_confirm_delete_button">%d개 삭제</string>
+    <string name="batch_removal_confirm_trash_button">휴지통으로 보내기</string>
+    <string name="batch_removal_confirm_move_button">옮기기</string>
+    <string name="batch_removal_done_trashed">%d개 항목을 휴지통으로 보냈습니다</string>
+    <string name="batch_removal_done_moved">%d개 항목을 옮겼습니다</string>
+    <string name="batch_removal_done_partial">%d개 항목 처리 완료 (%d개 성공, %d개 실패)</string>
     <string name="removal_done_trashed">휴지통으로 보냄: %s</string>
     <string name="removal_done_moved">옮김: %s</string>
     <string name="removal_done_folder">폴더 삭제: %s</string>

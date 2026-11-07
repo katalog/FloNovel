@@ -4,6 +4,10 @@
     <string name="app_name">FloNovel</string>
     <string name="common_confirm">OK</string>
     <string name="common_cancel">Cancel</string>
+    <string name="common_delete">Delete</string>
+    <string name="library_selection_count">%d selected</string>
+    <string name="library_select_all">Select all</string>
+    <string name="library_deselect_all">Deselect all</string>
     <string name="common_close">Close</string>
     <string name="common_done">Done</string>
     <string name="common_retry">Retry</string>
@@ -308,6 +312,16 @@
     <string name="removal_confirm_folder_title">Delete empty folder?</string>
     <string name="removal_confirm_folder_message">The empty folder "%s" will be deleted.</string>
     <string name="removal_confirm_delete_button">Delete</string>
+    <string name="batch_removal_confirm_trash_title">Move %d items to Recycle Bin?</string>
+    <string name="batch_removal_confirm_trash_message">%d items will be moved to the Recycle Bin. They will also be removed from Dropbox and your phone.</string>
+    <string name="batch_removal_confirm_move_title">Move %d items?</string>
+    <string name="batch_removal_confirm_move_message">%d items will be moved to %s. They will also be removed from Dropbox and your phone.</string>
+    <string name="batch_removal_confirm_delete_button">Delete %d items</string>
+    <string name="batch_removal_confirm_trash_button">Move to Recycle Bin</string>
+    <string name="batch_removal_confirm_move_button">Move</string>
+    <string name="batch_removal_done_trashed">Moved %d items to Recycle Bin</string>
+    <string name="batch_removal_done_moved">Moved %d items</string>
+    <string name="batch_removal_done_partial">Processed %d items (%d succeeded, %d failed)</string>
     <string name="removal_done_trashed">Moved to Recycle Bin: %s</string>
     <string name="removal_done_moved">Moved: %s</string>
     <string name="removal_done_folder">Deleted folder: %s</string>

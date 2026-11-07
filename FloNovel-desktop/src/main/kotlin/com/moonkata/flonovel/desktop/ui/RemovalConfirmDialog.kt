@@ -38,6 +38,9 @@ import java.nio.file.Path
 /** A Delete-key press waiting for the user to confirm. */
 data class RemovalRequest(val path: Path, val isFolder: Boolean, val contents: List<String> = emptyList())
 
+data class BatchRemovalTarget(val path: Path, val isFolder: Boolean)
+data class BatchRemovalRequest(val targets: List<BatchRemovalTarget>)
+
 @Composable
 fun RemovalConfirmDialog(
     request: RemovalRequest,
@@ -100,6 +103,106 @@ fun RemovalConfirmDialog(
                     }
                     Spacer(Modifier.height(18.dp))
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Button(
+                        onClick = onCancel,
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFF374151),
+                            contentColor = Color.White,
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                    ) {
+                        Text(stringResource("common_cancel"), fontSize = 13.sp)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Button(
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFFDC2626),
+                            contentColor = Color.White,
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                    ) {
+                        Text(button, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BatchRemovalConfirmDialog(
+    request: BatchRemovalRequest,
+    deleteSettings: DeleteSettings,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val count = request.targets.size
+    val (title, message, button) = when (deleteSettings.action) {
+        DeleteAction.MOVE -> Triple(
+            stringResource("batch_removal_confirm_move_title", count),
+            stringResource("batch_removal_confirm_move_message", count, deleteSettings.moveFolder),
+            stringResource("batch_removal_confirm_move_button"),
+        )
+        DeleteAction.TRASH -> Triple(
+            stringResource("batch_removal_confirm_trash_title", count),
+            stringResource("batch_removal_confirm_trash_message", count),
+            stringResource("batch_removal_confirm_trash_button"),
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.6f))
+            .clickable(onClick = onCancel),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            modifier = Modifier
+                .width(440.dp)
+                .clickable(enabled = false) {},
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF232326),
+            elevation = 16.dp,
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = message,
+                    color = Color(0xFF9CA3AF),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                )
+                Spacer(modifier = Modifier.height(18.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 240.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    request.targets.forEach { target ->
+                        val itemText = (if (target.isFolder) "📁 " else "📄 ") +
+                            (target.path.fileName?.toString() ?: target.path.toString())
+                        Text(
+                            text = itemText,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(vertical = 2.dp),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,

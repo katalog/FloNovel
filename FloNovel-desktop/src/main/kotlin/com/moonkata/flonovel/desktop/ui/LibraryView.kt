@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.Checkbox
+import androidx.compose.material.CheckboxDefaults
 import androidx.compose.material.Divider
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -41,8 +43,16 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,6 +90,7 @@ private fun progressColorFor(state: ReadingProgressState): Color = when (state) 
     ReadingProgressState.COMPLETED -> Color(0xFF4ADE80)
 }
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun LibraryView(
     homeFolder: String,
@@ -117,6 +128,7 @@ fun LibraryView(
     deleteKey: String = "DELETE",
     // Called with the selected book file (isFolder = false) or folder (isFolder = true).
     onRemoveRequested: ((path: Path, isFolder: Boolean) -> Unit)? = null,
+    onBatchRemoveRequested: ((List<BatchRemovalTarget>) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var sortOption by remember(initialSortOption) { mutableStateOf(initialSortOption) }
@@ -144,6 +156,8 @@ fun LibraryView(
         mutableStateOf(toSafeRelative(initialRelativePath))
     }
     var selectedIndex by remember { mutableStateOf(0) }
+    var selectedIndices by remember { mutableStateOf(setOf<Int>()) }
+    var anchorIndex by remember { mutableStateOf(0) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -158,6 +172,8 @@ fun LibraryView(
         currentRelativePath = safeFolder
         onRelativePathChanged?.invoke(safeFolder)
         selectedIndex = if (hasParentEntry && hasContent) 1 else 0
+        selectedIndices = emptySet()
+        anchorIndex = selectedIndex
         coroutineScope.launch { listState.scrollToItem(selectedIndex) }
     }
 
@@ -168,6 +184,8 @@ fun LibraryView(
         val exitingFolder = if (lastSlash >= 0) oldFolder.substring(lastSlash + 1) else oldFolder
         currentRelativePath = parentFolder
         onRelativePathChanged?.invoke(parentFolder)
+        selectedIndices = emptySet()
+        anchorIndex = 0
 
         val root = if (homeFolder.isNotBlank()) runCatching { Path.of(homeFolder) }.getOrNull() else null
         val parentContent = if (root != null) {
@@ -268,11 +286,16 @@ fun LibraryView(
     val currentPath by rememberUpdatedState(currentRelativePath)
     val currentDeleteKey by rememberUpdatedState(deleteKey)
     val currentOnRemoveRequested by rememberUpdatedState(onRemoveRequested)
+    val currentOnBatchRemoveRequested by rememberUpdatedState(onBatchRemoveRequested)
+    val currentSelectedIndices by rememberUpdatedState(selectedIndices)
+    val currentAnchorIndex by rememberUpdatedState(anchorIndex)
 
     LaunchedEffect(displayItems) {
         if (displayItems.isNotEmpty() && selectedIndex >= displayItems.size) {
             selectedIndex = (displayItems.size - 1).coerceAtLeast(0)
         }
+        selectedIndices = emptySet()
+        anchorIndex = selectedIndex
     }
 
     // Runs when displayItems is populated, restoring the selection to the book just closed with Esc.
@@ -316,6 +339,9 @@ fun LibraryView(
                     // Let keys pass through to dialog / text inputs
                     false
                 }
+            } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && currentSelectedIndices.size > 1) {
+                selectedIndices = emptySet()
+                true
             } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && currentPath.isBlank()) {
                 // At the library's top level there's no parent folder left to go up to — this is
                 // where "Esc" stops meaning "back" and starts meaning "leave the app," so it needs
@@ -325,29 +351,80 @@ fun LibraryView(
             } else if (event.type == KeyEventType.KeyDown && items.isNotEmpty() &&
                 KeymapHelper.matches(currentDeleteKey, event)
             ) {
-                // The selection index is left alone: once the row is gone the same index points
-                // at the next row, or is clamped to the new last row.
-                val item = items.getOrNull(selectedIndex)
-                when (item?.type) {
-                    1 -> currentOnRemoveRequested?.invoke(item.folder!!.file.toPath(), true)
-                    2 -> currentOnRemoveRequested?.invoke(item.book!!.file.toPath(), false)
+                if (currentSelectedIndices.size > 1) {
+                    val targets = currentSelectedIndices.sorted().mapNotNull { idx ->
+                        items.getOrNull(idx)?.let { itm ->
+                            when (itm.type) {
+                                1 -> itm.folder?.file?.toPath()?.let { BatchRemovalTarget(it, true) }
+                                2 -> itm.book?.file?.toPath()?.let { BatchRemovalTarget(it, false) }
+                                else -> null
+                            }
+                        }
+                    }
+                    if (targets.isNotEmpty()) {
+                        selectedIndices = emptySet()
+                        currentOnBatchRemoveRequested?.invoke(targets)
+                    }
+                } else {
+                    val idx = currentSelectedIndices.firstOrNull() ?: selectedIndex
+                    val item = items.getOrNull(idx)
+                    selectedIndices = emptySet()
+                    when (item?.type) {
+                        1 -> currentOnRemoveRequested?.invoke(item.folder!!.file.toPath(), true)
+                        2 -> currentOnRemoveRequested?.invoke(item.book!!.file.toPath(), false)
+                    }
                 }
                 true
             } else if (event.type == KeyEventType.KeyDown && items.isNotEmpty()) {
-                when (event.key) {
-                    Key.DirectionDown -> {
-                        selectedIndex = (selectedIndex + 1).coerceAtMost(items.size - 1)
+                val isShift = event.isShiftPressed
+                val isCtrl = event.isCtrlPressed || event.isMetaPressed
+                when {
+                    isCtrl && event.key == Key.A -> {
+                        val allIndices = items.indices.filter { items[it].type != 0 }.toSet()
+                        selectedIndices = allIndices
+                        true
+                    }
+                    event.key == Key.Spacebar && selectedIndex in items.indices && items[selectedIndex].type != 0 -> {
+                        selectedIndices = if (selectedIndex in currentSelectedIndices) {
+                            currentSelectedIndices - selectedIndex
+                        } else {
+                            currentSelectedIndices + selectedIndex
+                        }
+                        anchorIndex = selectedIndex
+                        true
+                    }
+                    event.key == Key.DirectionDown -> {
+                        val next = (selectedIndex + 1).coerceAtMost(items.size - 1)
+                        selectedIndex = next
+                        if (isShift) {
+                            val start = minOf(currentAnchorIndex, next)
+                            val end = maxOf(currentAnchorIndex, next)
+                            selectedIndices = (start..end).filter { items[it].type != 0 }.toSet()
+                        } else {
+                            selectedIndices = emptySet()
+                            anchorIndex = next
+                        }
                         coroutineScope.launch { listState.animateScrollToItem(selectedIndex) }
                         true
                     }
-                    Key.DirectionUp -> {
-                        selectedIndex = (selectedIndex - 1).coerceAtLeast(0)
+                    event.key == Key.DirectionUp -> {
+                        val next = (selectedIndex - 1).coerceAtLeast(0)
+                        selectedIndex = next
+                        if (isShift) {
+                            val start = minOf(currentAnchorIndex, next)
+                            val end = maxOf(currentAnchorIndex, next)
+                            selectedIndices = (start..end).filter { items[it].type != 0 }.toSet()
+                        } else {
+                            selectedIndices = emptySet()
+                            anchorIndex = next
+                        }
                         coroutineScope.launch { listState.animateScrollToItem(selectedIndex) }
                         true
                     }
-                    Key.Enter, Key.NumPadEnter -> {
+                    event.key == Key.Enter || event.key == Key.NumPadEnter -> {
                         if (selectedIndex in items.indices) {
                             val item = items[selectedIndex]
+                            selectedIndices = emptySet()
                             when (item.type) {
                                 0 -> navigateToParent()
                                 1 -> navigateToFolder(item.folder!!.relativePath)
@@ -356,19 +433,22 @@ fun LibraryView(
                         }
                         true
                     }
-                    Key.Backspace, Key.Escape -> {
-                        if (currentPath.isNotBlank()) {
+                    event.key == Key.Backspace || event.key == Key.Escape -> {
+                        if (currentSelectedIndices.size > 1) {
+                            selectedIndices = emptySet()
+                            true
+                        } else if (currentPath.isNotBlank()) {
                             navigateToParent()
                             true
                         } else false
                     }
-                    Key.F1 -> {
+                    event.key == Key.F1 -> {
                         if (currentPath.isNotBlank()) {
                             navigateToHome()
                             true
                         } else false
                     }
-                    Key.F4 -> {
+                    event.key == Key.F4 -> {
                         onOpenSettings?.invoke()
                         true
                     }
@@ -898,29 +978,139 @@ fun LibraryView(
                     }
                 }
             } else {
+                if (selectedIndices.isNotEmpty()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E293B),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.6f)),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource("library_selection_count", selectedIndices.size),
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = {
+                                        val allIndices = displayItems.indices.filter { displayItems[it].type != 0 }.toSet()
+                                        selectedIndices = if (selectedIndices.size == allIndices.size) emptySet() else allIndices
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = Color(0xFF334155),
+                                        contentColor = Color.White,
+                                    ),
+                                    shape = RoundedCornerShape(6.dp),
+                                ) {
+                                    val allCount = displayItems.count { it.type != 0 }
+                                    val isAllSelected = selectedIndices.size == allCount && allCount > 0
+                                    Text(
+                                        stringResource(if (isAllSelected) "library_deselect_all" else "library_select_all"),
+                                        fontSize = 12.sp,
+                                    )
+                                }
+                                Button(
+                                    onClick = { selectedIndices = emptySet() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = Color(0xFF334155),
+                                        contentColor = Color.White,
+                                    ),
+                                    shape = RoundedCornerShape(6.dp),
+                                ) {
+                                    Text(stringResource("common_cancel"), fontSize = 12.sp)
+                                }
+                                Button(
+                                    onClick = {
+                                        val targets = selectedIndices.sorted().mapNotNull { idx ->
+                                            displayItems.getOrNull(idx)?.let { itm ->
+                                                when (itm.type) {
+                                                    1 -> itm.folder?.file?.toPath()?.let { BatchRemovalTarget(it, true) }
+                                                    2 -> itm.book?.file?.toPath()?.let { BatchRemovalTarget(it, false) }
+                                                    else -> null
+                                                }
+                                            }
+                                        }
+                                        if (targets.isNotEmpty()) {
+                                            selectedIndices = emptySet()
+                                            onBatchRemoveRequested?.invoke(targets)
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = Color(0xFFDC2626),
+                                        contentColor = Color.White,
+                                    ),
+                                    shape = RoundedCornerShape(6.dp),
+                                ) {
+                                    Text(stringResource("common_delete"), fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     itemsIndexed(displayItems) { index, item ->
-                        val isSelected = index == selectedIndex
+                        val isFocused = index == selectedIndex
+                        val isChecked = index in selectedIndices
+                        val isHighlighted = isChecked || (selectedIndices.isEmpty() && isFocused)
                         val itemModifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                if (isSelected) Color(0xFF3B82F6).copy(alpha = 0.2f) else Color.Transparent,
+                                when {
+                                    isChecked -> Color(0xFF3B82F6).copy(alpha = 0.35f)
+                                    isHighlighted -> Color(0xFF3B82F6).copy(alpha = 0.2f)
+                                    else -> Color.Transparent
+                                },
                                 RoundedCornerShape(6.dp),
                             )
                             .border(
-                                width = if (isSelected) 1.dp else 0.dp,
-                                color = if (isSelected) Color(0xFF60A5FA).copy(alpha = 0.6f) else Color.Transparent,
+                                width = if (isFocused) 1.dp else 0.dp,
+                                color = if (isFocused) Color(0xFF60A5FA).copy(alpha = 0.8f) else Color.Transparent,
                                 shape = RoundedCornerShape(6.dp),
                             )
+                            .onPointerEvent(PointerEventType.Press) { event ->
+                                val isCtrl = event.keyboardModifiers.isCtrlPressed || event.keyboardModifiers.isMetaPressed
+                                val isShift = event.keyboardModifiers.isShiftPressed
+                                if (item.type != 0 && (isCtrl || isShift)) {
+                                    selectedIndex = index
+                                    if (isCtrl) {
+                                        selectedIndices = if (index in selectedIndices) selectedIndices - index else selectedIndices + index
+                                        anchorIndex = index
+                                    } else if (isShift) {
+                                        val start = minOf(anchorIndex, index)
+                                        val end = maxOf(anchorIndex, index)
+                                        selectedIndices = (start..end).filter { displayItems[it].type != 0 }.toSet()
+                                    }
+                                }
+                            }
                             .clickable {
-                                selectedIndex = index
-                                when (item.type) {
-                                    0 -> navigateToParent()
-                                    1 -> navigateToFolder(item.folder!!.relativePath)
-                                    2 -> onBookSelected(item.book!!)
+                                if (item.type == 0) {
+                                    selectedIndices = emptySet()
+                                    navigateToParent()
+                                } else if (selectedIndices.isNotEmpty()) {
+                                    selectedIndices = if (index in selectedIndices) selectedIndices - index else selectedIndices + index
+                                    selectedIndex = index
+                                    anchorIndex = index
+                                } else {
+                                    selectedIndex = index
+                                    anchorIndex = index
+                                    when (item.type) {
+                                        1 -> navigateToFolder(item.folder!!.relativePath)
+                                        2 -> onBookSelected(item.book!!)
+                                    }
                                 }
                             }
                             .padding(horizontal = 14.dp, vertical = 12.dp)
@@ -935,7 +1125,7 @@ fun LibraryView(
                                     Text("📁", fontSize = 16.sp, modifier = Modifier.padding(end = 12.dp))
                                     Text(
                                         text = stringResource("library_parent_folder"),
-                                        color = if (isSelected) Color(0xFF93C5FD) else Color.White,
+                                        color = if (isHighlighted) Color(0xFF93C5FD) else Color.White,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Medium,
                                     )
@@ -950,11 +1140,27 @@ fun LibraryView(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                        if (selectedIndices.isNotEmpty()) {
+                                            Checkbox(
+                                                checked = isChecked,
+                                                onCheckedChange = { checked ->
+                                                    selectedIndices = if (checked) selectedIndices + index else selectedIndices - index
+                                                    selectedIndex = index
+                                                    anchorIndex = index
+                                                },
+                                                colors = CheckboxDefaults.colors(
+                                                    checkedColor = Color(0xFF3B82F6),
+                                                    uncheckedColor = Color(0xFF6B7280),
+                                                    checkmarkColor = Color.White,
+                                                ),
+                                                modifier = Modifier.padding(end = 8.dp),
+                                            )
+                                        }
                                         Text("📁", fontSize = 16.sp, modifier = Modifier.padding(end = 12.dp))
                                         Column {
                                             Text(
                                                 text = folder.name,
-                                                color = if (isSelected) Color(0xFF93C5FD) else Color.White,
+                                                color = if (isHighlighted) Color(0xFF93C5FD) else Color.White,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Medium,
                                                 maxLines = 1,
@@ -978,11 +1184,27 @@ fun LibraryView(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                        if (selectedIndices.isNotEmpty()) {
+                                            Checkbox(
+                                                checked = isChecked,
+                                                onCheckedChange = { checked ->
+                                                    selectedIndices = if (checked) selectedIndices + index else selectedIndices - index
+                                                    selectedIndex = index
+                                                    anchorIndex = index
+                                                },
+                                                colors = CheckboxDefaults.colors(
+                                                    checkedColor = Color(0xFF3B82F6),
+                                                    uncheckedColor = Color(0xFF6B7280),
+                                                    checkmarkColor = Color.White,
+                                                ),
+                                                modifier = Modifier.padding(end = 8.dp),
+                                            )
+                                        }
                                         Text("📄", fontSize = 16.sp, modifier = Modifier.padding(end = 12.dp))
                                         Column {
                                             Text(
                                                 text = book.displayName,
-                                                color = if (isSelected) Color(0xFF93C5FD) else Color.White,
+                                                color = if (isHighlighted) Color(0xFF93C5FD) else Color.White,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Medium,
                                                 maxLines = 1,

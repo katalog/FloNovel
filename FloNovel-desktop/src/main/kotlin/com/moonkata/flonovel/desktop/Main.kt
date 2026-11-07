@@ -101,6 +101,9 @@ import com.moonkata.flonovel.desktop.text.TextLoader
 import com.moonkata.flonovel.desktop.ui.AutoDismissMessage
 import com.moonkata.flonovel.desktop.ui.LibraryView
 import com.moonkata.flonovel.desktop.ui.MassDeletionDialog
+import com.moonkata.flonovel.desktop.ui.BatchRemovalConfirmDialog
+import com.moonkata.flonovel.desktop.ui.BatchRemovalRequest
+import com.moonkata.flonovel.desktop.ui.BatchRemovalTarget
 import com.moonkata.flonovel.desktop.ui.RemovalConfirmDialog
 import com.moonkata.flonovel.desktop.ui.RemovalRequest
 import com.moonkata.flonovel.desktop.ui.removalOutcomeMessage
@@ -530,6 +533,95 @@ fun main(args: Array<String>) {
         }
     }
 
+    var pendingBatchRemoval by remember { mutableStateOf<BatchRemovalRequest?>(null) }
+
+    val requestBatchRemoval: (List<BatchRemovalTarget>) -> Unit = { targets ->
+        coroutineScope.launch {
+            try {
+                if (targets.isEmpty()) return@launch
+                val refusal = when {
+                    settings.delete.action == DeleteAction.TRASH ->
+                        if (SystemTrash.isSupported) null else RemovalRefusal.TRASH_UNSUPPORTED
+                    else -> FileRemover.checkMoveFolder(settings.delete.moveFolder, homePath)
+                }
+                if (refusal != null) {
+                    floatingToast.show(removalRefusalMessage(refusal))
+                } else {
+                    pendingBatchRemoval = BatchRemovalRequest(targets)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                floatingToast.show(Strings.get("removal_failed", e.message ?: e.javaClass.simpleName))
+            }
+        }
+    }
+
+    val performBatchRemoval: (BatchRemovalRequest) -> Unit = { request ->
+        pendingBatchRemoval = null
+        val openBook = activeTarget?.takeIf { target ->
+            request.targets.any { !it.isFolder && it.path.toAbsolutePath().normalize() == target.filePath.toAbsolutePath().normalize() }
+        }
+        var nextSelectionPath: String? = null
+        if (openBook != null) {
+            bookStore.flush()
+            val folder = openBook.book.path.replace('\\', '/').substringBeforeLast('/', "")
+            if (homePath != null) {
+                val sorted = LibraryScanner.sort(
+                    LibraryScanner.scanDirectory(homePath, folder, booksData).books,
+                    runCatching { LibrarySortOption.valueOf(settings.librarySortOption) }
+                        .getOrDefault(LibrarySortOption.RECENT),
+                )
+                nextSelectionPath = LibraryScanner.neighbourAfterRemoval(sorted, openBook.book.key)?.relativePath
+            }
+        }
+        coroutineScope.launch {
+            val (succeeded, failed) = withContext(Dispatchers.IO) {
+                var s = 0
+                var f = 0
+                for (target in request.targets) {
+                    val outcome = if (target.isFolder) {
+                        try {
+                            val intent = if (dropboxClient.isLinked) syncEngine?.prepareFolderDeletion(target.path) else null
+                            val result = FileRemover.removeFolder(target.path, settings.delete, homePath ?: target.path.parent)
+                            if (intent != null && result !is RemovalOutcome.Trashed && result !is RemovalOutcome.Moved &&
+                                result !is RemovalOutcome.FolderRemoved) syncEngine?.cancelFolderDeletion(intent)
+                            result
+                        } catch (e: Exception) {
+                            RemovalOutcome.Failed(e.message ?: e.javaClass.simpleName)
+                        }
+                    } else {
+                        FileRemover.removeBook(target.path, settings.delete, homePath ?: target.path.parent)
+                    }
+                    val isRemoved = outcome is RemovalOutcome.Trashed || outcome is RemovalOutcome.Moved || outcome is RemovalOutcome.FolderRemoved
+                    if (isRemoved) s++ else f++
+                }
+                Pair(s, f)
+            }
+            if (failed == 0) {
+                val msg = if (settings.delete.action == DeleteAction.TRASH) {
+                    Strings.get("batch_removal_done_trashed", succeeded)
+                } else {
+                    Strings.get("batch_removal_done_moved", succeeded)
+                }
+                floatingToast.show(msg)
+            } else {
+                floatingToast.show(Strings.get("batch_removal_done_partial", succeeded + failed, succeeded, failed))
+            }
+            if (succeeded > 0) {
+                if (openBook != null) {
+                    readingSyncCoordinator.onBookClosed()
+                    val normPath = openBook.book.path.replace('\\', '/')
+                    currentLibraryFolder = normPath.substringBeforeLast('/', "")
+                    lastClosedBookPath = nextSelectionPath
+                    activeTarget = null
+                }
+                booksData = bookStore.load()
+                directoryRevision++
+            }
+        }
+    }
+
     var windowKeyDispatcher by remember { mutableStateOf<((androidx.compose.ui.input.key.KeyEvent) -> Boolean)?>(null) }
 
     val initialWindowSettings = remember { settings.window }
@@ -604,6 +696,7 @@ fun main(args: Array<String>) {
         icon = painterResource("icon.png"),
         onPreviewKeyEvent = { keyEvent ->
             val removal = pendingRemoval
+            val batchRemoval = pendingBatchRemoval
             val massDeletion = pendingMassDeletion
             if (massDeletion != null) {
                 if (keyEvent.type == androidx.compose.ui.input.key.KeyEventType.KeyDown &&
@@ -624,6 +717,15 @@ fun main(args: Array<String>) {
                         androidx.compose.ui.input.key.Key.Enter,
                         androidx.compose.ui.input.key.Key.NumPadEnter -> performRemoval(removal)
                         androidx.compose.ui.input.key.Key.Escape -> pendingRemoval = null
+                    }
+                }
+                true
+            } else if (batchRemoval != null) {
+                if (keyEvent.type == androidx.compose.ui.input.key.KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        androidx.compose.ui.input.key.Key.Enter,
+                        androidx.compose.ui.input.key.Key.NumPadEnter -> performBatchRemoval(batchRemoval)
+                        androidx.compose.ui.input.key.Key.Escape -> pendingBatchRemoval = null
                     }
                 }
                 true
@@ -847,6 +949,7 @@ fun main(args: Array<String>) {
                 onExitApp = performExit,
                 deleteKey = settings.keymap.deleteFile,
                 onRemoveRequested = requestRemoval,
+                onBatchRemoveRequested = requestBatchRemoval,
                 directoryRevision = directoryRevision,
                 onSortOptionChanged = { newOption ->
                     val updatedSettings = settings.copy(librarySortOption = newOption.name)
@@ -920,7 +1023,8 @@ fun main(args: Array<String>) {
                 onOpenSettings = {
                     showLibrarySettingsDialog = true
                 },
-                isExternalDialogOpen = showLibrarySettingsDialog || dropboxAuthErrorMessage != null || dropboxManualAuthUrl != null,
+                isExternalDialogOpen = showLibrarySettingsDialog || dropboxAuthErrorMessage != null ||
+                    dropboxManualAuthUrl != null || pendingBatchRemoval != null || pendingRemoval != null,
                 onRegisterKeyDispatcher = { windowKeyDispatcher = it },
                 onBookSelected = { item ->
                     val bookFolder = item.relativePath.replace('\\', '/').substringBeforeLast('/', "")
@@ -1205,6 +1309,15 @@ fun main(args: Array<String>) {
                 deleteSettings = settings.delete,
                 onConfirm = { performRemoval(request) },
                 onCancel = { pendingRemoval = null },
+            )
+        }
+
+        pendingBatchRemoval?.let { request ->
+            BatchRemovalConfirmDialog(
+                request = request,
+                deleteSettings = settings.delete,
+                onConfirm = { performBatchRemoval(request) },
+                onCancel = { pendingBatchRemoval = null },
             )
         }
 
