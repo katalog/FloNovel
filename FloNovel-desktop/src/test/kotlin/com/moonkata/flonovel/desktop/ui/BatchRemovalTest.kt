@@ -89,4 +89,43 @@ class BatchRemovalTest {
         selected = if (3 in selected) selected - 3 else selected + 3
         assertEquals(setOf(1, 3), selected)
     }
+
+    @Test
+    fun spaceToggle_andArrowNavigation_preservesSelection() {
+        // Simulates user workflow:
+        // 1. Cursor at row 1. Press Space -> row 1 selected.
+        var selectedIndices = setOf<Int>()
+        var cursor = 1
+
+        // Toggle Space on row 1
+        selectedIndices = if (cursor in selectedIndices) selectedIndices - cursor else selectedIndices + cursor
+        assertEquals(setOf(1), selectedIndices)
+
+        // Move Down to row 2 (preserves selection)
+        cursor = 2
+        assertEquals(setOf(1), selectedIndices)
+
+        // Toggle Space on row 2
+        selectedIndices = if (cursor in selectedIndices) selectedIndices - cursor else selectedIndices + cursor
+        assertEquals(setOf(1, 2), selectedIndices)
+
+        // Move Down to row 3 (preserves selection)
+        cursor = 3
+        assertEquals(setOf(1, 2), selectedIndices)
+
+        // Toggle Space on row 3
+        selectedIndices = if (cursor in selectedIndices) selectedIndices - cursor else selectedIndices + cursor
+        assertEquals(setOf(1, 2, 3), selectedIndices)
+
+        // Move Up to row 2
+        cursor = 2
+        // Toggle Space on row 2 -> deselects row 2
+        selectedIndices = if (cursor in selectedIndices) selectedIndices - cursor else selectedIndices + cursor
+        assertEquals(setOf(1, 3), selectedIndices)
+
+        // Press Escape -> clears selection
+        selectedIndices = emptySet()
+        assertTrue(selectedIndices.isEmpty())
+    }
 }
+

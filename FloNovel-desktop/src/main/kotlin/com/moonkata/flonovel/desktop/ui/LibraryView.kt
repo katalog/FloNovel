@@ -339,7 +339,7 @@ fun LibraryView(
                     // Let keys pass through to dialog / text inputs
                     false
                 }
-            } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && currentSelectedIndices.size > 1) {
+            } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && currentSelectedIndices.isNotEmpty()) {
                 selectedIndices = emptySet()
                 true
             } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && currentPath.isBlank()) {
@@ -401,7 +401,6 @@ fun LibraryView(
                             val end = maxOf(currentAnchorIndex, next)
                             selectedIndices = (start..end).filter { items[it].type != 0 }.toSet()
                         } else {
-                            selectedIndices = emptySet()
                             anchorIndex = next
                         }
                         coroutineScope.launch { listState.animateScrollToItem(selectedIndex) }
@@ -415,7 +414,6 @@ fun LibraryView(
                             val end = maxOf(currentAnchorIndex, next)
                             selectedIndices = (start..end).filter { items[it].type != 0 }.toSet()
                         } else {
-                            selectedIndices = emptySet()
                             anchorIndex = next
                         }
                         coroutineScope.launch { listState.animateScrollToItem(selectedIndex) }
@@ -434,7 +432,7 @@ fun LibraryView(
                         true
                     }
                     event.key == Key.Backspace || event.key == Key.Escape -> {
-                        if (currentSelectedIndices.size > 1) {
+                        if (currentSelectedIndices.isNotEmpty()) {
                             selectedIndices = emptySet()
                             true
                         } else if (currentPath.isNotBlank()) {
